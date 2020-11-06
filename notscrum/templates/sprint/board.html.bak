@@ -1,0 +1,103 @@
+{% extends 'base.html' %}
+
+{% block header %}
+    <h3>{% block title %}{% if not static %}Current {% endif %}Sprint{% endblock %}</h3>
+    &nbsp;<p style="color: #aaa;">From {{ sprint['startDate'] }} to {{ sprint['endDate'] }}</p>
+{% endblock %}
+
+{% block content %}
+{% if static %}
+<div class="static">
+{% else %}
+<div class="editable">
+{% endif %}
+<div class="row">
+</div>
+{% for epic in epics %}
+<div class="epic {{epic.color}}">
+<h2>Epic: {{ epic['epic'] }}</h2><br>
+    {% for story in stories if story['epicID'] == epic['id'] %}
+        <h4>&nbsp;{{ story['story'] }}</h4>
+        <div class="row">
+        {% for status in statuses %}
+            <div class="large-6 colmuns status {{ status.lower().replace(' ','-') }}" 
+                    status="{{ status }}" 
+                    status_tag="{{ status.lower().replace(' ','-') }}" 
+                    id="{{ "%d_%s"%(story.id,status.lower().replace(' ','-')) }}">
+                {% for task in tasks if task['storyID'] == story['id'] and task['status'] == status %} 
+                <div class="task-container" 
+                        task="{{ task.id }}" 
+                        story="{{ story.id }}" 
+                        id="{{ 'task_%d'%task.id }}" 
+                        update_url="{{ url_for('task.show',task_id=task.id,is_json=True) }}">
+                    <span>{{ task.task }}</span>
+                    <span class="label float-right status {{ task['status'].lower().replace(' ','-') }} " task="{{ task['id'] }}">{{ task['status'] }}</span><br>
+                    <span>E:{{ task['estimate'] }}</span><span class='float-right'>A:TODO</span>
+                </div> 
+            {% else %}
+            <p>{{ status }}</p>
+            {% endfor %}
+            </div>
+        {% endfor %}
+        </div>
+    {% endfor %}
+</div>
+{% else %}
+    No Tasks in Sprint :-(<br>
+    <a href="{{ url_for('task.list_all') }}">Add Some Here!</a>
+{% endfor %}
+</div>
+{% endblock %}
+<script>
+    //{% block jquery %}
+    $('.editable .task-container').draggable({
+        revertDuration: 0,
+        revert: true
+    }).each(function(){
+        $(this).attr('status_tag',$(this).parent().attr('status_tag'));
+    });
+    $('.status').droppable({
+        drop: function(event, ui){
+            next_classes = 'label float-right status ';
+            // Get Task Context
+            target_status_tag = $(this).attr('status_tag');
+            target_status = $(this).attr('status');
+            target_story = ui.helper.attr('story');
+            source_status = ui.helper.attr('status_tag');
+            // Format source & target status formatting
+            target_id = '#' + target_story + '_' + target_status_tag;
+            source_id = '#' + target_story + '_' + source_status;
+            update_url = ui.helper.attr('update_url');
+            status_label = ui.helper.children('.status:first');
+            $(target_id).append(ui.helper);
+            status_label.text('Updating...');
+            $.ajax({
+                url: update_url,
+                data: {status:target_status},
+                type: 'POST',
+                dataType: 'json'
+            }).done(function(json) {
+                if (json.Success === true){
+                    console.log('Successfully updated status');
+                    $(target_id).children('p:first').remove();
+                    if ($(source_id).children('div').length === 0) {
+                        msg = $(source_id).attr('status');
+                        $(source_id).html('<p>'+msg+'<\p>');
+                    }
+                    // Replace status tag in task
+                    ui.helper.attr('status_tag',target_status_tag);
+                    status_label.text(target_status.trim());
+                    status_label.attr('class',next_classes + target_status_tag);
+                } else {
+                    pretty_alert("Update failed unexpectedly. Please reload page.");
+                }
+            }).fail(function(xhr, status, errorThrown) {
+                pretty_alert("Failed to update");
+                $(source_id).append(ui.helper);
+            }).always(function() {
+                //pass
+            });
+        }
+    });
+    //{% endblock %}
+</script>

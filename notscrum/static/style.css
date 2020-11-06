@@ -1,0 +1,63 @@
+html { font-family: sans-serif; background: #eee; padding: 1rem; }
+body { max-width: 960px; margin: 0 auto; background: white; }
+h1 { font-family: serif; color: #377ba8; margin: 1rem 0; }
+h2 { font-family: serif; color: #317da3; margin: .5rem 0; }
+h3 { font-family: serif; color: #4688a8; margin: .3rem 0; }
+h4 { font-family: serif; color: #7dbcdb; margin: .2rem 0; }
+.comment_div { padding: .1rem; padding-left: .2rem; }
+a { color: #377ba8; }
+hr { border: none; border-top: 2px solid lightgray; }
+nav { background: lightgray; display: flex; align-items: center; padding: 0 0.5rem; }
+nav h1 { flex: auto; margin: 0; }
+nav h1 a { text-decoration: none; padding: 0.25rem 0.5rem; }
+nav ul  { display: flex; list-style: none; margin: 0; padding: 0; }
+nav ul li a, nav ul li span, header .action { display: block; padding: 0.5rem; }
+.content { padding: 0 1rem 2rem; }
+.content > header { border-bottom: 1px solid lightgray; display: flex; align-items: flex-end; }
+.content > header h1 { flex: auto; margin: 1rem 0 0.25rem 0; }
+.flash { margin: 1em 0; padding: 1em; background: #cae6f6; border: 1px solid #377ba8; }
+.post > header { display: flex; align-items: flex-end; font-size: 0.85em; }
+.post > header > div:first-of-type { flex: auto; }
+.post > header h1 { font-size: 1.5em; margin-bottom: 0; }
+.post .about { color: slategray; font-style: italic; }
+.post .body { white-space: pre-line; }
+.content:last-child { margin-bottom: 0; }
+.content form { margin: 1em 0; display: flex; flex-direction: column; }
+.content label { font-weight: bold; margin-bottom: 0.5em; }
+.story-label {background: #00000011; border-radius:.4rem;}
+.story {padding-top:.5rem;}
+.epic-label {background: #00000033; border-radius:.4rem; font-weight:bolder;}
+.content input, .content textarea { margin-bottom: 1em; }
+.content textarea { min-height: 12em; resize: vertical; }
+input.danger { color: #cc2f2e; }
+input[type=submit] { align-self: start; min-width: 10em; }
+.green { background: rgb(173, 224, 173);padding:.5rem}
+.yellow { background: rgb(224, 212, 173);padding:.5rem}
+.red { background: rgb(236, 185, 185);padding:.5rem}
+.blue { background: rgb(174, 174, 233);padding:.5rem}
+.orange { background: rgb(233, 210, 166);padding:.5rem}
+.purple { background: rgb(211, 177, 212);padding:.5rem}
+.epic { color: rgb(15, 22, 20); padding: .2rem; margin-bottom: .2rem;}
+.row { display: flex; }
+.column { flex: 50%; }
+.box { background: #eee}
+.task-container { border-radius: 0px .5rem;}
+.unscheduled-container {  border-radius: .5rem ; color:#00000066}
+.note { background: #ffffffaa; padding: .2rem; border-radius: .5rem ; box-sizing: border-box; width:100%; color:#00000066}
+.to-do { background: rgb(143, 143, 143) !important; color: rgb(0, 0, 0) !important;}
+.in-progress { background: rgb(194, 116, 0) !important; }
+.done { background: #6ed393 !important; color: #0a0a0a !important;}
+.status { border-radius: 0px .4rem 0px 0px !important; transition: .25s;}
+.status.in-progress:hover { background-color:rgb(170,90,0) !important; cursor: pointer;}
+.status.to-do:hover { background-color:rgb(130,130,130) !important; cursor: pointer;}
+.status.done:hover { background-color:rgb(61, 129, 44) !important; cursor: pointer;}
+div.status { margin: .2rem; padding: .4rem .4rem 0rem .3rem; }
+.tag {width: fit-content; padding: .4rem .1rem .1rem .1rem; border: 1px solid #1779ba; color: #1779ba;}
+.postable { background: white; color: black,}
+.log-work {background-color: #1779ba; color: #fafafa; border-radius: 0px  0px .4rem 0px !important; padding: .2rem .4rem .4rem .3rem !important;margin: .2rem !important; transition:.25s;}
+.log-work:hover {background-color:#14679e; cursor: pointer;}
+.container{ background: #ffffffaa; margin-bottom: .5rem; padding: .2rem; margin-left: .2rem; box-sizing: border-box; width:100%;border-width:.1rem;border-style:solid;border-color: #eee;}
+.scheduled:hover {cursor: pointer;border-color:#00000044;border-width:.1rem;}
+.editable{ background:#ffffffaa; font-weight:lighter;padding-left:.2rem;padding-right:.2rem;}
+.editable:hover{cursor:pointer;}
+.recurring:hover{cursor:pointer; background-color:#14679e;}

@@ -1,0 +1,45 @@
+{% if not asc %}
+{% extends 'base.html' %}
+
+{% block header %}
+    <h1>{% block title %}Create Epic{% endblock %}</h1>
+{% endblock %}
+{% endif %}
+
+{% block content %}
+<div class="post">
+    <form method="post" action="{{ url_for('epic.create') }}" data-abide novalidate>
+        <div class="cell">
+            <label>Epic Name
+                <input type="text" placeholder="Thesis" aria-describedby="exampleHelpEpic" name="name" id="name" data-abide-ignore required>
+            </label>
+            <p class="help-text" id="exampleHelpEpic">This is the Epic Name</p>
+            <div class="cell medium-6">
+                <label>Color
+                    <select id="select" name="color" required>
+                    <option value="green">Green</option>
+                    <option value="red">Red</option>
+                    <option value="blue">Blue</option>
+                    <option value="orange">Orange</option>
+                    <option value="purple">Purple</option>
+                </select>
+                </label>
+            </div>
+            <div>
+                <button class="button" type="submit" value="Create">Create</button>
+                {% if asc %}<button onclick="" class="button cancel float-right" type="button" >Cancel</button>{% endif %} 
+            </div>
+        </div>
+    </form>
+</div>
+{% if asc %}
+<script>
+$('.cancel').click(function(){
+    story_id = $(this).attr('story');
+    $(this).parent().parent().parent().parent().parent().siblings('button').removeClass('invisible');
+    $(this).parent().parent().parent().parent().remove();
+})
+</script>
+{% endif %}
+{% endblock %}
+

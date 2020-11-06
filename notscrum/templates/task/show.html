@@ -1,0 +1,9 @@
+{% extends 'base.html' %}
+
+{% block header %}
+    <h1>{% block title %}Task {{ task.task }} for {{ task.storyID }}{% endblock %}</h1>
+{% endblock %}
+
+{% block content %}
+{{ task.task }}[{{ task.id }}] - {{ task.estimate }} ({{ task.status }})
+{% endblock %}

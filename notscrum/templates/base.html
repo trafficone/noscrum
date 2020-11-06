@@ -1,0 +1,81 @@
+<!doctype html>
+<title>{% block title %}{% endblock %} - NotScrum</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}"> 
+<link rel="stylesheet" href="{{ url_for('static', filename='css/foundation-float.css') }}"> 
+<link rel="stylesheet" href="{{ url_for('static', filename='css/jquery-ui.min.css') }}"> 
+<div class="top-bar">
+    <div class="top-bar-left"><h1><a href="{{ url_for('index') }}">NotScrum</a></h1></div>
+    <div class="top-bar-right">
+    <ul class="menu">
+        <li><a href="{{ url_for('task.list_all') }}">Task Board</a>
+        <li><a href="{{ url_for('sprint.active') }}">Sprint</a>
+        <li><input type="search" placeholder="Search"></li>
+        <li><button type="button" class="button">Search</button></li>
+        </ul>
+    </div>
+</div>
+<section class="content">
+    <header>
+        {% block header %}{% endblock %}
+    </header>
+    {% for message in get_flashed_messages() %}
+        <div class="callout flash" data-closable>
+            <button class="close-button" aria-label="Close Alert" type="button" data-close>
+                <span aria-hidden="true">&times;</span>
+            </button>
+            {{ message }}
+        </div>
+    {% endfor %}
+    {% block content %}{% endblock %}
+<div>
+    <h1>DEBUG SITEMAP</h1>
+    <h3>Epic</h3>
+    <ul>
+        <li><a href="{{ url_for('epic.create') }}">Epic Create</a></li>
+        <li><a href="{{ url_for('epic.list_all') }}">Epic List</a></li>
+        <li>Epic Show requires Epic ID, see Epic List</li>
+    </ul>
+    <h3>Story</h3>
+    <ul>
+        <li>Story Create requires Epic ID See Epic List</li>
+        <li><a href="{{ url_for('story.list_all') }}">Story List</a></li>
+        <li>Story Show requires Story ID See Story List</li>
+        <li>Tag Story requires Story ID, See Story List</li>
+    </ul>
+    <h3>Task</h3>
+    <ul>
+        <li>Task Create Requires Story ID, See Story List</li>
+        <li><a href="{{ url_for('task.list_all')}}">Task List</a></li>
+        <li>Task Show Requires Task ID, See Task List</li>
+    </ul>
+    <h3>Sprint</h3>
+    <ul>
+        <li><a href="{{ url_for('sprint.create') }}">Sprint Create</a></li>
+        <li><a href="{{ url_for('sprint.list_all') }}">Sprint List</a></li>
+        <li>Sprint Show requires Sprint ID, See Sprint List</li>
+        <li><a href="{{ url_for('sprint.active') }}">Active Sprint</a></li>
+    </ul>
+    <h3>Tag</h3>
+    <ul>
+        <li><a href="{{ url_for('tag.create') }}">Tag Create</a></li>
+        <li><a href="{{ url_for('tag.list_all') }}">Tag List</a></li>
+        <li>Tag Show requires Tag ID, See Tag List</li>
+    </ul>
+</div>
+</section>
+<script src="{{ url_for('static', filename='js/vendor/jquery.js') }}"></script>
+<script src="{{ url_for('static', filename='js/vendor/what-input.js') }}"></script>
+<script src="{{ url_for('static', filename='js/vendor/foundation.js') }}"></script>
+<!--script src="{{ url_for('static', filename='js/foundation.core.js') }}"></script-->
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+<!--script src="{{ url_for('static', filename='js/foundation.abide.js') }}"></script-->
+<script src="{{ url_for('static', filename='js/jquery-ui.js') }}"></script>
+<script>
+    $(document).ready(function(){
+        console.log("JQuery Running");
+        $(document).foundation();
+        console.log("Foundation Running")
+    //{% block jquery %}
+    //{% endblock %}
+    }); 
+</script>

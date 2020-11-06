@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+
+{% block header %}
+    <h1>{% block title %}Epic {{ epic['epic'] }}{% endblock %}</h1>
+{% endblock %}
+
+{% block content %}
+<button class="button">Rename Epic</button>
+<div class="epic {{ epic['color'] }}">
+<h2>Stories in Epic</h2>
+    {% for story in stories %}
+            <div class="row">
+                <div class="columns"><h3>{{ story['story'] }}</h3></div>
+                <div class="columns">
+                Priority {{ story['prioritization'] }}<br>
+                Tasks {{ story['active_tasks'] }}/{{ story['tasks'] }} ({{ story['unestimated_tasks'] }} Unest.)<br>
+                Estimated Time: {{ story['rem_estimate'] }}<br>
+                </div>
+            </div>
+        {% endfor %}
+    <a class="button" href="{{ url_for('story.create', epic_id=epic['id']) }}">Create Story</a>
+</div>
+TODO: Support Editing Epic from Here
+TODO: Make this look nicer
+{% endblock %}

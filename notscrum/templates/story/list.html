@@ -1,0 +1,24 @@
+{% extends 'base.html' %}
+
+{% block header %}
+    <h1>{% block title %}All Stories{% endblock %}</h1>
+{% endblock %}
+
+{% block content %}
+    {% for epic in epics %}
+    <div class="epic {{ epic['color'] }}"><h2>{{ epic['epic'] }}</h2>
+        <a class="button" href="{{ url_for('story.create', epic_id=epic['id']) }}">Create Story in Epic</a>
+        <ul class="no-bullet">
+        {% for story in stories %}
+        {% if story['epicID'] == epic['id'] %}
+        <li id="story_{{ story['id'] }}" class="story ">
+            <a href="{{ url_for('story.show', story_id=story['id']) }}">{{ story['story'] }}</a> - {{ story['prioritization'] }}
+            <a href="{{ url_for('story.tag', story_id=story.id) }}">Tag Story</a>
+        </li>
+        {% endif %}
+        {% endfor %}
+        </ul>
+    </div>
+    {% endfor %}
+TODO: Support Filtering
+{% endblock %}

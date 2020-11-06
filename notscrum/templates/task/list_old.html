@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+
+{% block header %}
+    <h1>{% block title %}All Tasks{% endblock %}</h1>
+{% endblock %}
+
+{% block content %}
+TODO: Load Epics and Stories Separately
+    {% for epic in epics %}
+    <div class="epic {{ epic['color'] }}"><h2>{{ epic['epic'] }}</h2>
+        Total Estimate: {{ epic['estimate'] }}
+        <a href="{{ url_for('story.create', epic_id=epic['id']) }}">Create Story in Epic</a>
+        <ul>
+        {% for story in stories %}
+            {% if story['epicID'] == epic['id'] %}
+            <li id="story_{{ story['id'] }}" class="story ">
+                <a href="{{ url_for('story.show', story_id=story['id']) }}">{{ story['story'] }}</a> - {{ story['prioritization'] }}
+                Total Estimate: {{ story['estimate'] }}
+                <ul>
+                    {% for task in tasks %}
+                        {% if story['id'] == task['storyID'] %}
+                        <li id="task_{{ task['id'] }}" class="task"><a href={{ url_for('task.show', task_id=task['id']) }}>{{ task['task'] }}</a> - {{ task['estimate']}}</li>
+                        {% endif %}
+                    {% endfor %}
+                </ul>
+            </li>
+            {% endif %}
+        {% endfor %}
+        </ul>
+    </div>
+    {% endfor %}
+{% endblock %}

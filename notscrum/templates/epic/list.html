@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+
+{% block header %}
+    <h2>{% block title %}List of Epics{% endblock %}</h2>
+{% endblock %}
+
+{% block content %}
+<a class="small button" href="{{ url_for('epic.create') }}">Create New Epic</a>
+<br>
+    <div class="grid-x grid-padding-x">
+        {% for epic in epics %}
+            <div id="epic_{{ epic['id'] }}" class="grid-x grid-padding-x large-8 medium-8 cell epic {{ epic['color'] }}">
+                <h4>{{ epic['epic'] }}</h4>
+                &nbsp;
+                <ul class="no-bullet">
+                    <li>Stories: TODO</li>
+                    <li>Tasks: TODO/TODO (TODO Unestimated)</li>
+                    <li>Estimated Time Remaining: TODOhours</li>
+                </ul>
+                <div class="grid-frame">
+                    <a class="button" href="{{ url_for('epic.show', epic_id=epic['id']) }}">
+                        View Epic
+                    </a>&nbsp;
+                    <a class="button" href="{{ url_for('story.create', epic_id=epic['id']) }}">Create Story in Epic</a>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+{% endblock%}

@@ -1,0 +1,378 @@
+{% extends 'base.html' %}
+
+{% block header %}
+    <h1>{% block title %}Task List{% endblock %}</h1>
+    <div>
+        <button id="sprintPlan" class="button" sprint="{{current_sprint.id}}">Plan Sprint {{ current_sprint['id'] }}</button>
+    </div>
+    <div>Filter: 
+        <button class="button" id="status_filter_button">Status</button>
+        <button class="button" id="deadline_filter_button">Deadline</button>
+        <button class="button" id="clear_filter_button">Clear Filters</button>
+    </div>
+    <div id="status_filter_reveal" class="reveal" data-reveal>
+        <h3>Status Filter</h3>
+        <form data-abide onsubmit="return false;">
+            <fieldset class="cell medium-6">
+                <legend>Supported Filters</legend>
+                <input class="status-filter" id="filter_todo" type="checkbox" name="to-do" checked><label for="filter_todo">To-Do</label>
+                <input class="status-filter" id="filter_in_progress" type="checkbox" name="in-progress" checked><label for="filter_in_progress">In Progress</label>
+                <input class="status-filter" id="filter_done" type="checkbox" name="done" checked><label for="filter_done">Done</label>
+            </fieldset>
+            <button type="submit" class="button" id="status_filter_submit">Filter</button>
+            <button class="button" data-close>Cancel</button>
+        </form>
+    <button class="close-button" data-close aria-label="Close"><span aria-hidden="true">&times;</span></button>
+    </div>
+    <div id="deadline_filter_reveal" class="reveal" data-reveal>
+        <h3>Deadline Filter</h3>
+        <form data-abide onsubmit="return false;">
+            <label>Due Before:
+                <input id="filter_deadline_end" name="date" class="datepicker-input"  />
+                <!--span title="Click to Edit" contentEditable="false" id="filter_deadline_endspan" class="editable deadline">Not Set</span>-->
+            </label>
+            <label>Due After:
+                <input id="filter_deadline_start" name="date" class="datepicker-input"  />
+                <!--span title="Click to Edit" contentEditable="false" id="filter_deadline_startspan" class="editable deadline">Not Set</span-->
+            </label>
+            <input id="filter_undeadlined" type="checkbox"><label for="filter_undeadlined">Filter Tasks Without Deadline</label>
+            <button type="submit" class="button" id="deadline_filter_submit">Filter</button>
+        </form>
+        <button class="button next_filter" weeks="1" >Due in 1 Weeks</button>
+        <button class="button next_filter" weeks="2" >Due in 2 Weeks</button>
+        <button class="button next_filter" weeks="4" >Due in 4 Weeks</button>
+        <button class="close-button" data-close aria-label="Close"><span aria-hidden="true">&times;</span></button>
+    </div>
+{% endblock %}
+
+{% block content %}
+{% for epic in epics %}
+<div class="epic {{ epic['color'] }}">
+    <div class="row">
+        <h3>{{ epic['epic'] }}</h3>
+                <div class="columns small-3">Estimate: {{ epic['estimate'] }}</div>
+                <div class="columns small-3">Unestimated : {{ epic['unestimated_tasks'] }}</div>
+                <div class="columns small-3">Total Tasks: {{ epic['tasks'] }}</div>
+                <div class="columns small-3">Active: {{ epic['active_tasks'] }}</div>
+    </div>
+    {% for story in stories if story['epicID'] == epic['id'] %}
+    <div class="row story" update_url="{{ url_for('story.show',story_id=story.id,is_json=True) }}">
+        <div class="float-left"><span class="badge {{ colors[story['prioritization']] }}">{{ story['prioritization'] }}</span></div>
+        &nbsp;
+        <h5 id="story_{{story.id}}" class="editable" title="Click to Edit Story" update_key="story">{{ story['story'] }}</h5>
+    </div>
+    <div class="row">
+        <div class="small-2 columns story-label">
+            <div>Hours: {{ story['estimate'] }}</div>
+            <div>Tasks: {{ story['tasks'] }}</div>
+            <div>Remain: {{ story['active_tasks'] }}</div>
+            <input id="story_deadline_datepicker_{{story.id}}" name="date" class="datepicker-input" type="hidden" />
+            <span  title="Click to Edit" contentEditable="false" update_key="deadline" id="story_deadline_{{story.id}}" class="story-deadline editable deadline">{{ 'No Deadline Set' if not story.deadline else story.deadline }}</span>
+            
+        </div>
+        <div class="large-10 columns">
+            {% for task in tasks if task['storyID'] == story['id'] %}
+            <div class="task-container container" 
+                 task="{{ task.id }}" 
+                 update_url="{{ url_for('task.show',task_id=task.id,is_json=True) }}">
+                 <div class="row task-header">
+                    <div class="columns large-6 task-name" ><span class="editable" title="Click to edit Task" id="task_name_{{task.id}}" update_key="task">{{ task['task'] }}</span></div>
+                    <div class="columns small-4"></div>
+                    <div class="columns small-2 label float-right status {{ task['status'].lower().replace(' ','-') }}" style="margin-right:1rem;" id="task_status_{{task.id}}">{{ task['status'] }}</div><br>
+                </div>
+                <div class="row task-work">
+                    <div class="columns small-2">
+                        E:&nbsp;<span title="Click to Edit Estimate"  class="editable note" id="task_est_{{task.id}}" update_key="estimate">{{ task['estimate'] }}</span>
+                    </div>
+                    <div class="columns small-2"><span class='float-right'>A:{{ task['actual'] }}</span></div>
+                    <div class="columns large-6">
+                        <input id="task_deadline_datepicker_{{task.id}}" name="date" class="datepicker-input" type="hidden" />
+                        <span  title="Click to Edit" contentEditable="false" update_key="deadline" id="task_deadline_{{task.id}}" class="task-deadline editable deadline">{{ 'No Deadline Set' if not task.deadline else task.deadline }} </span>
+                        {% if task.status != 'Done' and task.sprintid != current_sprint.id %}
+                            <button id="task_sprint_btn_{{task.id}}" class="float-right button sprintPlan invisible float-right" style="margin:0.1rem;padding:0.2em 1em;" task="{{task.id}}" sprint="{{current_sprint.id}}">Add to Sprint</button>
+                        {% elif task.sprint_id == current_sprint_id %}
+                            <span class="float-right" id="task_sprint_status_{{task.id}}">In Current Sprint</span>
+                        {% elif task.sprint_id %}
+                            <span class="float-right" id="task_sprint_status_{{task.id}}">In Sprint {{task.sprint_id}}</span>
+                        {% endif %}
+                    </div>
+                    <div title="Click to Edit" class="columns small-2 label recurring" style="margin-right:1rem;">{% if task.recurring %}Recurring{% else %}One-Time{% endif %}</div>
+                </div>
+            </div>
+            {% endfor %}
+            <div><button class="button create create-task" value="{{ url_for('task.create',story_id=story['id'],is_asc=True) }}">Create Task</button></div>
+        </div>
+    </div>
+    {% endfor %}
+    <div class="row">
+        <button class="button create create-story" value="{{ url_for('story.create',epic_id=epic['id'],is_asc=True) }}">Create Story</button><div></div>
+</div>
+</div>
+{% endfor %}
+<div>
+<button class="button create create-epic" value="{{ url_for('epic.create',is_asc=True) }}">Create Epic</button><div></div>
+</div>
+{% endblock %}
+<script>
+// {% block jquery %}
+    $('#clear_filter_button').click(function(){
+        $('.task-container').removeClass('hide');
+    });
+    $('#status_filter_button').click(function(){
+        $('#status_filter_reveal').foundation('open');
+        $('#status_filter_reveal').submit(function(event) {
+            $('.task-container').each(function (){
+                $(this).addClass('hide');
+            })
+            $('.status-filter:checked').each(function (){
+                var status = $(this).attr('name');
+                console.log($(this).attr('name')+' Checked');
+                $('.status.'+status).each(function() {
+                    $(this).parent().parent().removeClass('hide');
+                });
+            });
+
+            $('#status_filter_reveal').off('submit');
+            $('#status_filter_reveal').foundation('close');
+
+        });
+    });
+    filter_dates = function(start_date,end_date){
+        $('.task-deadline').each(function() {
+            var task_date = new Date($(this).text());
+            console.log(task_date);
+            if (task_date == 'Invalid Date') {
+                $(this).parent().parent().parent().removeClass('hide');
+                return;
+            }
+            if (task_date < start_date || task_date > end_date) {
+                $(this).parent().parent().parent().addClass('hide');
+            } else {
+                $(this).parent().parent().parent().removeClass('hide');
+            }
+            //console.log($(this).parent().parent().parent().attr('task'))
+        })
+        $('.next_filter').off('click');
+        $('#deadline_filter_reveal').off('submit');
+        $('#deadline_filter_reveal').foundation('close');
+    };
+    $('#deadline_filter_button').click(function() {
+        var today = new Date();
+        $('.next_filter').click(function (){
+            var weeks = Number($(this).attr('weeks'));
+            start_date = today;
+            var end_date = new Date(today.getFullYear(),today.getMonth(),today.getDate() + 7 * weeks);
+            filter_dates(start_date,end_date);
+        });
+        $('#deadline_filter_reveal').foundation('open');
+        $('#deadline_filter_reveal').submit(function (event) {
+            var start_date = new Date($('#filter_deadline_endspan').text())
+            if (start_date == 'Invalid Date'){
+                start_date = 0;
+            }
+            var end_date = new Date($('#filter_deadline_endspan').text())
+            if (end_date == 'Invalid Date'){
+                end_date = Infinity;
+            }
+            filter_dates(start_date,end_date);
+        });
+    })
+    $('#sprintPlan').click(function(){
+        if( $(this).hasClass('active')) {
+            $(this).html('Plan Sprint ' + $(this).attr('sprint'));
+            $(this).removeClass('active')
+            $('.sprintPlan').addClass('invisible');
+        } else {
+            $(this).html('Exit Sprint Planning');
+            $('.sprintPlan').removeClass('invisible');
+            $(this).addClass('active');
+        }
+    });
+    $('.sprintPlan').click(function() {
+        task_id = $(this).attr('task');
+        sprint_id = $(this).attr('sprint');
+        var parent = $(this).parent()
+        while (parent.attr('update_url') === undefined){
+            parent = parent.parent();
+            if (parent === undefined) {
+                throw "Update URL could not be found";
+            }
+        }
+        $.ajax({
+            url: parent.attr('update_url'),
+            data: {sprintid:sprint_id},
+            type: 'POST',
+            dataType: 'json'
+        }).done(function () {
+            $("#task_sprint_btn_"+task_id).addClass('invisible');
+            $("#task_sprint_btn_"+task_id).remove();
+            $("#task_sprint_status_"+task_id).html("In Sprint");
+            task_status = $('#task_status_'+task_id);
+            if(task_status.html().endsWith('To-Do')){
+                task_status.click();
+            }
+        }).fail(function(xhr, status, errorThrown) {
+            pretty_alert("Could not add task to sprint: error was thrown.")
+            console.log("Error: " + errorThrown);
+            console.log( "Status: " + status);
+            console.dir(xhr);
+        })
+    });
+    $('.task-container .status').click(function(){
+        //TODO Actually Update Task
+        statuses = ['To-Do','In Progress','Done'];
+        task_id = $(this).parent('div').parent('div').attr('task')
+        current_status = $(this).text().trim();
+        next_status = statuses[(statuses.indexOf(current_status) + 1) % 3];
+        next_classes = 'label float-right status '+next_status.toLowerCase().replace(' ','-')
+        $(this).text('Updating...')
+        $.ajax({
+            url: $(this).parent('div').parent('div').attr('update_url'),
+            data: {status:next_status},
+            type: 'POST',
+            dataType: 'json'
+        }).done(function() {
+            //FIXME: Side effects abound
+            $('#task_status_'+task_id).attr('class',next_classes);
+            $('#task_status_'+task_id).text(next_status);
+            console.log('Success?');
+        }).fail(function(xhr, status, errorThrown) {
+                    pretty_alert( "Sorry, there was a problem!" );
+                    $("#task_status_"+task_id).text(current_status);
+                    console.log( "Error: " + errorThrown );
+                    console.log( "Status: " + status );
+                    console.dir( xhr );
+        }).always(function(xhr, status){
+            console.log("Request to update status complete!");
+        })
+    });
+    $('.recurring').click(function(event) {
+        current_status = $(this).text().trim();
+        var changing_status = $(this);
+        is_recurring = 1;
+        new_text = 'Recurring';
+        if (current_status == 'Recurring') {
+            is_recurring = 0;
+            new_text = 'One-Time'
+        }
+        update_url = $(this).parent().parent().attr('update_url');
+        $.ajax({
+            url: update_url,
+            data: {recurring:is_recurring},
+            type: 'POST',
+            dataType: 'json'
+        }).done(function() {
+            changing_status.text(new_text);
+        });
+    });
+    $('.create').click(function(){
+        get_url = $(this).val()
+        $(this).siblings('div').load($(this).val(),function(){
+            console.log('Loaded '+get_url);
+        });
+        $(this).addClass('invisible');
+    });
+
+    $('.task-container .task-est').click(function(){
+        console.log("Clicked value "+$(this).text().trim());
+    });
+
+    update_value = function(update_url,
+                    submit_json,
+                    current_key,
+                    current_value,
+                    prev_value,
+                    current_id){
+            submit_json[current_key] = current_value;
+            $.ajax({
+                url: update_url,
+                data: submit_json,
+                type: 'POST',
+                dataType: 'json'
+            }).done(function(json) {
+                if (json.Success === true){
+                    $('#'+current_id).text(current_value);
+                } else {
+                    pretty_alert("Update failed unexpectedly. Please reload page.");
+                }
+            }).fail(function(xhr, status, errorThrown) {
+                pretty_alert("Failed to update");
+                $('#'+current_id).text(prev_value);
+            }).always(function() {
+                $('#'+current_id).removeClass('postable');
+                $('#'+current_id).addClass('editable');
+                console.log("AJAX Request Complete");
+            })
+        };
+    $('.datepicker-input').datepicker({
+        dateFormat: 'yy-mm-dd',
+        onClose: function(dateText, inst) {
+        // When the date is selected, copy the value in the content editable div.
+        // If you don't need to do anything on the blur or focus event of the content editable div, you don't need to trigger them as I do in the line below.
+        $(this).siblings('.deadline').focus().html(dateText).blur();
+        }
+    });
+
+    $('.editable').click(function(){
+        console.log("Clicked value "+$(this).text().trim());
+        //FIXME: This is an awful way to do this
+        update_url = $(this).attr('update_url');
+        var parent = $(this).parent()
+        while(update_url === undefined){
+            update_url = parent.attr('update_url');
+            parent = parent.parent();
+            if (parent.parent() === undefined) {
+                throw "Update URL not found!"
+            }
+        }
+        var prev_value = $(this).text().trim();
+        if (prev_value == 'Unestimated'){
+            $(this).text('');
+        }
+        current_key = $(this).attr('update_key');
+        current_id = $(this).attr('id');
+        var submit_json = {"submit":true};
+        $(this).addClass('postable');
+        $(this).removeClass('editable');
+        if($(this).hasClass('deadline')) {
+            console.log("Total Deadline WTF");
+            $(this).attr('contentEditable','false');
+            console.log($(this).siblings('.datepicker-input').attr('id'));
+            $(this).siblings('.datepicker-input').focus();
+            $(this).siblings('.datepicker-input').focus();
+        } else {
+            $(this).attr('contentEditable','true');
+            $(this).focus();
+            $(this).keydown(function(e) {
+                // trap the return key being pressed
+                if (e.keyCode === 13) {
+                    $(this).off('keydown');
+                    $(this).off('blur');
+                    $(this).attr('contentEditable','false');
+                    var current_value = $(this).text().trim();
+                    if (current_value === 'Updating...' || current_value == prev_value) {
+                        return;
+                    }
+                    console.log("Pressed Enter, so updating value to "+ current_value);
+                    $(this).text('Updating...');
+                    update_value(update_url,submit_json,current_key,current_value,prev_value,current_id);
+                }
+            });
+        }
+        $(this).blur(function(e) {
+            $(this).off('keydown');
+            $(this).off('blur');
+            current_value = $(this).text().trim();
+            if (current_value === 'Updating...' || current_value == prev_value) {
+                return;
+            }
+            console.log("Blurred, so updating value to "+ current_value);
+            $(this).text('Updating...');
+            update_value(update_url,submit_json,current_key,current_value,prev_value,current_id);
+            $(this).attr('contentEditable','false');
+        });//*/
+        
+    });
+
+// {% endblock %}
+</script>
