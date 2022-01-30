@@ -10,7 +10,7 @@
     <div id="story-tags" class="droppable" style="padding: .5rem; border: solid 1px black;">
         Drag tags here to add them to the Story.
         {% for tag in tags if tag.tag_in_story %}
-        <div class="tag" id="tag_{{tag.id}}" tag_id="{{tag.id}}">{{ tag.tag }}</div>
+            <div class="tag" id="tag_{{tag.Tag.id}}" tag_id="{{tag.Tag.id}}">{{ tag.Tag.tag }}</div>
         {% else %}
         {% endfor %}
     </div>
@@ -19,7 +19,11 @@
 <br>
 <div id="avail-tags" style="padding: .5rem; border: solid 1px black;" class="droppable">
     {% for tag in tags if not tag.tag_in_story %}
-    <div class="tag" id="tag_{{ tag.id }}" tag_id="{{tag.id}}">{{ tag.tag }}</div>
+        {% if tag.Tag %}
+        <div class="tag draggable" id="tag_{{ tag.Tag.id }}" tag_id="{{tag.Tag.id}}">{{ tag.Tag.tag }}</div>
+        {% else %}
+        <div class="tag draggable" id="tag_{{ tag.id }}" tag_id="{{tag.id}}">{{ tag.tag }}</div>
+        {% endif %}
     {% endfor %}
 </div>
 {% endblock %}

@@ -1,8 +1,9 @@
-notscrum/static/css/
-notscrum/static/js/
-notscrum/static/examples/
+noscrum/static/css/
+noscrum/static/js/
+noscrum/static/examples/
 venv/
 msvenv/
+*.sqlite
 
 *.pyc
 __pycache__/
@@ -17,3 +18,4 @@ dist/
 build/
 *.egg-info/
 .vscode
+.env

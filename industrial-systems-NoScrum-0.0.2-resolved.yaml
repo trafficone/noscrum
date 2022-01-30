@@ -1,0 +1,914 @@
+---
+openapi: 3.0.0
+info:
+  title: NoScrum API
+  description: API for interacting with NoScrum Project Management System
+  version: 0.0.2
+servers:
+- url: https://virtserver.swaggerhub.com/industrial-systems/NoScrum/0.0.2
+  description: SwaggerHub API Auto Mocking
+- url: https://noscrum.plbl.net
+  description: Production Server
+paths:
+  /epic:
+    get:
+      summary: List Epics
+      responses:
+        "200":
+          description: list of epics
+        "403":
+          description: Not Authorized
+  /epic/create:
+    get:
+      summary: Get Epic Creation html
+      responses:
+        "200":
+          description: Epic Creation Form
+    post:
+      summary: Create an Epic
+      parameters:
+      - name: name
+        in: query
+        required: true
+        style: form
+        explode: true
+        schema:
+          $ref: '#/components/schemas/Epic'
+      - name: color
+        in: query
+        required: false
+        style: form
+        explode: true
+        schema:
+          $ref: '#/components/schemas/Epic'
+      - name: deadline
+        in: query
+        required: false
+        style: form
+        explode: true
+        schema:
+          $ref: '#/components/schemas/Epic'
+      responses:
+        "200":
+          description: Epic Creation Successful
+        "500":
+          description: Epic could not be created
+  /epic/{id}:
+    get:
+      summary: Get Epic
+      parameters:
+      - name: id
+        in: path
+        description: ID of Epic to be updated
+        required: true
+        style: simple
+        explode: false
+        schema:
+          $ref: '#/components/schemas/Epic'
+      responses:
+        "404":
+          description: Epic Not Found
+    post:
+      summary: Update Epic
+      parameters:
+      - name: id
+        in: path
+        description: ID of Epic to be updated
+        required: true
+        style: simple
+        explode: false
+        schema:
+          $ref: '#/components/schemas/Epic'
+      - name: epic
+        in: query
+        description: new name of Epic
+        required: false
+        style: form
+        explode: true
+        schema:
+          $ref: '#/components/schemas/Epic'
+      - name: color
+        in: query
+        description: New Color of Epic
+        required: false
+        style: form
+        explode: true
+        schema:
+          $ref: '#/components/schemas/Epic'
+      responses:
+        "200":
+          description: Update Successful
+        "404":
+          description: Epic Not Found
+        "405":
+          description: Invalid Epic Parameter
+  /story:
+    get:
+      summary: List Stories
+      responses:
+        "200":
+          description: List of all Stories with epics
+  /story/create/{id}:
+    get:
+      parameters:
+      - name: id
+        in: path
+        description: Epic which story is under
+        required: true
+        style: simple
+        explode: false
+        schema:
+          $ref: '#/components/schemas/Epic'
+      responses:
+        "200":
+          description: Story Creation Form
+    post:
+      parameters:
+      - name: id
+        in: path
+        description: Epic which story is under
+        required: true
+        style: simple
+        explode: false
+        schema:
+          $ref: '#/components/schemas/Epic'
+      - name: story
+        in: query
+        description: Story name
+        required: true
+        style: form
+        explode: true
+        schema:
+          $ref: '#/components/schemas/Story'
+      - name: prioritization
+        in: query
+        description: Numeric representation (1-5) of priority
+        required: false
+        style: form
+        explode: true
+        schema:
+          $ref: '#/components/schemas/Story'
+      - name: deadline
+        in: query
+        description: Story Deadline
+        required: false
+        style: form
+        explode: true
+        schema:
+          $ref: '#/components/schemas/Story'
+      responses:
+        "200":
+          description: Story Creation Sucessful
+  /story/{id}:
+    get:
+      summary: Get Story
+      parameters:
+      - name: id
+        in: path
+        description: ID of Story to be updated
+        required: true
+        style: simple
+        explode: false
+        schema:
+          $ref: '#/components/schemas/Story'
+      responses:
+        "200":
+          description: Story successfully updated.
+        "404":
+          description: Story not found
+    post:
+      summary: Update Story
+      parameters:
+      - name: id
+        in: path
+        description: ID of Story to be updated
+        required: true
+        style: simple
+        explode: false
+        schema:
+          $ref: '#/components/schemas/Story'
+      - name: story
+        in: query
+        description: Story name
+        required: false
+        style: form
+        explode: true
+        schema:
+          $ref: '#/components/schemas/Story'
+      - name: prioritization
+        in: query
+        description: Numeric representation (1-5) of priority
+        required: false
+        style: form
+        explode: true
+        schema:
+          $ref: '#/components/schemas/Story'
+      - name: deadline
+        in: query
+        description: Story Deadline
+        required: false
+        style: form
+        explode: true
+        schema:
+          $ref: '#/components/schemas/Story'
+      responses:
+        "200":
+          description: Story Successfully Updated.
+        "500":
+          description: Update Error Occurred
+  /story/{id}/tag:
+    get:
+      summary: Get tags for story
+      parameters:
+      - name: id
+        in: path
+        description: Story ID
+        required: true
+        style: simple
+        explode: false
+        schema:
+          $ref: '#/components/schemas/Story'
+      responses:
+        "200":
+          description: list of tags for story
+        "404":
+          description: story not found
+    post:
+      summary: Add tag to story
+      parameters:
+      - name: id
+        in: path
+        description: Story ID
+        required: true
+        style: simple
+        explode: false
+        schema:
+          $ref: '#/components/schemas/Story'
+      - name: tag_id
+        in: query
+        description: Tag ID
+        required: true
+        style: form
+        explode: true
+        schema:
+          $ref: '#/components/schemas/Tag'
+      responses:
+        "200":
+          description: Tag added to story
+        "500":
+          description: Tag could not be added to story
+    delete:
+      summary: Remove tag from story
+      parameters:
+      - name: id
+        in: path
+        description: Story ID
+        required: true
+        style: simple
+        explode: false
+        schema:
+          $ref: '#/components/schemas/Story'
+      - name: tag_id
+        in: query
+        description: Tag ID
+        required: true
+        style: form
+        explode: true
+        schema:
+          $ref: '#/components/schemas/Tag'
+      responses:
+        "200":
+          description: Tag removed from story
+        "500":
+          description: Tag could not be removed from story
+  /task:
+    get:
+      summary: List Tasks (AKA Task Showcase)
+      responses:
+        "200":
+          description: Tasks Found
+  /task/create/{id}:
+    get:
+      summary: Get task creation form
+      parameters:
+      - name: id
+        in: path
+        description: Story ID
+        required: true
+        style: simple
+        explode: false
+        schema:
+          $ref: '#/components/schemas/Story'
+      responses:
+        "200":
+          description: Create Task Form
+    post:
+      summary: Create New Task
+      parameters:
+      - name: id
+        in: path
+        description: Story ID
+        required: true
+        style: simple
+        explode: false
+        schema:
+          $ref: '#/components/schemas/Story'
+      - name: task
+        in: query
+        description: Task name/description
+        required: true
+        style: form
+        explode: true
+        schema:
+          $ref: '#/components/schemas/Task'
+      - name: estimate
+        in: query
+        description: Estimate in hours for task
+        required: false
+        style: form
+        explode: true
+        schema:
+          $ref: '#/components/schemas/Task'
+      - name: deadline
+        in: query
+        description: Deadline for task
+        required: false
+        style: form
+        explode: true
+        schema:
+          $ref: '#/components/schemas/Task'
+      responses:
+        "200":
+          description: New Task Created
+        "500":
+          description: Task Creation Failed
+  /task/{id}:
+    get:
+      summary: Show Task with ID
+      parameters:
+      - name: id
+        in: path
+        description: ID of Task to be updated
+        required: true
+        style: simple
+        explode: false
+        schema:
+          $ref: '#/components/schemas/Task'
+      responses:
+        "200":
+          description: Task Info
+    post:
+      summary: Update Task
+      parameters:
+      - name: id
+        in: path
+        description: ID of Task to be updated
+        required: true
+        style: simple
+        explode: false
+        schema:
+          $ref: '#/components/schemas/Task'
+      - name: task
+        in: query
+        description: Task name/description
+        required: true
+        style: form
+        explode: true
+        schema:
+          $ref: '#/components/schemas/Task'
+      - name: estimate
+        in: query
+        description: Estimate in hours for task
+        required: false
+        style: form
+        explode: true
+        schema:
+          $ref: '#/components/schemas/Task'
+      - name: deadline
+        in: query
+        description: Deadline for task
+        required: false
+        style: form
+        explode: true
+        schema:
+          $ref: '#/components/schemas/Task'
+      - name: actual
+        in: query
+        description: Actual amount of work for task
+        required: false
+        style: form
+        explode: true
+        schema:
+          $ref: '#/components/schemas/Task'
+      - name: story_id
+        in: query
+        description: Story ID associated with Task
+        required: false
+        style: form
+        explode: true
+        schema:
+          $ref: '#/components/schemas/Task'
+      - name: status
+        in: query
+        description: Task Status (To-Do,In Progress,Done)
+        required: false
+        style: form
+        explode: true
+        schema:
+          $ref: '#/components/schemas/Task'
+      - name: recurring
+        in: query
+        description: Whether or not task repeats
+        required: false
+        style: form
+        explode: true
+        schema:
+          $ref: '#/components/schemas/Task'
+      responses:
+        "200":
+          description: Task Successfully Updated
+  /sprint:
+    get:
+      summary: List Sprints
+      responses:
+        "200":
+          description: list of sprints
+  /sprint/{id}:
+    get:
+      summary: Get Sprint based on ID
+      parameters:
+      - name: id
+        in: path
+        description: ID of Sprint to be updated
+        required: true
+        style: simple
+        explode: false
+        schema:
+          $ref: '#/components/schemas/Sprint'
+      responses:
+        "200":
+          description: Sprint Info
+    post:
+      summary: Update Sprint Details
+      parameters:
+      - name: id
+        in: path
+        description: ID of Sprint to be updated
+        required: true
+        style: simple
+        explode: false
+        schema:
+          $ref: '#/components/schemas/Sprint'
+      responses:
+        "200":
+          description: Updated Sprit
+  /sprint/create/next:
+    post:
+      summary: Create next sprint
+      responses:
+        "200":
+          description: Next Sprint Created
+  /sprint/create:
+    get:
+      summary: Sprint Creation Form
+      responses:
+        "200":
+          description: Sprint creation form HTML
+    post:
+      summary: Create sprint
+      parameters:
+      - name: start_date
+        in: query
+        description: Date sprint starts on
+        required: true
+        style: form
+        explode: true
+        schema:
+          $ref: '#/components/schemas/Sprint'
+      - name: end_date
+        in: query
+        description: Date sprint ends on
+        required: true
+        style: form
+        explode: true
+        schema:
+          $ref: '#/components/schemas/Sprint'
+      - name: force_create
+        in: query
+        description: Whether or not to force Sprint Creation
+        required: false
+        style: form
+        explode: true
+        schema:
+          type: boolean
+      responses:
+        "200":
+          description: Sprint Creation Successful
+        "500":
+          description: Sprint creation failed
+  /sprint/active:
+    get:
+      summary: Get currently active sprint
+      responses:
+        "200":
+          description: Currently Active Sprint
+  /sprint/schedule/{id}:
+    get:
+      summary: List schedule records for sprint with given ID
+      parameters:
+      - name: id
+        in: path
+        description: ID of Sprint to be updated
+        required: true
+        style: simple
+        explode: false
+        schema:
+          $ref: '#/components/schemas/Sprint'
+      responses:
+        "200":
+          description: Schedule Records for Sprint
+    post:
+      summary: Create/Update schedule record for sprint
+      parameters:
+      - name: id
+        in: path
+        description: ID of Sprint for Schedule
+        required: true
+        style: simple
+        explode: false
+        schema:
+          $ref: '#/components/schemas/Sprint'
+      - name: task_id
+        in: query
+        description: Task ID
+        required: true
+        style: form
+        explode: true
+        schema:
+          $ref: '#/components/schemas/Task'
+      - name: sprint_day
+        in: query
+        description: Date in sprint of task
+        required: true
+        style: form
+        explode: true
+        schema:
+          $ref: '#/components/schemas/schedule_task'
+      - name: sprint_hour
+        in: query
+        description: Hour of day of scheduled task
+        required: true
+        style: form
+        explode: true
+        schema:
+          $ref: '#/components/schemas/schedule_task'
+      - name: note
+        in: query
+        description: Note associated with schedule record
+        required: true
+        style: form
+        explode: true
+        schema:
+          $ref: '#/components/schemas/schedule_task'
+      - name: recurring
+        in: query
+        description: Whether or not schedule will recur each sprint
+        required: true
+        style: form
+        explode: true
+        schema:
+          $ref: '#/components/schemas/Task'
+      responses:
+        "200":
+          description: Schedule Record Updated
+    delete:
+      summary: Delete schedule record
+      parameters:
+      - name: id
+        in: path
+        description: Sprint for schedule being deleted
+        required: true
+        style: simple
+        explode: false
+        schema:
+          $ref: '#/components/schemas/Sprint'
+      - name: schedule_id
+        in: query
+        description: Schedule ID being deleted
+        required: true
+        style: form
+        explode: true
+        schema:
+          $ref: '#/components/schemas/schedule_task'
+      responses:
+        "200":
+          description: Delete Successful
+  /tag:
+    get:
+      summary: List all tags
+      responses:
+        "200":
+          description: List of all tags
+  /tag/create:
+    get:
+      summary: Get Tag Creation Form
+      responses:
+        "200":
+          description: Tag Creation Form
+    post:
+      summary: Create tag
+      parameters:
+      - name: tag
+        in: query
+        description: Tag name
+        required: true
+        style: form
+        explode: true
+        schema:
+          $ref: '#/components/schemas/Tag'
+      responses:
+        "200":
+          description: Tag created
+  /tag/{id}:
+    get:
+      summary: get info for tag with ID {id}
+      parameters:
+      - name: id
+        in: path
+        description: Tag ID
+        required: true
+        style: simple
+        explode: false
+        schema:
+          $ref: '#/components/schemas/Tag'
+      responses:
+        "404":
+          description: Tag not found
+        "200":
+          description: Description of Tag
+    post:
+      summary: Update tag with ID {id}
+      parameters:
+      - name: id
+        in: path
+        description: Tag ID
+        required: true
+        style: simple
+        explode: false
+        schema:
+          $ref: '#/components/schemas/Tag'
+      - name: tag
+        in: query
+        description: Tag name
+        required: true
+        style: form
+        explode: true
+        schema:
+          $ref: '#/components/schemas/Tag'
+      responses:
+        "404":
+          description: Tag not found
+        "200":
+          description: Tag updated
+  /work/create/{id}:
+    get:
+      summary: Creation form for Work record
+      parameters:
+      - name: id
+        in: path
+        description: Task ID work is being created for
+        required: true
+        style: simple
+        explode: false
+        schema:
+          $ref: '#/components/schemas/Task'
+      responses:
+        "200":
+          description: creation form
+        "404":
+          description: Task not found
+    post:
+      summary: Create new work record for task
+      parameters:
+      - name: id
+        in: path
+        description: Task ID work is being created for
+        required: true
+        style: simple
+        explode: false
+        schema:
+          $ref: '#/components/schemas/Task'
+      - name: worked_date
+        in: query
+        description: Date which work was completed in
+        required: false
+        style: form
+        explode: true
+        schema:
+          $ref: '#/components/schemas/Work'
+      - name: hours_worked
+        in: query
+        description: Number of hours worked
+        required: false
+        style: form
+        explode: true
+        schema:
+          $ref: '#/components/schemas/Work'
+      responses:
+        "200":
+          description: Work item created for task
+        "404":
+          description: Task not found
+  /work/{id}:
+    get:
+      summary: Get work record with ID {id}
+      parameters:
+      - name: id
+        in: path
+        description: Work record ID
+        required: true
+        style: simple
+        explode: false
+        schema:
+          $ref: '#/components/schemas/Work'
+      responses:
+        "200":
+          description: Work Record
+        "404":
+          description: Record not found
+    delete:
+      summary: Delete work record with ID {id}
+      parameters:
+      - name: id
+        in: path
+        description: Work record ID
+        required: true
+        style: simple
+        explode: false
+        schema:
+          $ref: '#/components/schemas/Work'
+      responses:
+        "200":
+          description: Work record deleted
+  /work/list/task/{id}:
+    get:
+      summary: Get work records for task {id}
+      parameters:
+      - name: id
+        in: path
+        description: Task ID
+        required: true
+        style: simple
+        explode: false
+        schema:
+          $ref: '#/components/schemas/Task'
+      responses:
+        "200":
+          description: list of work items
+  /work/list/story/{id}:
+    get:
+      summary: Get work records for story {id}
+      parameters:
+      - name: id
+        in: path
+        description: Story ID
+        required: true
+        style: simple
+        explode: false
+        schema:
+          $ref: '#/components/schemas/Story'
+      responses:
+        "200":
+          description: list of work items
+  /work/list/epic/{id}:
+    get:
+      summary: Get work records for epic {id}
+      parameters:
+      - name: id
+        in: path
+        description: Epic ID
+        required: true
+        style: simple
+        explode: false
+        schema:
+          $ref: '#/components/schemas/Epic'
+      responses:
+        "200":
+          description: list of work items
+  /work/list/dates:
+    get:
+      summary: Get work records from between dates
+      parameters:
+      - name: start_date
+        in: query
+        description: Query start date
+        required: false
+        style: form
+        explode: true
+        schema:
+          type: object
+      - name: end_date
+        in: query
+        description: Query end date
+        required: false
+        style: form
+        explode: true
+        schema:
+          type: object
+      responses:
+        "200":
+          description: list of work items from between start_date and end_date
+        "404":
+          description: work items not found
+components:
+  schemas:
+    Epic:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        epic:
+          type: string
+        color:
+          type: string
+        deadline:
+          type: object
+    Story:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        story:
+          type: string
+        deadline:
+          type: object
+        epic_id:
+          type: object
+    Task:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        story_id:
+          type: object
+        task:
+          type: string
+        recurring:
+          type: boolean
+        deadline:
+          type: object
+        status:
+          type: string
+        actual:
+          type: number
+        estimate:
+          type: number
+    Sprint:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        start_day:
+          type: object
+        end_day:
+          type: object
+    Tag:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        tag:
+          type: string
+    schedule_task:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        task_id:
+          type: object
+        sprint_id:
+          type: object
+        sprint_day:
+          type: integer
+          format: int64
+        sprint_hour:
+          type: integer
+          format: int64
+        note:
+          type: string
+    Work:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        worked_date:
+          type: object
+        hours_worked:
+          type: number

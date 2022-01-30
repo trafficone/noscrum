@@ -1,17 +1,30 @@
 <!doctype html>
-<title>{% block title %}{% endblock %} - NotScrum</title>
+<title>{% block title %}{% endblock %} - NoScrum</title>
 <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}"> 
 <link rel="stylesheet" href="{{ url_for('static', filename='css/foundation-float.css') }}"> 
 <link rel="stylesheet" href="{{ url_for('static', filename='css/jquery-ui.min.css') }}"> 
 <div class="top-bar">
-    <div class="top-bar-left"><h1><a href="{{ url_for('index') }}">NotScrum</a></h1></div>
+    <div class="top-bar-left"><h1><a href="{{ url_for('index') }}">NoScrum</a></h1></div>
     <div class="top-bar-right">
     <ul class="menu">
+        {% if current_user.is_authenticated %}
         <li><a href="{{ url_for('task.list_all') }}">Task Board</a>
         <li><a href="{{ url_for('sprint.active') }}">Sprint</a>
+        {% else %}
+        <li><a href="{{ url_for('user.register') }}">Register for Free</a></li> 
+        {% endif %}
         <li><input type="search" placeholder="Search"></li>
         <li><button type="button" class="button">Search</button></li>
         </ul>
+        <div class="float-right">
+            {% if current_user.is_authenticated %}
+                <a href="{{ url_for('user.profile') }}">{{ current_user.first_name or current_user.username or current_user.email }}</a>
+                &nbsp; | &nbsp;
+                <a href="{{ url_for('user.logout') }}">Sign out</a>
+            {% else %}
+                <a href="{{ url_for('user.login') }}">Sign in</a>
+            {% endif %}
+        </div>
     </div>
 </div>
 <section class="content">
@@ -27,6 +40,7 @@
         </div>
     {% endfor %}
     {% block content %}{% endblock %}
+    {% if config.DEBUG  %}
 <div>
     <h1>DEBUG SITEMAP</h1>
     <h3>Epic</h3>
@@ -62,6 +76,7 @@
         <li>Tag Show requires Tag ID, See Tag List</li>
     </ul>
 </div>
+{% endif %}
 </section>
 <script src="{{ url_for('static', filename='js/vendor/jquery.js') }}"></script>
 <script src="{{ url_for('static', filename='js/vendor/what-input.js') }}"></script>

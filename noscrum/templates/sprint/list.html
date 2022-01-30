@@ -17,16 +17,16 @@
 <div class="row">
     <div class="column">
         <h3>Sprint {{ sprint['id'] }}</h3>
-        Start Date {{ sprint['startDate'] }}<br>
-        End Date {{ sprint['endDate'] }}<br>
+        Start Date {{ sprint['start_date'] }}<br>
+        End Date {{ sprint['end_date'] }}<br>
         <a class="button" href="{{ url_for('sprint.show', sprint_id=sprint['id']) }}">View Sprint</a>
     </div>
     <div class="column">
         <h4>Sprint Summary:</h4>
         <ul>
             <li>Estimate of Work: {{ sprint['estimate'] }}</li>
-            <li>Stories: {{ sprint['stories'] }}</li>
-            <li>Total Tasks: {{ sprint['tasks'] }}</li>
+            <li>Stories: {{ sprint['stories']|length }}</li>
+            <li>Total Tasks: {{ sprint['tasks']|length }}</li>
         </ul>
     </div>
     <div class="column"></div>

@@ -2,7 +2,7 @@
 
 {% block header %}
     <h3>{% block title %}{% if not static %}Current {% endif %}Sprint{% endblock %}</h3>
-    &nbsp;<p style="color: #aaa;">From {{ sprint['startDate'] }} to {{ sprint['endDate'] }}</p>
+    &nbsp;<p style="color: #aaa;">From {{ sprint['start_date'] }} to {{ sprint['end_date'] }}</p>
 {% endblock %}
 
 {% block content %}
@@ -12,14 +12,14 @@
 {% for task in tasks %}
     <div class="task-container container" 
         task="{{ task }}" 
-        story="{{ tasks[task].storyID }}" 
+        story="{{ tasks[task].story_id }}" 
         id="{{ 'task_%d'%task }}" 
         update_url="{{ url_for('task.show',task_id=task,is_json=True) }}""
         recurring="{{tasks[task].recurring}}"
         unestimated_time="{{ 2 if not tasks[task].estimate else tasks[task].estimate - tasks[task].sum_sched }}">
         <div class="row task-header">
-            <div class="small-2 columns epic-label">{{ epics[tasks[task].epicID].epic }}</div>
-            <div class="small-6 columns story-label">{{ stories[tasks[task].storyID].story }}</div>
+            <div class="small-2 columns epic-label">{{ epics[tasks[task].epic_id].epic }}</div>
+            <div class="small-6 columns story-label">{{ stories[tasks[task].story_id].story }}</div>
             <div class="small-8 columns">{{ tasks[task].task }}</div>
             <div class="small-2 columns label float-right status {{ tasks[task]['status'].lower().replace(' ','-') }} " task="{{ task }}">{{ tasks[task].status }}</div>
         </div>
@@ -32,6 +32,39 @@
     </div> 
 {% endfor %}
 <button class="button" id="unschedule-task">Unschedule Task</button>
+<button class="button float-right" id="unplanned-task" data-open="UnplannedTask">Add Unplanned Task</button>
+<button class="close-button" data-close aria-label="Close" > <span aria-hidden="true">&times;</span></button>
+</div>
+<div id="UnplannedTask" class="reveal" data-reveal>
+<h4>Unplanend Task</h4>
+<form id="newTask" data-abide onsubmit="return false;">
+    <label >Epic 
+        <select id='newTaskEpic'>
+            <option value="" selcted>No Epic</option>
+            {% for epic in epics %}
+                <option value="{{epic}}">{{epics[epic].epic}}</option>
+            {% endfor %}
+        </select>
+    </label>
+    <label >Story
+        <select id='newTaskStory'>
+            <option value="" selected>No Story</option>
+            {% for story in stories %}
+                <option class="hide" value="{{story}}" epic="{{stories[story].epic_id}}">{{stories[story].story}}</option>
+            {% endfor %}
+        </select>
+    </label>
+    <label class="newable">Task
+        <select id="newTaskTask">
+            <option value="NEW" selected>New Task</option>
+            {% for task in tasks %}
+            <option class="hide" value="{{task}}" epic="{{tasks[task].epic_id}}" story="{{tasks[task].story_id}}">{{tasks[task].task}}</option>
+            {% endfor %}
+        </select>
+        <input id="newTaskName" type="text" placeholder="New Task Name" class="editable" />
+    </label>
+    <button class="button" type="submit" id="create_new_task">AddTask</button>
+</form>
 <button class="close-button" data-close aria-label="Close" > <span aria-hidden="true">&times;</span></button>
 </div>
 <div id="RecurringCheck" class="reveal" data-reveal>
@@ -71,23 +104,23 @@
                     {% if not static %} title="Click to change; Drag to reschedule" {% endif %}
                     hour="{{hour}}" day="{{day[1]}}"
                     index_day="{{day[0]}}"
-                    task="{{ schedule.taskid }}" 
-                    story="{{ tasks[schedule.taskid].storyID }}" 
-                    id="{{ 'task_%d_%d'%(schedule.taskid,schedule.id) }}" 
+                    task="{{ schedule.task_id }}" 
+                    story="{{ tasks[schedule.task_id].story_id }}" 
+                    id="{{ 'task_%d_%d'%(schedule.task_id,schedule.id) }}" 
                     schedule_id="{{ schedule.id }}"
                     recurring="{{ schedule.recurring_schedule }}"
-                    update_url="{{ url_for('task.show',task_id=schedule.taskid,is_json=True) }}">
+                    update_url="{{ url_for('task.show',task_id=schedule.task_id,is_json=True) }}">
                     <div class="row">
-                        <div class="small-2 columns epic-label">{{ epics[tasks[schedule.taskid].epicID].epic }}</div>
-                        <div class="small-6 columns story-label">{{ stories[tasks[schedule.taskid].storyID].story }}</div>
-                        <div class="small-8 columns">{{ tasks[schedule.taskid].task }}</div>
-                        <div {% if not static %}title="Click to update status"{% endif %} class="small-2 columns label float-right status {{ tasks[schedule.taskid]['status'].lower().replace(' ','-') }} " task="{{ tasks[schedule.taskid].task }}">{{ tasks[schedule.taskid].status }}</div>
+                        <div class="small-2 columns epic-label">{{ epics[tasks[schedule.task_id].epic_id].epic }}</div>
+                        <div class="small-6 columns story-label">{{ stories[tasks[schedule.task_id].story_id].story }}</div>
+                        <div class="small-8 columns">{{ tasks[schedule.task_id].task }}</div>
+                        <div {% if not static %}title="Click to update status"{% endif %} class="small-2 columns label float-right status {{ tasks[schedule.task_id]['status'].lower().replace(' ','-') }} " task="{{ tasks[schedule.task_id].task }}">{{ tasks[schedule.task_id].status }}</div>
                     </div>
                     <div class="row">
-                        <div class="small-2 columns">Est:{{ tasks[schedule.taskid].estimate }}</div>
-                        <div class="small-6 columns float-right">Worked:<span class="hours-worked">{{tasks[schedule.taskid].hours_worked}}</span></div>
+                        <div class="small-2 columns">Est:{{ tasks[schedule.task_id].estimate }}</div>
+                        <div class="small-6 columns float-right">Worked:<span class="hours-worked">{{tasks[schedule.task_id].hours_worked}}</span></div>
                         {% if static %}
-                        <div class="small-8 columns note">{% if schedule.note %}{{schedule.note}}{% endif %}</div>
+                        <div class="small-8 columns note">{% if schedule.note %}{{schedule.note}}{% elif not tasks[schedule.task_id].single_sprint_task == 1 %}⚠️Task in multiple sprints!{% endif %}</div>
                         <div class="small-2 columns"></div>
                         {% else %}
                         <div title="Click to edit note" class="small-8 columns"><input class="note" type="text" placeholder="Schedule-specific Note" 
@@ -297,6 +330,7 @@
                 }).always( function () {
                     add_work_field.val('');
                     $('#log_work_button').off('click');
+                    $('#LogWork').off('submit');
                     $('#LogWork').foundation('close');
                 })
             });
@@ -360,6 +394,31 @@
             //$('#Unscheduled')
             var recurring_task = target.parent().parent().attr('recurring');
             $('#Unscheduled').foundation('open');
+            $('#newTask').off('submit');
+            $('#newTask').submit(function (){
+                var new_task_id = $('#newTaskTask').val();
+                if(new_task_id == 'NEW'){
+                    var story_id = $('#newTaskStory').val() == '' ? 0 : $('#newTaskStory').val();
+                    var epic_id = $('#newTaskEpic').val() == '' ? 0 : $('#newTaskEpic').val();
+                    var taskName = $('#newTaskName').val();
+                    //FIXME: The create URL should be generated by jinja
+                    $.ajax({
+                        url:"/task/create/"+story_id+"?is_json=true",
+                        data: {epic_id:epic_id,task:taskName},
+                        type: 'POST',
+                        dataType: 'json'
+                    }).done(function (json){
+                        new_task_id = json.task_id;
+                        schedule(source,day,hour,new_task_id,false);
+                        console.log('Created new task',new_task_id)
+                    }).fail(function (xhr,status,errorThrown){
+                        pretty_alert('Could not create task');
+                    });
+                } else {
+                    schedule(source,day,hour,new_task_id,false);
+                }
+                $('#UnplannedTask').foundation('close');
+            })
             $('#Unscheduled').children('.task-container').click(function(event,ui){
                 var new_recurring_task = $(this).attr('recurring');
                 var new_task_id = $(this).attr('task');
@@ -425,6 +484,42 @@
     $('.scheduled').click(scheduled_click);
     $('.scheduled').droppable({ drop: schedule_shuffle_drop});
     //$('.log-work').click(add_time)
+    $('#newTaskEpic').change(function(event,ui){
+        var epic = $(this).val();
+        $('#newTaskStory').children('option').each(function (){
+            if($(this).attr('epic') == epic || $(this).val() == '') {
+                $(this).removeClass('hide');
+            } else {
+                $(this).addClass('hide');
+            }
+        });
+        if($('#newTaskStory').children(':selected').hasClass('hide')) {
+            $('#newTaskStory').children(':selected').prop('selected',false);
+        }
+        console.log($(this).val());
+    });
+    $('#newTaskStory').change(function(event,ui){
+        var story = $(this).val();
+        $('#newTaskTask').children('option').each(function (){
+            if($(this).attr('story') == story || $(this).val() == 'NEW') {
+                $(this).removeClass('hide');
+            } else {
+                $(this).addClass('hide');
+            }
+        });
+        if($('#newTaskTask').children(':selected').hasClass('hide')) {
+            $('#newTaskTask').children(':selected').prop('selected',false);
+        }
+        console.log($(this).val());
+    });
+    $('#newTaskTask').change(function(event,ui){
+        if($(this).val() == 'NEW'){
+            $('#newTaskName').attr('contentEditable',true);
+        } else {
+            $('#newTaskName').val('');
+            $('#newTaskName').attr('contentEditable',false);
+        }
+    });
     //{% endif %}
     //{% endblock %}
 </script>

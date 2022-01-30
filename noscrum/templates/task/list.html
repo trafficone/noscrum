@@ -49,29 +49,36 @@
 {% for epic in epics %}
 <div class="epic {{ epic['color'] }}">
     <div class="row">
-        <h3>{{ epic['epic'] }}</h3>
+        <h3>{{ epic['epic'] if epic['epic'] != 'NULL' else 'No Epic' }}</h3>
                 <div class="columns small-3">Estimate: {{ epic['estimate'] }}</div>
-                <div class="columns small-3">Unestimated : {{ epic['unestimated_tasks'] }}</div>
-                <div class="columns small-3">Total Tasks: {{ epic['tasks'] }}</div>
-                <div class="columns small-3">Active: {{ epic['active_tasks'] }}</div>
+                <div class="columns small-3">Unestimated : {{ epic['unestimated_tasks']|length }}</div>
+                <div class="columns small-3">Total Tasks: {{ epic['tasks']|length }}</div>
+                <div class="columns small-3">Active: {{ epic['active_tasks']|length }}</div>
     </div>
-    {% for story in stories if story['epicID'] == epic['id'] %}
+    {% for story in stories if story['epic_id'] == epic['id'] %}
     <div class="row story" update_url="{{ url_for('story.show',story_id=story.id,is_json=True) }}">
         <div class="float-left"><span class="badge {{ colors[story['prioritization']] }}">{{ story['prioritization'] }}</span></div>
         &nbsp;
-        <h5 id="story_{{story.id}}" class="editable" title="Click to Edit Story" update_key="story">{{ story['story'] }}</h5>
+        {% if story['story'] != 'NULL' %}
+            <h5 id="story_{{story.id}}" class="editable" title="Click to Edit Story" update_key="story">{{ story['story'] }}</h5>
+        {% else %}
+            <h5 id="story_{{story.id}}" >No Story</h5>
+        {% endif %}
+
     </div>
     <div class="row">
         <div class="small-2 columns story-label">
             <div>Hours: {{ story['estimate'] }}</div>
-            <div>Tasks: {{ story['tasks'] }}</div>
-            <div>Remain: {{ story['active_tasks'] }}</div>
-            <input id="story_deadline_datepicker_{{story.id}}" name="date" class="datepicker-input" type="hidden" />
-            <span  title="Click to Edit" contentEditable="false" update_key="deadline" id="story_deadline_{{story.id}}" class="story-deadline editable deadline">{{ 'No Deadline Set' if not story.deadline else story.deadline }}</span>
+            <div>Tasks: {{ story['tasks']|length }}</div>
+            <div>Remain: {{ story['active_tasks']|length }}</div>
+            {% if story['story'] != 'NULL' %}
+                <input id="story_deadline_datepicker_{{story.id}}" name="date" class="datepicker-input" type="hidden" />
+                <span  title="Click to Edit" contentEditable="false" update_key="deadline" id="story_deadline_{{story.id}}" class="story-deadline editable deadline">{{ 'No Deadline Set' if not story.deadline else story.deadline }}</span>
+            {% endif %}
             
         </div>
         <div class="large-10 columns">
-            {% for task in tasks if task['storyID'] == story['id'] %}
+            {% for task in tasks if task['story_id'] == story['id'] %}
             <div class="task-container container" 
                  task="{{ task.id }}" 
                  update_url="{{ url_for('task.show',task_id=task.id,is_json=True) }}">
@@ -88,7 +95,7 @@
                     <div class="columns large-6">
                         <input id="task_deadline_datepicker_{{task.id}}" name="date" class="datepicker-input" type="hidden" />
                         <span  title="Click to Edit" contentEditable="false" update_key="deadline" id="task_deadline_{{task.id}}" class="task-deadline editable deadline">{{ 'No Deadline Set' if not task.deadline else task.deadline }} </span>
-                        {% if task.status != 'Done' and task.sprintid != current_sprint.id %}
+                        {% if task.status != 'Done' and task.sprint_id != current_sprint.id %}
                             <button id="task_sprint_btn_{{task.id}}" class="float-right button sprintPlan invisible float-right" style="margin:0.1rem;padding:0.2em 1em;" task="{{task.id}}" sprint="{{current_sprint.id}}">Add to Sprint</button>
                         {% elif task.sprint_id == current_sprint_id %}
                             <span class="float-right" id="task_sprint_status_{{task.id}}">In Current Sprint</span>
@@ -200,7 +207,7 @@
         }
         $.ajax({
             url: parent.attr('update_url'),
-            data: {sprintid:sprint_id},
+            data: {sprint_id:sprint_id},
             type: 'POST',
             dataType: 'json'
         }).done(function () {
@@ -267,6 +274,7 @@
     });
     $('.create').click(function(){
         get_url = $(this).val()
+        //FIXME: This looks like an XSS attack waiting to happen
         $(this).siblings('div').load($(this).val(),function(){
             console.log('Loaded '+get_url);
         });
