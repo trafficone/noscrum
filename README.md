@@ -34,6 +34,16 @@ python -m pip install -r requirements.txt
 flask run
 ```
 
+Then install the Foundation platform along with jquery to the noscrum/static directory, such that
+you have the following files:
+
+- css/foundation-float.css
+- css/jquery-ui.min.css
+- js/jquery-ui.js
+- js/vendor/foundation.js
+- js/vendor/jquery.js
+- js/vendor/what-input.js
+
 A proper deployment process is in the backlog.
 
 ## Usage
