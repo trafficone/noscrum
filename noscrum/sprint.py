@@ -73,12 +73,6 @@ def update_sprint(id,start_date,end_date):
 def get_schedules_for_sprint(sprint_id):
     db = get_db()
     return ScheduleTask.query.filter(ScheduleTask.sprint_id == sprint_id).all()
-    """
-    return db.execute(
-        'SELECT * FROM schedule_task WHERE sprint_id = ?',
-        (sprint_id,)
-    ).fetchall()
-    """
 
 def get_schedule_tasks_filtered(sprint_id,task_id,sprint_day,sprint_hour):
     db = get_db()
@@ -106,11 +100,7 @@ def get_schedule_by_time(sprint_id,sprint_day,sprint_hour,schedule_id=None):
     if schedule_id is not None:
         query.filter(ScheduleTask.id != schedule_id)
     return query.first()
-    """db.execute(
-        'SELECT id FROM schedule_task WHERE sprint_id = ? AND sprint_day = ? AND sprint_hour = ? '+
-        ' AND (? is NULL or id != ?)',
-        (sprint_id,sprint_day,sprint_hour,schedule_id,schedule_id)
-    ).fetchone() """
+   
 
 def create_schedule(sprint_id,task_id,sprint_day,sprint_hour,note):
     db = get_db()
@@ -122,14 +112,7 @@ def create_schedule(sprint_id,task_id,sprint_day,sprint_hour,note):
         user_id = current_user.id)
     db.session.add(schedule)
     db.session.commit()
-    """
-    db.execute(
-        'INSERT INTO schedule_task (sprint_id, task_id, sprint_day, sprint_hour, note) '+
-        'VALUES (?, ?, ?, ?, ?)',
-        (sprint_id, task_id, sprint_day, sprint_hour, note)
-    )
-    """
-    return get_schedule_by_time(sprint_id,sprint_day,sprint_hour)
+   
 
 def update_schedule(id,task_id,sprint_day,sprint_hour,note):
     db = get_db()
@@ -139,29 +122,13 @@ def update_schedule(id,task_id,sprint_day,sprint_hour,note):
             sprint_day:sprint_day,
             sprint_hour:sprint_hour,
             note:note},synchronize_session="fetch")
-    """
-    db.execute(
-        'UPDATE schedule_task SET ' +
-            'task_id = ?, '+
-            'sprint_day = ?, '+
-            'sprint_hour = ?, '+
-            'note = ? '+
-        'WHERE id = ?',
-        (task_id, sprint_day, sprint_hour, note, id)
-    )
-    """
-    db.session.commit()
-    return get_schedule(id)
+   
 
 def delete_schedule(id):
     db = get_db()
     ScheduleTask.query.filter(ScheduleTask.id == id)\
             .filter(ScheduleTask.user_id == current_user.id)\
             .delete()
-    """db.execute(
-        'DELETE FROM schedule_task WHERE id = ?',
-        (id,)
-    )"""
     db.session.commit()
 
 

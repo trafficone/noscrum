@@ -29,65 +29,22 @@ def get_tasks():
                         'FROM schedule_task group by task_id, sprint_id) sched '+
         'ON task.id = sched.task_id '+
         'WHERE task.user_id = :user_id',{'user_id':current_user.id})
-    db.select([
-        Task.id,
-        Task.task,
-        Task.estimate,
-        Task.status,
-        Task.story_id,
-        Story.epic_id,
-        Task.actual,
-        Task.deadline,
-        Task.recurring,
-        ]).join(db.session.query(db.select([ScheduleTask.task_id,
-        (db.func.distinct(ScheduleTask.sprint_id) == 1).label('single_sprint_task')]).group_by(ScheduleTask.task_id)))\
-        .join(db.session.query(db.select([Work.task_id,
-        db.func.sum(Work.hours_worked).label('hours_worked')]).group_by(Work.task_id)))\
-        .group_by(Task.id)\
-        .filter(Task.user_id == current_user.id)#)
-
-    oldquery = """
-            'SELECT task.id, task, estimate, status, story_id, '+
-        'epic_id, actual, task.deadline, task.recurring, coalesce(hours_worked,0) hours_worked, ' +
-        'coalesce(sum_sched,0) sum_sched, ' +
-        '(task.sprint_id = sched.sprint_id) single_sprint_task '+
-    return db.execute(
-        "SELECT id, task, deadline, sprint_id, recurring, "+
-        "coalesce(estimate,'Unestimated') as estimate, coalesce(actual,0) "+
-        "as actual, story_id, status from task"
-    ).fetchall()
-    """
 
 def get_tasks_for_story(story_id):
     db = get_db()
     return Task.query.filter(Task.story_id == story_id).filter(Task.user_id == current_user.id).all()
-    """
-    return db.execute(
-        'SELECT * from task WHERE story_id = ?',
-        (story_id,)
-    ).fetchall()
-    """
+    
 
 def get_tasks_for_epic(epic_id):
     db = get_db()
     return Task.query.filter(Task.stories.epic_id == epic_id).filter(Task.user_id == current_user.id).all()
-    """
-    return db.execute('SELECT task.id, task.task from task '+\
-        'join story on task.story_id = story.id '+\
-        ' where story.epic_id = ?',(epic_id,)).fetchall()
-    """
+    
 
 def get_task_by_name(task,story_id):
     db = get_db()
     return Task.query.filter(Task.story_id == story_id).\
         filter(Task.task == task).\
         filter(Task.user_id == current_user.id).first()
-    """
-    return db.execute(
-        'SELECT * FROM task WHERE task = ? AND story_id = ?',
-            (task, story_id, )
-    ).fetchone()
-    """
 
 def create_task(task, story_id, estimate, deadline, sprint_id):
     db = get_db()
@@ -97,12 +54,6 @@ def create_task(task, story_id, estimate, deadline, sprint_id):
         deadline=deadline,
         sprint_id = sprint_id,
         user_id = current_user.id)
-    """
-    db.execute(
-        'INSERT INTO task (task, story_id, estimate, deadline, sprint_id) VALUES (?, ?, ?, ?, ?)',
-        (task, story_id, estimate, deadline, sprint_id)
-    )
-    """
     db.session.add(newtask)
     db.session.commit()
     return get_task_by_name(task,story_id)
@@ -110,12 +61,6 @@ def create_task(task, story_id, estimate, deadline, sprint_id):
 def get_task(id):
     db = get_db()
     return Task.query.filter(Task.id==id).filter(Task.user_id == current_user.id).first()
-    """
-    return db.execute(
-        'SELECT id, task, story_id, estimate, actual, status, deadline, recurring, sprint_id FROM task where id = ?',
-        (id, )
-    ).fetchone()
-    """
 
 def update_task(id, task, story_id, estimate, status, actual, deadline, sprint_id, recurring):
     db = get_db()

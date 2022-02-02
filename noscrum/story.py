@@ -39,51 +39,19 @@ def get_story_summary():
         db.func.count(Task.id).filter(Task.estimate is None).label('unest'),
         db.func.count(Task.id).filter(Task.status != 'Done').label('incomplete'),
         db.func.count().label('task_count')).group_by(Task.story_id).all()
-    """
-    summary = db.execute(
-        'SELECT story_id, ' +
-        ' sum(estimate) est, ' +
-        ' sum(case when estimate is NULL then 1 else 0 END) unest, ' +
-        " sum(case when status <> 'Done' then 1 else 0 END) incomplete, " +
-        ' count(1) task_count'
-        'FROM task ' +
-        'GROUP BY story_id'
-    ).fetchall()
-    return summary
-    """
+ 
 
 def get_stories_by_epic(epic_id):
     db = get_db()
     query = Story.query.filter(Story.epic_id == epic_id).filter(Story.user_id == current_user.id)
     return query.all()
-    """
-    return db.execute(
-        'SELECT story.id, story, prioritization, task.sprint_id, '+
-        'COUNT(task.id) as tasks, '+
-        "COUNT(DISTINCT CASE WHEN task.status <> 'Done' THEN task.id ELSE NULL END) as active_tasks, "  +
-        'COUNT(DISTINCT CASE WHEN task.estimate IS NULL THEN task.id ELSE NULL END) as unestimated_tasks, ' +
-        'SUM(task.estimate) as total_estimate, '+
-        "SUM(CASE WHEN task.status <> 'Done' THEN task.estimate ELSE 0 END) AS rem_estimate " +
-        'FROM story ' +
-        'LEFT OUTER JOIN task ON task.story_id = story.id ' +
-        'WHERE epic_id = ? ' +
-        'GROUP BY story.id, story, prioritization, task.sprint_id ' +
-        'ORDER BY prioritization DESC',
-        (epic_id, )
-    )
-    """
+ 
 
 def get_story_by_name(story,epic_id):
     db = get_db()
     return Story.query.filter(Story.story == story)\
         .filter(Story.epic_id == epic_id)\
         .filter(Story.user_id == current_user.id).first()
-    """
-    return db.execute(
-        'SELECT id FROM story WHERE story = ? and epic_id = ?',
-        (story, epic_id, )
-    ).fetchone() 
-    """
 
 def get_story(id,exclude_nostory=True):
     db = get_db()
@@ -92,23 +60,11 @@ def get_story(id,exclude_nostory=True):
     if exclude_nostory:
         query.filter(Story.story is not None)
     return query.first()
-    """
-    exclude_string = " AND story <> 'NULL'" if exclude_nostory else ""
-    return db.execute(
-        "SELECT id, story, deadline FROM story WHERE id = ?" + 
-        exclude_string 
-        (id,)
-    ).fetchone()
-    """
 
 def get_null_story_for_epic(epic_id):
     db = get_db()
     story = Story.query.filter(Story.story is None).filter(Story.epic_id == epic_id)\
         .filter(Story.user_id == current_user.id).first()
-    """
-    story = db.execute("SELECT id, story FROM story where story = 'NULL' and epic_id = ?",
-        (epic_id,)).fetchone()
-    """
     if (story is None):
         story = create_story(epic_id,'NULL',None,None)
     return story
@@ -121,24 +77,12 @@ def create_story(epic_id,story,prioritization,deadline):
             deadline = deadline,
             user_id = current_user.id
         )
-        """
-        db.execute(
-            'INSERT INTO story (story, epic_id, deadline) VALUES (?, ?, ?)',
-            (story, epic_id, deadline)
-        )
-        """
     else:
         new_story = Story(story=story,
             epic_id=epic_id,
             prioritization=prioritization,
             deadline=deadline,
             user_id = current_user.id)
-        """
-        db.execute(
-            'INSERT INTO story (story, epic_id, prioritization, deadline) VALUES (?, ?, ?, ?)',
-            (story, epic_id, prioritization, deadline)
-        )
-        """
     db.session.add(new_story)
     db.session.commit()
     story = get_story_by_name(story, epic_id)
@@ -153,43 +97,17 @@ def update_story(id,story,epic_id,prioritization,deadline):
             prioritization:prioritization,
             deadline:deadline
         },synchronize_session="fetch")
-    """
-    db.execute(
-        'UPDATE story SET '+
-            'story = ?, '+
-            'epic_id = ?, '+
-            'prioritization = ?, '+
-            'deadline = ? ' +
-        'WHERE id = ?',
-        (story, epic_id, prioritization, deadline, id,)
-    )
-    """
     db.session.commit()
     return get_story(id)
 
 def get_tag_story(story_id,tag_id):
     story = get_story(story_id)
     return Tag.query.filter(Tag.stories.contains(story)).filter(Tag.user_id == current_user.id).filter(Tag.id == tag_id).first()
-    
-    #Story.query.filter(Story.id == story_id).filter(Story.tags.id == tag_id)\
-    #.filter(Story.user_id == current_user.id).first()
-    """
-    return db.execute(
-        'SELECT * FROM tag_story WHERE story_id = ? and tagID = ?',
-        (story_id, tag_id, )
-    ).fetchone() 
-    """
 
 def insert_tag_story(story_id,tag_id):
     db = get_db()
     # TODO: SQLAlchemy makes it so you can add a tag directly to story w/o needing to update this table directly
     tag_story_record = TagStory(story_id=story_id,tag_id=tag_id)
-    """
-    db.execute(
-        'INSERT INTO tag_story (story_id, tagID) VALUES (?, ?)',
-        (story_id, tag_id)
-    )
-    """
     db.session.add(tag_story_record)
     db.session.commit()
     return get_tag_story(story_id,tag_id)
@@ -200,13 +118,7 @@ def delete_tag_story(story_id,tag_id):
         .filter(TagStory.tag_id==tag_id)\
         .delete()
     db.session.commit()
-    """
-    db.execute(
-        'DELETE FROM tag_story WHERE  story_id = ? AND tagID = ?',
-        (story_id, tag_id)
-    )
-    db.commit()
-    """
+   
 
 @bp.route('/create/<int:epic_id>', methods=('GET', 'POST'))
 @login_required

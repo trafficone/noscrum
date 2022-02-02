@@ -33,10 +33,6 @@ def authenticate_user(username,credential):
     if credential == user.password_hash:
         return user
 
-#@bp.route('/login',methods=('GET','POST'))
-#def login():
-#   return render_template('user/login.html') 
-
 @bp.route('/',methods=('GET','PUT'))
 def profile():
     if not current_user:

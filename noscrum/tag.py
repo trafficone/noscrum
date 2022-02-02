@@ -16,55 +16,22 @@ def get_tags(story=None):
         tags = tags.add_columns(Tag.stories.contains(story).label('tag_in_story'))
     return tags.all()
     
-    """
-    return db.execute(
-        'SELECT id, tag FROM tag'
-    )
-    """
 
 def get_tags_for_story(story_id):
     db = get_db()
     return [x.tags for x in Story.query.filter(Story.user_id==current_user.id).all()]
-    #Tag.query.filter(Tag.user_id==current_user.id).
-    """
-    db.execute(
-        'SELECT tag.id, tag, tag_story.id IS NOT NULL as tag_in_story FROM tag '+
-        'LEFT OUTER JOIN tag_story ON tag.id = tag_story.tagID '+
-        'AND tag_story.story_id = ?',
-        (story_id,)
-    ).fetchall()
-    """
 
 def get_tag(id):
     db = get_db()
     return Tag.query.filter(Tag.id == id).filter(Tag.user_id == current_user.id).first()
-    """
-    return db.execute(
-        'SELECT id FROM tag WHERE id = ?',
-        (id,)
-    ).fetchone() 
-    """
 
 def get_tag_from_name(tag):
     db = get_db()
     return Tag.query.filter(Tag.tag == tag).filter(Tag.user_id == current_user.id).first()
-    """
-    return db.execute(
-        'SELECT id FROM tag WHERE tag = ?',
-        (tag,)
-    ).fetchone() 
-    """
 
 def create_tag(tag):
     db = get_db()
     newtag = Tag(tag = tag, user_id = current_user.id)
-    """
-    db.execute(
-        'INSERT INTO tag (tag) VALUES (?)',
-        (tag,)
-    )
-    db.commit()
-    """
     db.session.add(newtag)
     db.session.commit()
     return get_tag_from_name(tag)
@@ -75,25 +42,11 @@ def update_tag(id,tag):
         .filter(Tag.user_id == current_user.id)\
         .update({tag:tag},synchronize_session="fetch")
     db.session.commit()
-    """
-    db.execute(
-        'UPDATE tag SET tag = ? '+
-        'WHERE id = ?',
-        (tag, id)
-    )
-    db.commit()
-    """
     return get_tag(id)
     
 def delete_tag(id):
     db = get_db()
     Tag.query.filter(Tag.id==id).filter(Tag.user_id == current_user.id).delete()
-    """
-    db.execute(
-        'DELETE FROM tag WHERE id = ?',
-        (id,)
-    )
-    """
     db.session.commit()
 
 @bp.route('/create', methods=('GET','POST'))
