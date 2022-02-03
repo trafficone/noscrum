@@ -37,7 +37,6 @@ def create_app(test_config=None):
     # Init Flask-BabelEx
     babel = Babel(app)
 
-    # Init SQLAlchemy
 
     """
     if test_config is None:
@@ -53,18 +52,20 @@ def create_app(test_config=None):
     except OSError:
         pass
 
+    # Init SQLAlchemy
     start_db = SQLAlchemy(app)
     from noscrum.db import User
     user_manager = UserManager(app, start_db, User)
     start_db.create_all()
-    if not User.query.filter(User.username == 'trafficone').first():
-        user = User(
-            username='trafficone',
-            email='member@example.com',
-            email_confirmed_at=datetime.datetime.utcnow(),
-            password=user_manager.hash_password('password'))
-        start_db.session.add(user)
-        start_db.session.commit()
+    if app.config.get('FLASK_ENV',None) == 'development':
+        if not User.query.filter(User.username == 'trafficone').first():
+            user = User(
+                username='trafficone',
+                email='member@example.com',
+                email_confirmed_at=datetime.datetime.utcnow(),
+                password=user_manager.hash_password('password'))
+            start_db.session.add(user)
+            start_db.session.commit()
 
     from noscrum import epic, story, task, sprint, tag, work, user
     app.register_blueprint(epic.bp)

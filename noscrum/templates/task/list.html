@@ -107,13 +107,16 @@
                 </div>
             </div>
             {% endfor %}
-            <div><button class="button create create-task" value="{{ url_for('task.create',story_id=story['id'],is_asc=True) }}">Create Task</button></div>
+            <div>
+                <div></div>
+                <button class="button create" value="{{ url_for('task.create',story_id=story['id'],is_asc=True) }}">Create Task</button>
+            </div>
         </div>
     </div>
     {% endfor %}
     <div class="row">
         <button class="button create create-story" value="{{ url_for('story.create',epic_id=epic['id'],is_asc=True) }}">Create Story</button><div></div>
-</div>
+    </div>
 </div>
 {% endfor %}
 <div>
@@ -273,7 +276,7 @@
         });
     });
     $('.create').click(function(){
-        get_url = $(this).val()
+        var get_url = $(this).val()
         //FIXME: This looks like an XSS attack waiting to happen
         $(this).siblings('div').load($(this).val(),function(){
             console.log('Loaded '+get_url);
