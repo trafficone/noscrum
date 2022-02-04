@@ -2,7 +2,7 @@ import json
 from datetime import date, datetime
 
 from flask import (
-    Blueprint, g, redirect, render_template, request, session, url_for, abort, flash
+    Blueprint, redirect, render_template, request, url_for, abort, flash
 )
 from flask_user import current_user
 
@@ -14,18 +14,18 @@ from noscrum.epic import get_epic
 bp = Blueprint('work', __name__, url_prefix='/work')
 
 def create_work(work_date, hours_worked, status, task_id, new_actual, update_status):
-    db = get_db()
+    app_db = get_db()
     new_work = Work(work_date=work_date,
     hours_worked=hours_worked,
     status=status,
     task_id=task_id)
-    db.session.add(new_work)
+    app_db.session.add(new_work)
     new_status = status if update_status else None
     update_task(task_id,None,None,None,new_status,new_actual,None,None,None)
-    db.session.commit()
+    app_db.session.commit()
 
-def get_work(id):
-    return Work.query.filter(Work.id==id).filter(Work.user_id==current_user.id).first()
+def get_work(work_id):
+    return Work.query.filter(Work.id==work_id).filter(Work.user_id==current_user.id).first()
 
 def get_work_for_task(task_id):
     return Work.query.filter(Work.task_id==task_id).filter(Work.user_id==current_user.id).all()
@@ -35,21 +35,23 @@ def get_work_for_story(story_id):
         .filter(Work.user_id == current_user.id).all()
 
 def get_work_for_epic(epic_id):
-    db = get_db()
-    return Work(*db.execute("SELECT work.id, task_id, work_date, hours_worked, status "+\
+    app_db = get_db()
+    return Work(*app_db.execute("SELECT work.id, task_id, work_date, hours_worked, status "+\
         'FROM work JOIN task on work.task_id = task.id '+\
         'JOIN story ON task.story_id = story.id '+\
         ' WHERE story.epic_id = ? order by work_date',(epic_id,)).fetchall())
 
 def get_work_by_dates(start_date,end_date):
-    db = get_db()
-    return Work(*db.execute("SELECT id, task_id, work_date, hours_worked, status FROM work "+\
+    app_db = get_db()
+    return Work(*app_db.execute("SELECT id, task_id, work_date, hours_worked, status FROM work "+\
         "WHERE work_date BETWEEN ? and ? order by work_date",(start_date,end_date)).fetchall())
 
-def delete_work(id):
-    db = get_db()
-    Work.query.filter(Work.id==id).filter(Work.user_id==current_user.id)
-    db.session.commit()
+def delete_work(work_id):
+    app_db = get_db()
+    work = get_work(work_id)
+    Work.query.filter(Work.id==work_id).filter(Work.user_id==current_user.id).delete()
+    app_db.session.commit()
+    return work.id
 
 @bp.route('/create/<int:task_id>',methods=('POST','GET'))
 def create(task_id):
@@ -102,10 +104,10 @@ def read_delete(work_id):
             return json.dumps({'Success':True,'work_id':work_id,'work_item':work_item})
         return render_template('work/read_del',work_item=work_item)
     elif request.method == 'DELETE':
-        delete_work(work_id)
+        deleted_work_id = delete_work(work_id)
         if is_json:
-            return json.dumps({'Success':True,'work_id':work_id})
-        return redirect(url_for('work.list_for_task',task_id=work_item['task_id']))
+            return json.dumps({'Success':True,'work_id':deleted_work_id})
+        return redirect(url_for('work.list_for_task',task_id=work_item.task_id))
 
 @bp.route('/list/task/<int:task_id>',methods=('GET',))
 def list_for_task(task_id):
@@ -135,7 +137,7 @@ def list_for_story(story_id):
     is_json = request.args.get('is_json',False)
     story = get_story(story_id)
     if story is None:
-        error = f'Story Item {story_id} not found'
+        error = f'Story Item not found'
         if is_json:
             abort(404, error)
         else:
@@ -143,7 +145,7 @@ def list_for_story(story_id):
             return redirect(url_for('sprint.active'))
     tasks = get_tasks_for_story(story_id)
     if tasks is None:
-        error = f'No Tasks found for Story {story_id}'
+        error = f'No Tasks found for Story {story.id}'
         if is_json:
             abort(404, error)
         else:
@@ -151,7 +153,7 @@ def list_for_story(story_id):
             return redirect(url_for('sprint.active'))
     work_items = get_work_for_story(story_id)
     if work_items is None:
-        error = f'No Work Items found for Story {story_id}'
+        error = f'No Work Items found for Story {story.id}'
         if is_json:
             abort(404, error)
         else:
@@ -166,7 +168,7 @@ def list_for_epic(epic_id):
     is_json = request.args.get('is_json',False)
     epic = get_epic(epic_id)
     if epic is None:
-        error = f'Epic Item {epic_id} not found'
+        error = f'Epic Item not found'
         if is_json:
             abort(404, error)
         else:
@@ -174,7 +176,7 @@ def list_for_epic(epic_id):
             return redirect(url_for('sprint.active'))
     tasks = get_tasks_for_epic(epic_id)
     if tasks is None:
-        error = f'No Tasks found for Epic {epic_id}'
+        error = f'No Tasks found for Epic {epic.id}'
         if is_json:
             abort(404, error)
         else:
@@ -182,7 +184,7 @@ def list_for_epic(epic_id):
             return redirect(url_for('sprint.active'))
     work_items = get_work_for_epic(epic_id)
     if work_items is None:
-        error = f'No Work Items found for Epic {epic_id}'
+        error = f'No Work Items found for Epic {epic.id}'
         if is_json:
             abort(404, error)
         else:
@@ -199,7 +201,7 @@ def list_for_dates():
     end_date = request.args.get('end_date',date.today())
     work_items = get_work_by_dates(start_date,end_date)
     if work_items is None:
-        error = f'No work items found between {start_date} and {end_date}'
+        error = f'No work items found between dates_provided'
         if is_json:
             abort(404, error)
         else:

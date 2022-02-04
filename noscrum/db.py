@@ -1,10 +1,9 @@
-import sqlite3
-
+"""
+Database Models and Controller (not much to do, thanks SQLAlchemy!)
+"""
 import click
 from flask import g
 from flask.cli import with_appcontext
-from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy.orm import relationship
 from flask_user import UserMixin
 
 app_db = None
@@ -147,7 +146,7 @@ def define_database(db):
                     'sprint_hour':self.sprint_hour ,
                     'note': self.note }
 
-def close_db(e=None):
+def close_db():
     db = g.pop('db', None)
 
     if db is not None:

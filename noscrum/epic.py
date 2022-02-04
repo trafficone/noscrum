@@ -1,8 +1,7 @@
-import functools
 import json
 
 from flask import (
-    Blueprint, flash, g, redirect, render_template, request, session, url_for, abort
+    Blueprint, flash, redirect, render_template, request, url_for, abort
 )
 from flask_user import current_user, login_required
 
@@ -12,15 +11,17 @@ bp = Blueprint('epic', __name__, url_prefix='/epic')
 
 
 def get_epics(sprint_view=False,sprint_id=None):
-    db = get_db()
+    app_db = get_db()
     if not sprint_view:
         return Epic.query.filter(Epic.user_id==current_user.id).all()
     
-    return db.session.execute(
+    return app_db.session.execute(
         'SELECT epic, epic.id, color, epic.deadline, '+
         'sum(coalesce(estimate,0)) as estimate, count(task.id) as tasks, ' +
-        "COUNT(DISTINCT CASE WHEN task.status <> 'Done' THEN task.id ELSE NULL END) as active_tasks, "  +
-        'COUNT(DISTINCT CASE WHEN task.estimate IS NULL THEN task.id ELSE NULL END) as unestimated_tasks, ' +
+        "COUNT(DISTINCT CASE WHEN task.status <> 'Done' THEN task.id ELSE NULL END) "+
+                "as active_tasks, "  +
+        'COUNT(DISTINCT CASE WHEN task.estimate IS NULL THEN task.id ELSE NULL END) '+
+                'as unestimated_tasks, ' +
         "SUM(CASE WHEN task.status <> 'Done' THEN task.estimate - coalesce(task.actual,0) ELSE 0 END) AS rem_estimate " +
         'FROM epic '+
         'LEFT OUTER JOIN story ON story.epic_id = epic.id ' +
@@ -31,40 +32,38 @@ def get_epics(sprint_view=False,sprint_id=None):
         {'user_id':current_user.id,'sprint_id':sprint_id}).fetchall()
 
 def get_epic_by_name(epic):
-    db = get_db()
     return Epic.query\
         .filter(Epic.epic == epic)\
         .filter(Epic.user_id == current_user.id)\
         .first()
 
-def get_epic(id):
-    db = get_db()
+def get_epic(epic_id):
     return Epic.query\
-            .filter(Epic.id == id)\
+            .filter(Epic.id == epic_id)\
             .filter(Epic.user_id == current_user.id)\
             .first()
 
 def create_epic(epic, color, deadline):
-    db = get_db()
+    app_db = get_db()
     new_epic = Epic(
         epic=epic,
         color=color,
         deadline=deadline,
         user_id = current_user.id
     )
-    db.session.add(new_epic)
-    db.session.commit()
+    app_db.session.add(new_epic)
+    app_db.session.commit()
     return get_epic_by_name(epic)
 
-def update_epic(id,epic,color,deadline):
-    db = get_db()
-    Epic.query.filter(Epic.id==id).update({
+def update_epic(epic_id,epic,color,deadline):
+    app_db = get_db()
+    Epic.query.filter(Epic.id==epic_id).update({
         epic: epic,
         color: color,
         deadline: deadline
     },synchronize_session="fetch")
-    db.session.commit()
-    return get_epic(id)
+    app_db.session.commit()
+    return get_epic(epic_id)
 
 @bp.route('/create', methods=('GET', 'POST'))
 @login_required
@@ -75,7 +74,6 @@ def create():
         epic = request.form.get('epic',None)
         color = request.form.get('color',None)
         deadline = request.form.get('deadline',None)
-        db = get_db()
         error = None
 
         if not epic:
@@ -98,12 +96,11 @@ def create():
 @bp.route('/<int:epic_id>', methods=('GET', 'POST'))
 @login_required
 def show(epic_id):
-    db = get_db()
     is_json = request.args.get('is_json',False)
     epic = get_epic(epic_id)
     if epic is None:
         if is_json or request.method == 'POST':
-            abort(404,f'Epic ID "{epic_id}" not found in Database')
+            abort(404,f'Epic ID not found in Database')
         else:
             flash(f'Epid ID "{epic_id}" not found.','error')
             return redirect(url_for('epic.list_all'))
@@ -113,13 +110,12 @@ def show(epic_id):
         epic_name = request.form.get('name',epic['epic'])
         color = request.form.get('color',epic['color'])
         deadline = request.form.get('deadline',epic['deadline'])
-
         other_epic = get_epic_by_name(epic_name)
 
         if not epic_id:
             error = 'Could not find ID for Epic being edited.'
         elif other_epic is not None and other_epic.id != epic_id:
-            error = f'A different Epic named "{epic}" already exists'
+            error = f'A different Epic named "{epic.epic}" already exists'
         
         if error is None:
             update_epic(epic_id,epic_name,color,deadline)

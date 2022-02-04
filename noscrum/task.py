@@ -1,22 +1,24 @@
-import functools
+"""
+Task View and Database Interaction Module
+"""
 import json
 from datetime import datetime
 
 from flask import (
-    Blueprint, g, redirect, render_template, request, session, url_for, abort, flash
+    Blueprint, redirect, render_template, request, url_for, abort, flash
 )
 from flask_user import current_user, login_required
 
 from noscrum.story import get_null_story_for_epic, get_story, get_stories
 from noscrum.epic import get_epics
 from noscrum.sprint import get_current_sprint, get_sprint
-from noscrum.db import get_db, Task,Story,ScheduleTask,Work
+from noscrum.db import get_db, Task
 
 bp = Blueprint('task', __name__, url_prefix='/task')
 
 def get_tasks():
-    db = get_db()
-    return db.session.execute('SELECT task.id, task, estimate, status, story_id, '+
+    app_db = get_db()
+    return app_db.session.execute('SELECT task.id, task, estimate, status, story_id, '+
         'epic_id, actual, task.deadline, task.recurring, coalesce(hours_worked,0) hours_worked, ' +
         'coalesce(sum_sched,0) sum_sched, ' +
         '(task.sprint_ID = sched.sprint_id) single_sprint_task '+
@@ -31,68 +33,68 @@ def get_tasks():
         'WHERE task.user_id = :user_id',{'user_id':current_user.id})
 
 def get_tasks_for_story(story_id):
-    db = get_db()
-    return Task.query.filter(Task.story_id == story_id).filter(Task.user_id == current_user.id).all()
-    
+    return Task.query.filter(Task.story_id == story_id)\
+        .filter(Task.user_id == current_user.id).all()
+
 
 def get_tasks_for_epic(epic_id):
-    db = get_db()
-    return Task.query.filter(Task.stories.epic_id == epic_id).filter(Task.user_id == current_user.id).all()
-    
+    return Task.query.filter(Task.stories.epic_id == epic_id)\
+        .filter(Task.user_id == current_user.id).all()
+
 
 def get_task_by_name(task,story_id):
-    db = get_db()
     return Task.query.filter(Task.story_id == story_id).\
         filter(Task.task == task).\
         filter(Task.user_id == current_user.id).first()
 
 def create_task(task, story_id, estimate, deadline, sprint_id):
-    db = get_db()
+    app_db = get_db()
     newtask = Task(task=task,
         story_id = story_id,
         estimate=estimate,
         deadline=deadline,
         sprint_id = sprint_id,
         user_id = current_user.id)
-    db.session.add(newtask)
-    db.session.commit()
+    app_db.session.add(newtask)
+    app_db.session.commit()
     return get_task_by_name(task,story_id)
 
-def get_task(id):
-    db = get_db()
-    return Task.query.filter(Task.id==id).filter(Task.user_id == current_user.id).first()
+def get_task(task_id):
+    return Task.query.filter(Task.id==task_id).filter(Task.user_id == current_user.id).first()
 
-def update_task(id, task, story_id, estimate, status, actual, deadline, sprint_id, recurring):
-    db = get_db()
+def update_task(task_id, task, story_id, estimate, status, actual, deadline, sprint_id, recurring):
+    app_db = get_db()
     data = {}
-    query = Task.query.filter(Task.id==id).filter(Task.user_id == current_user.id)
+    query = Task.query.filter(Task.id==task_id).filter(Task.user_id == current_user.id)
     if task is not None:
         data['task']=task
     if story_id is not None:
         data['story_id']=story_id
     if estimate is not None:
-        data['estimate']=estimate 
+        data['estimate']=estimate
     if status is not None:
-        data['status']=status 
+        data['status']=status
     if actual is not None:
-        data['actual']=actual 
+        data['actual']=actual
     if deadline is not None:
-        data['deadline']=deadline 
+        data['deadline']=deadline
     if sprint_id is not None:
-        data['sprint_id']=sprint_id 
+        data['sprint_id']=sprint_id
     if recurring is not None:
         if recurring in ['1',1,'true','T','Y']:
             recurring = True
         else:
             recurring = False
-        data['recurring']=recurring 
+        data['recurring']=recurring
     query.update(data,synchronize_session="fetch")
-    db.session.commit()
+    app_db.session.commit()
+    return get_task(task_id)
 
-def delete_task(id):
-    db = get_db()
+def delete_task(task_id):
+    #app_db = get_db()
+    #Task.query.filter(Task.id==task_id).filter(Task.user_id==current_user.id).delete()
+    #app_db.commit()
     raise NotImplementedError('Deleting Tasks is Not Supported')
-    Task.query.filter(Task.id==id).filter(Task.user_id==current_user.id)
 
 @bp.route('/create/<int:story_id>', methods=('GET', 'POST'))
 @login_required
@@ -107,13 +109,13 @@ def create(story_id):
         else:
             flash(error,'error')
             return redirect(url_for('task.list_all'))
-    
+
     if request.method == 'POST':
         task = request.form.get('task', None)
         estimate = request.form.get('estimate', None)
         deadline = request.form.get('deadline',None)
         sprint_id = request.form.get('sprint_id',None)
-        if story_id == 0: 
+        if story_id == 0:
             if 'epic_id' not in request.form:
                 abort(500,'EPIC ID not found in input')
             epic_id = request.form['epic_id']
@@ -122,7 +124,7 @@ def create(story_id):
         error = None
 
         if estimate == 0 or estimate == '':
-            estimate is None
+            estimate = None
 
         if not task:
             error = 'Task Name is Required'
@@ -139,7 +141,7 @@ def create(story_id):
         if is_json:
             abort(500, error)
         flash(error,'error')
-    
+
     if is_json:
         return json.dumps({'Success':True, story:dict(story)})
     return render_template('task/create.html', story=story, asc=is_asc)
@@ -157,7 +159,7 @@ def show(task_id):
         else:
             flash(error,'error')
             redirect(url_for('task.list_all'))
-    
+
     if request.method == 'POST':
         task_name = request.form.get('task', task.task)
         estimate = request.form.get('estimate', task.estimate)
@@ -185,21 +187,29 @@ def show(task_id):
             status = task.status
         if not sprint_id:
             sprint_id = task.sprint_id
-        
+
         if get_story(story_id) is None:
             error = f'Story with ID {story_id} not found'
         elif sprint_id and get_sprint(sprint_id) is None:
             error = f'Sprint {sprint_id} not found.'
 
         if error is None:
-            task = update_task(task_id,task_name, story_id, estimate, status, actual, deadline, sprint_id, recurring)
+            task = update_task( task_id,
+                                task_name,
+                                story_id,
+                                estimate,
+                                status,
+                                actual,
+                                deadline,
+                                sprint_id,
+                                recurring)
             if is_json:
                 return json.dumps({'Success':True, 'task_id':task_id})
             return redirect(url_for('task.show', task_id=task_id))
         if is_json:
             abort(500, error)
         flash(error,'error')
-    
+
     if is_json:
         return json.dumps({'Success':True, 'task':dict(task)})
     return render_template('task/show.html', task=task)
@@ -220,4 +230,9 @@ def list_all():
         'epics':[dict(x) for x in epics],
         'stories':[dict(x) for x in stories],
         'current_sprint':current_sprint.id})
-    return render_template('task/list.html', current_sprint=current_sprint, tasks=tasks, epics=epics, stories=stories, colors=colors)
+    return render_template('task/list.html',
+                    current_sprint=current_sprint,
+                    tasks=tasks,
+                    epics=epics,
+                    stories=stories,
+                    colors=colors)

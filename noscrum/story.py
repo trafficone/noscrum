@@ -1,9 +1,7 @@
-import functools
-from pprint import pprint
 import json
 
 from flask import (
-    Blueprint, flash, g, redirect, render_template, request, session, url_for, abort
+    Blueprint, flash, redirect, render_template, request, url_for, abort
 )
 from flask_user import current_user, login_required
 
@@ -14,10 +12,10 @@ from noscrum.tag import get_tags
 bp = Blueprint('story', __name__, url_prefix='/story')
 
 def get_stories(sprint_view = False,sprint_id = None):
-    db = get_db()
+    app_db = get_db()
     if not sprint_view:
         return Story.query.filter(Story.user_id == current_user.id).all()
-    return db.session.execute(
+    return app_db.session.execute(
         'SELECT story.id, story, epic_id, prioritization, story.deadline, '+
         'sum(coalesce(estimate,0)) as estimate, ' +
         'count(task.id) as tasks, ' +
@@ -31,46 +29,42 @@ def get_stories(sprint_view = False,sprint_id = None):
         'ORDER BY prioritization DESC',{'user_id':current_user.id, 'sprint_id':sprint_id}).fetchall()
 
 def get_story_summary():
-    db = get_db()
+    app_db = get_db()
     # FIXME: Should this be in task.py?
-    return db.session.query(
+    return app_db.session.query(
         Task.story_id,
-        db.func.sum(Task.estimate).label('est'),
-        db.func.count(Task.id).filter(Task.estimate is None).label('unest'),
-        db.func.count(Task.id).filter(Task.status != 'Done').label('incomplete'),
-        db.func.count().label('task_count')).group_by(Task.story_id).all()
- 
+        app_db.func.sum(Task.estimate).label('est'),
+        app_db.func.count(Task.id).filter(Task.estimate is None).label('unest'),
+        app_db.func.count(Task.id).filter(Task.status != 'Done').label('incomplete'),
+        app_db.func.count().label('task_count')).group_by(Task.story_id).all()
+
 
 def get_stories_by_epic(epic_id):
-    db = get_db()
     query = Story.query.filter(Story.epic_id == epic_id).filter(Story.user_id == current_user.id)
     return query.all()
- 
+
 
 def get_story_by_name(story,epic_id):
-    db = get_db()
     return Story.query.filter(Story.story == story)\
         .filter(Story.epic_id == epic_id)\
         .filter(Story.user_id == current_user.id).first()
 
-def get_story(id,exclude_nostory=True):
-    db = get_db()
-    query = Story.query.filter(Story.id == id)\
+def get_story(story_id,exclude_nostory=True):
+    query = Story.query.filter(Story.id == story_id)\
         .filter(Story.user_id == current_user.id)
     if exclude_nostory:
         query.filter(Story.story is not None)
     return query.first()
 
 def get_null_story_for_epic(epic_id):
-    db = get_db()
     story = Story.query.filter(Story.story is None).filter(Story.epic_id == epic_id)\
         .filter(Story.user_id == current_user.id).first()
-    if (story is None):
+    if story is None:
         story = create_story(epic_id,'NULL',None,None)
     return story
 
 def create_story(epic_id,story,prioritization,deadline):
-    db = get_db()
+    app_db = get_db()
     if prioritization is None:
         new_story = Story(story=story,
             epic_id = epic_id,
@@ -83,42 +77,44 @@ def create_story(epic_id,story,prioritization,deadline):
             prioritization=prioritization,
             deadline=deadline,
             user_id = current_user.id)
-    db.session.add(new_story)
-    db.session.commit()
+    app_db.session.add(new_story)
+    app_db.session.commit()
     story = get_story_by_name(story, epic_id)
     return story
 
-def update_story(id,story,epic_id,prioritization,deadline):
-    db = get_db()
-    Story.query.filter(Story.id == id).filter(Story.user_id==current_user.id)\
+def update_story(story_id,story,epic_id,prioritization,deadline):
+    app_db = get_db()
+    Story.query.filter(Story.id == story_id).filter(Story.user_id==current_user.id)\
         .update({
             story:story,
             epic_id:epic_id,
             prioritization:prioritization,
             deadline:deadline
         },synchronize_session="fetch")
-    db.session.commit()
-    return get_story(id)
+    app_db.session.commit()
+    return get_story(story_id)
 
 def get_tag_story(story_id,tag_id):
     story = get_story(story_id)
-    return Tag.query.filter(Tag.stories.contains(story)).filter(Tag.user_id == current_user.id).filter(Tag.id == tag_id).first()
+    return Tag.query.filter(Tag.stories.contains(story))\
+        .filter(Tag.user_id == current_user.id)\
+            .filter(Tag.id == tag_id).first()
 
 def insert_tag_story(story_id,tag_id):
-    db = get_db()
-    # TODO: SQLAlchemy makes it so you can add a tag directly to story w/o needing to update this table directly
+    app_db = get_db()
+    # TODO: SQLAlchemy makes it so you can add a tag directly to story
     tag_story_record = TagStory(story_id=story_id,tag_id=tag_id)
-    db.session.add(tag_story_record)
-    db.session.commit()
+    app_db.session.add(tag_story_record)
+    app_db.session.commit()
     return get_tag_story(story_id,tag_id)
 
 def delete_tag_story(story_id,tag_id):
-    db = get_db()
+    app_db = get_db()
     TagStory.query.filter(TagStory.story_id==story_id)\
         .filter(TagStory.tag_id==tag_id)\
         .delete()
-    db.session.commit()
-   
+    app_db.session.commit()
+
 
 @bp.route('/create/<int:epic_id>', methods=('GET', 'POST'))
 @login_required
@@ -158,7 +154,6 @@ def create(epic_id):
 @bp.route('/<int:story_id>/tag', methods=('GET', 'POST', 'DELETE'))
 @login_required
 def tag(story_id):
-    db = get_db()
     is_json = request.args.get('is_json',False)
     story = get_story(story_id)
     if story is None:
@@ -187,7 +182,7 @@ def tag(story_id):
         if is_json:
             abort(500,error)
         flash(error,'error')
-    
+
     elif request.method == 'DELETE':
         tag_id = request.form.get('tag_id',None)
         error = None
@@ -200,24 +195,26 @@ def tag(story_id):
             error = 'Tag already deleted from Story'
 
         if error is None:
-            delete_tag_story(story_id,tag_id)            
+            delete_tag_story(story_id,tag_id)
             if is_json:
                 return json.dumps({'Success':True,'story_id':story_id,'tag_id':tag_id})
             return redirect(url_for('story.tag', story_id = story_id))
         if is_json:
             abort(500,error)
         flash(error,'error')
-    
+
     tags = get_tags(story=story)
     if is_json:
-        return json.dumps({'Success':True,'story_id':story_id,'story':dict(story),'tags':[tag for tag in tags if tag.tag_in_story]})
+        return json.dumps({'Success':True,
+                           'story_id':story_id,
+                           'story':dict(story),
+                           'tags':[tag for tag in tags if tag.tag_in_story]})
     return render_template('story/tag.html', story_id=story_id, story=story, tags=tags)
 
 
 @bp.route('/', methods=('GET',))
 @login_required
 def list_all():
-    db = get_db()
     is_json = request.args.get('is_json',False)
     stories = get_stories()
     epics = get_epics()
@@ -229,7 +226,6 @@ def list_all():
 @bp.route('/<int:story_id>', methods=('GET','POST'))
 @login_required
 def show(story_id):
-    db = get_db()
     is_json = request.args.get('is_json',False)
     story = get_story(story_id)
     if not story:
@@ -246,7 +242,7 @@ def show(story_id):
         prioritization = request.form.get('prioritization',story['prioritization'])
         deadline = request.form.get('deadline',story['deadline'])
         error = None
-        
+
         if not story_name:
             story_name = story['story']
         if not epic_id:
@@ -255,13 +251,13 @@ def show(story_id):
             prioritization = story['prioritization']
         if get_epic(epic_id) is None:
             error = f'Epic {epic_id} not found.'
-        
+
         if error is None:
             story = update_story(story_id,story_name,epic_id,prioritization,deadline)
             if is_json:
                 return json.dumps({'Success':True,'story_id':story_id})
             return redirect(url_for('story.show', story_id = story_id))
-        
+
         if is_json:
             abort(500,error)
         flash(error,'error')

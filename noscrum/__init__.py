@@ -1,18 +1,17 @@
 import os
-
+import datetime
 from flask import Flask
 from dotenv import load_dotenv
 from flask_babelex import Babel
 from flask_sqlalchemy import SQLAlchemy
 from flask_user import UserManager
-import datetime
 
 class ConfigClass(object):
     """Flask application config"""
     SECRET_KEY=os.environ.get('FLASK_SECRET_KEY')
     SQLALCHEMY_DATABASE_URI='sqlite:///noscrum.sqlite'
     SQLALCHEMY_TRACK_MODIFICATIONS=False
-    
+
     USER_APP_NAME = "NoScrum"
     USER_APP_VERSION = "βeta.1.0"
     USER_COPYRIGHT_YEAR = "2021"
@@ -24,15 +23,15 @@ class ConfigClass(object):
     USER_EMAIL_SENDER_EMAIL = "noreply@plbl.net"
     USER_LOGIN_URL = "/login"
     USER_LOGOUT_URL = "/logout"
-    
+
 
 def create_app(test_config=None):
     load_dotenv()
-    "Create and Configure the app"
+    # Create and Configure the app
     app = Flask(__name__, instance_relative_config=True)
     app.config.from_object(__name__+'.ConfigClass')
     # Init Flask-BabelEx
-    babel = Babel(app)
+    Babel(app)
 
     if test_config is not None:
         # Load test config if passed in
