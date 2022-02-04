@@ -4,7 +4,7 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='css/foundation-float.css') }}"> 
 <link rel="stylesheet" href="{{ url_for('static', filename='css/jquery-ui.min.css') }}"> 
 <div class="top-bar">
-    <div class="top-bar-left"><h1><a href="{{ url_for('index') }}">NoScrum</a></h1></div>
+    <div class="top-bar-left"><h1><a href="{{ url_for('semi_static.index') }}">NoScrum</a></h1></div>
     <div class="top-bar-right">
     <ul class="menu">
         {% if current_user.is_authenticated %}

@@ -81,6 +81,10 @@ def update_task(id, task, story_id, estimate, status, actual, deadline, sprint_i
     if sprint_id is not None:
         data['sprint_id']=sprint_id 
     if recurring is not None:
+        if recurring in ['1',1,'true','T','Y']:
+            recurring = True
+        else:
+            recurring = False
         data['recurring']=recurring 
     query.update(data,synchronize_session="fetch")
     db.session.commit()

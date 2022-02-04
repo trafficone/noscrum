@@ -209,9 +209,6 @@ def tag(story_id):
         flash(error,'error')
     
     tags = get_tags(story=story)
-    for tag in tags:
-        pprint(tag)
-        pprint(dir(tag))
     if is_json:
         return json.dumps({'Success':True,'story_id':story_id,'story':dict(story),'tags':[tag for tag in tags if tag.tag_in_story]})
     return render_template('story/tag.html', story_id=story_id, story=story, tags=tags)

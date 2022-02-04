@@ -9,10 +9,9 @@ from flask import (
 )
 from flask_user import current_user, login_required
 
-from noscrum.db import get_db, Sprint, Epic, Story, Task, ScheduleTask
+from noscrum.db import get_db, Sprint, Task, ScheduleTask
 from noscrum.epic import get_epics
 from noscrum.story import get_stories
-#from noscrum.task import get_tasks 
 
 statuses = ['To-Do','In Progress','Done'] 
 bp = Blueprint('sprint', __name__, url_prefix='/sprint')
@@ -112,6 +111,7 @@ def create_schedule(sprint_id,task_id,sprint_day,sprint_hour,note):
         user_id = current_user.id)
     db.session.add(schedule)
     db.session.commit()
+    return get_schedule_by_time(sprint_id,sprint_day,sprint_hour)
    
 
 def update_schedule(id,task_id,sprint_day,sprint_hour,note):
@@ -157,7 +157,7 @@ def get_sprint_details(sprint_id):
     sprint_days = Sprint.query.filter(Sprint.id == sprint_id).filter(Sprint.user_id==current_user.id).first()
     schedule_records_std = ScheduleTask.query.filter(ScheduleTask.sprint_id == sprint_id).filter(ScheduleTask.user_id==current_user.id)
     schedule_records_recurring = ScheduleTask.query.join(Task).filter(Task.recurring == True).filter(ScheduleTask.user_id==current_user.id)
-    schedule = dict([(x['sprint_day']+x['sprint_hour'],x) for x in schedule_records_recurring])
+    schedule = dict([(f'{x.sprint_day}T{x.sprint_hour}:00',x) for x in schedule_records_recurring])
     for r in schedule_records_std:
         key = f'{r.sprint_day}T{r.sprint_hour}:00'
         schedule[key] = r

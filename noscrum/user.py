@@ -1,7 +1,5 @@
-import logging
-
 from flask import (
-    Blueprint, g, redirect, render_template, request, session, url_for, abort, flash
+    Blueprint, redirect, url_for
 )
 from flask_user import current_user
 from noscrum.db import get_db, User
@@ -38,4 +36,3 @@ def profile():
     if not current_user:
         redirect(url_for('user.login'))
     return current_user.username 
-

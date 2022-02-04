@@ -11,15 +11,15 @@ from noscrum.db import get_db, Tag, Story
 bp = Blueprint('tag', __name__, url_prefix='/tag')
 
 def get_tags(story=None):
-    tags = Tag.query.filter(Tag.user_id==current_user.id)
+    tags = Tag.query.filter(Tag.user_id==current_user.id).distinct()
     if story is not None:
-        tags = tags.add_columns(Tag.stories.contains(story).label('tag_in_story'))
+        tags = tags.add_columns(Tag.stories.any(id=story.id).label('tag_in_story'))
     return tags.all()
     
 
 def get_tags_for_story(story_id):
     db = get_db()
-    return [x.tags for x in Story.query.filter(Story.user_id==current_user.id).all()]
+    return [x.tags for x in Story.query.filter(Story.user_id==current_user.id).filter(Story.id==story_id).all()]
 
 def get_tag(id):
     db = get_db()
