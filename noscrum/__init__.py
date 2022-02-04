@@ -1,21 +1,17 @@
 import os
-
-from flask import Flask, render_template, g
+import datetime
+from flask import Flask
 from dotenv import load_dotenv
-#from flask_login import login_manager, LoginManager
 from flask_babelex import Babel
 from flask_sqlalchemy import SQLAlchemy
-from flask_user import current_user, login_required, roles_required, UserManager, UserMixin
-import datetime
-
-start_db = 'start_db'
+from flask_user import UserManager
 
 class ConfigClass(object):
     """Flask application config"""
     SECRET_KEY=os.environ.get('FLASK_SECRET_KEY')
     SQLALCHEMY_DATABASE_URI='sqlite:///noscrum.sqlite'
     SQLALCHEMY_TRACK_MODIFICATIONS=False
-    
+
     USER_APP_NAME = "NoScrum"
     USER_APP_VERSION = "βeta.1.0"
     USER_COPYRIGHT_YEAR = "2021"
@@ -25,27 +21,21 @@ class ConfigClass(object):
     USER_ENABLE_REGISTER = True
     USER_EMAIL_SENDER_NAME = USER_APP_NAME
     USER_EMAIL_SENDER_EMAIL = "noreply@plbl.net"
-    
+    USER_LOGIN_URL = "/login"
+    USER_LOGOUT_URL = "/logout"
+
 
 def create_app(test_config=None):
     load_dotenv()
-    "Create and Configure the app"
-    global start_db
+    # Create and Configure the app
     app = Flask(__name__, instance_relative_config=True)
     app.config.from_object(__name__+'.ConfigClass')
-    
     # Init Flask-BabelEx
-    babel = Babel(app)
+    Babel(app)
 
-
-    """
-    if test_config is None:
-        # Load the instance config when not testing
-        app.config.from_pyfile('config.py', silent=True)
-    else:
+    if test_config is not None:
         # Load test config if passed in
         app.config.from_mapping(test_config)
-    """
 
     try:
         os.makedirs(app.instance_path)
@@ -53,21 +43,14 @@ def create_app(test_config=None):
         pass
 
     # Init SQLAlchemy
-    start_db = SQLAlchemy(app)
+    from noscrum import db
+    db.init_db(SQLAlchemy(app))
+    app_db = db.get_db()
+    app_db.create_all()
     from noscrum.db import User
-    user_manager = UserManager(app, start_db, User)
-    start_db.create_all()
-    if app.config.get('FLASK_ENV',None) == 'development':
-        if not User.query.filter(User.username == 'trafficone').first():
-            user = User(
-                username='trafficone',
-                email='member@example.com',
-                email_confirmed_at=datetime.datetime.utcnow(),
-                password=user_manager.hash_password('password'))
-            start_db.session.add(user)
-            start_db.session.commit()
+    UserManager(app, app_db, User)
 
-    from noscrum import epic, story, task, sprint, tag, work, user
+    from noscrum import epic, story, task, sprint, tag, work, user, semi_static
     app.register_blueprint(epic.bp)
     app.register_blueprint(story.bp)
     app.register_blueprint(task.bp)
@@ -75,15 +58,6 @@ def create_app(test_config=None):
     app.register_blueprint(tag.bp)
     app.register_blueprint(work.bp)
     app.register_blueprint(user.bp)
-
-
-    #FIXME: Index and Static Pages should be defined elsewhere
-    @app.route('/')
-    def index():
-        return render_template('index.html')
-
-    @app.route('/hello')
-    def hello():
-        return 'Hello, World'
+    app.register_blueprint(semi_static.bp)
 
     return app

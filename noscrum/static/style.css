@@ -53,6 +53,8 @@ input[type=submit] { align-self: start; min-width: 10em; }
 .status.done:hover { background-color:rgb(61, 129, 44) !important; cursor: pointer;}
 div.status { margin: .2rem; padding: .4rem .4rem 0rem .3rem; }
 .tag {width: fit-content; padding: .4rem .1rem .1rem .1rem; border: 1px solid #1779ba; color: #1779ba;}
+.draggable:hover {cursor:pointer;}
+.ui-draggable:hover {cursor:pointer;}
 .postable { background: white; color: black,}
 .log-work {background-color: #1779ba; color: #fafafa; border-radius: 0px  0px .4rem 0px !important; padding: .2rem .4rem .4rem .3rem !important;margin: .2rem !important; transition:.25s;}
 .log-work:hover {background-color:#14679e; cursor: pointer;}

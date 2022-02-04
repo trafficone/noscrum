@@ -3,7 +3,7 @@
 {% block header %}
     <h1>{% block title %}Task List{% endblock %}</h1>
     <div>
-        <button id="sprintPlan" class="button" sprint="{{current_sprint.id}}">Plan Sprint {{ current_sprint['id'] }}</button>
+        <button id="sprintPlan" class="button" sprint="{{current_sprint.id}}">Plan Sprint {{ current_sprint.id }}</button>
     </div>
     <div>Filter: 
         <button class="button" id="status_filter_button">Status</button>
@@ -47,20 +47,20 @@
 
 {% block content %}
 {% for epic in epics %}
-<div class="epic {{ epic['color'] }}">
+<div class="epic {{ epic.color }}">
     <div class="row">
-        <h3>{{ epic['epic'] if epic['epic'] != 'NULL' else 'No Epic' }}</h3>
-                <div class="columns small-3">Estimate: {{ epic['estimate'] }}</div>
-                <div class="columns small-3">Unestimated : {{ epic['unestimated_tasks']|length }}</div>
-                <div class="columns small-3">Total Tasks: {{ epic['tasks']|length }}</div>
-                <div class="columns small-3">Active: {{ epic['active_tasks']|length }}</div>
+        <h3>{{ epic.epic if epic.epic != 'NULL' else 'No Epic' }}</h3>
+                <div class="columns small-3">Estimate: {{ epic.estimate }}</div>
+                <div class="columns small-3">Unestimated : {{ epic.unestimated_tasks|length }}</div>
+                <div class="columns small-3">Total Tasks: {{ epic.tasks|length }}</div>
+                <div class="columns small-3">Active: {{ epic.active_tasks|length }}</div>
     </div>
-    {% for story in stories if story['epic_id'] == epic['id'] %}
+    {% for story in stories if story.epic_id == epic.id %}
     <div class="row story" update_url="{{ url_for('story.show',story_id=story.id,is_json=True) }}">
-        <div class="float-left"><span class="badge {{ colors[story['prioritization']] }}">{{ story['prioritization'] }}</span></div>
+        <div class="float-left"><span class="badge {{ colors[story.prioritization] }}">{{ story.prioritization }}</span></div>
         &nbsp;
-        {% if story['story'] != 'NULL' %}
-            <h5 id="story_{{story.id}}" class="editable" title="Click to Edit Story" update_key="story">{{ story['story'] }}</h5>
+        {% if story.story != 'NULL' %}
+            <h5 id="story_{{story.id}}" class="editable" title="Click to Edit Story" update_key="story">{{ story.story }}</h5>
         {% else %}
             <h5 id="story_{{story.id}}" >No Story</h5>
         {% endif %}
@@ -68,30 +68,30 @@
     </div>
     <div class="row">
         <div class="small-2 columns story-label">
-            <div>Hours: {{ story['estimate'] }}</div>
-            <div>Tasks: {{ story['tasks']|length }}</div>
-            <div>Remain: {{ story['active_tasks']|length }}</div>
-            {% if story['story'] != 'NULL' %}
+            <div>Hours: {{ story.id.estimate }}</div>
+            <div>Tasks: {{ story.tasks|length }}</div>
+            <div>Remain: {{ story.active_tasks|length }}</div>
+            {% if story.story != 'NULL' %}
                 <input id="story_deadline_datepicker_{{story.id}}" name="date" class="datepicker-input" type="hidden" />
                 <span  title="Click to Edit" contentEditable="false" update_key="deadline" id="story_deadline_{{story.id}}" class="story-deadline editable deadline">{{ 'No Deadline Set' if not story.deadline else story.deadline }}</span>
             {% endif %}
             
         </div>
         <div class="large-10 columns">
-            {% for task in tasks if task['story_id'] == story['id'] %}
+            {% for task in story.tasks %}
             <div class="task-container container" 
                  task="{{ task.id }}" 
                  update_url="{{ url_for('task.show',task_id=task.id,is_json=True) }}">
                  <div class="row task-header">
-                    <div class="columns large-6 task-name" ><span class="editable" title="Click to edit Task" id="task_name_{{task.id}}" update_key="task">{{ task['task'] }}</span></div>
+                    <div class="columns large-6 task-name" ><span class="editable" title="Click to edit Task" id="task_name_{{task.id}}" update_key="task">{{ task.task }}</span></div>
                     <div class="columns small-4"></div>
-                    <div class="columns small-2 label float-right status {{ task['status'].lower().replace(' ','-') }}" style="margin-right:1rem;" id="task_status_{{task.id}}">{{ task['status'] }}</div><br>
+                    <div class="columns small-2 label float-right status {{ task.status.lower().replace(' ','-') }}" style="margin-right:1rem;" id="task_status_{{task.id}}">{{ task.status }}</div><br>
                 </div>
                 <div class="row task-work">
                     <div class="columns small-2">
-                        E:&nbsp;<span title="Click to Edit Estimate"  class="editable note" id="task_est_{{task.id}}" update_key="estimate">{{ task['estimate'] }}</span>
+                        E:&nbsp;<span title="Click to Edit Estimate"  class="editable note" id="task_est_{{task.id}}" update_key="estimate">{{ task.estimate }}</span>
                     </div>
-                    <div class="columns small-2"><span class='float-right'>A:{{ task['actual'] }}</span></div>
+                    <div class="columns small-2"><span class='float-right'>A:{{ task.actual }}</span></div>
                     <div class="columns large-6">
                         <input id="task_deadline_datepicker_{{task.id}}" name="date" class="datepicker-input" type="hidden" />
                         <span  title="Click to Edit" contentEditable="false" update_key="deadline" id="task_deadline_{{task.id}}" class="task-deadline editable deadline">{{ 'No Deadline Set' if not task.deadline else task.deadline }} </span>
@@ -109,13 +109,13 @@
             {% endfor %}
             <div>
                 <div></div>
-                <button class="button create" value="{{ url_for('task.create',story_id=story['id'],is_asc=True) }}">Create Task</button>
+                <button class="button create" value="{{ url_for('task.create',story_id=story.id,is_asc=True) }}">Create Task</button>
             </div>
         </div>
     </div>
     {% endfor %}
     <div class="row">
-        <button class="button create create-story" value="{{ url_for('story.create',epic_id=epic['id'],is_asc=True) }}">Create Story</button><div></div>
+        <button class="button create create-story" value="{{ url_for('story.create',epic_id=epic.id,is_asc=True) }}">Create Story</button><div></div>
     </div>
 </div>
 {% endfor %}
