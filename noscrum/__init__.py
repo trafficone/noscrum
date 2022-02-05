@@ -12,7 +12,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_user import UserManager
 
 
-class DatabaseSingleton(object):
+class DatabaseSingleton():
     """
     Database singleton, holds the app database
     instance information in such a way that it
@@ -25,7 +25,6 @@ class DatabaseSingleton(object):
         Create a database singleton object. Should
         only be called using the DatabaseSingleton
         """
-        print('DB Instance',DatabaseSingleton.__instance)
         if DatabaseSingleton.__instance is None:
             self.app_db = db_object
             DatabaseSingleton.__instance = self
@@ -40,6 +39,7 @@ class DatabaseSingleton(object):
         """
         if DatabaseSingleton.__instance is None:
             DatabaseSingleton(database)
+            print('DB Instance',DatabaseSingleton.__instance)
         return DatabaseSingleton.__instance
 
     @staticmethod
@@ -83,6 +83,15 @@ class ConfigClass(object):
     USER_LOGIN_URL = "/login"
     USER_LOGOUT_URL = "/logout"
 
+    def get_dict(self):
+        """
+        Return a dictionary for ConfigClass locals
+        """
+        return dict([(k,v) for k,v in locals()])
+
+    def __str__(self):
+        return str(self.get_dict())
+
 
 def create_app(test_config=None):
     """
@@ -106,7 +115,9 @@ def create_app(test_config=None):
 
     # Init SQLAlchemy
     app_db = SQLAlchemy(app)
+    print("Creating Database")
     DatabaseSingleton.create_singleton(app_db)
+    print("Populating Database")
     app_db.create_all()
 
     # These need app to exist before they can be imported

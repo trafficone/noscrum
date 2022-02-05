@@ -12,10 +12,16 @@ from flask_user import current_user, login_required
 from noscrum.db import get_db, Sprint, Task, ScheduleTask
 from noscrum.epic import get_epics
 from noscrum.story import get_stories
-from noscrum.task import get_task
 
 statuses = ['To-Do','In Progress','Done']
 bp = Blueprint('sprint', __name__, url_prefix='/sprint')
+
+def get_task(task_id):
+    """
+    Task record for user for identifier number
+    @task_id task record identification number
+    """
+    return Task.query.filter(Task.id==task_id).filter(Task.user_id == current_user.id).first()
 
 def get_sprints():
     """
@@ -237,8 +243,8 @@ def get_sprint_details(sprint_id):
     schedule_records_recurring = ScheduleTask.query.join(Task)\
         .filter(Task.recurring)\
             .filter(ScheduleTask.user_id==current_user.id)
-    schedule_records_dict = dict([(f'{x.sprint_day}T{x.sprint_hour}:00',x) \
-        for x in schedule_records_recurring])
+    schedule_records_dict = {f'{x.sprint_day}T{x.sprint_hour}:00':x \
+        for x in schedule_records_recurring}
     for record_std in schedule_records_std:
         key = f'{record_std.sprint_day}T{record_std.sprint_hour}:00'
         schedule_records_dict[key] = record_std
@@ -262,9 +268,9 @@ def get_sprint_board(sprint_id, sprint, is_static=False):
     @param is_static (optional) is unchanging?
     """
     stories, epics, tasks, schedule_list, schedule_records = get_sprint_details(sprint_id)
-    tasks = dict([(x['id'],dict(x)) for x in tasks])
-    stories = dict([(x['id'],dict(x)) for x in stories])
-    epics = dict([(x['id'],dict(x)) for x in epics])
+    tasks = {x['id']:dict(x) for x in tasks}
+    stories = {x['id']:dict(x) for x in stories}
+    epics = {x['id']:dict(x) for x in epics}
     # Get Estimate Totals by story/epic at each status level
     totals = {}
     # sum up totals btw I don't like how this is implemented
@@ -354,10 +360,9 @@ def schedule(sprint_id):
                 #        schedule_task[key] = str(value)
                 return {'Success':True,'schedule_task':schedule_task.to_dict()}
             return redirect(url_for('sprint.show',sprint_id=sprint_id))
-        else:
-            if is_json:
-                abort(500,error)
-            flash(error,'error')
+        if is_json:
+            abort(500,error)
+        flash(error,'error')
     elif request.method == 'DELETE':
         print(f'{request.method} and {request.method == "DELETE"}')
         schedule_id = request.form.get('schedule_id',None)

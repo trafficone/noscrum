@@ -35,6 +35,13 @@ def get_tasks():
         'ON task.id = sched.task_id '+
         'WHERE task.user_id = :user_id',{'user_id':current_user.id})
 
+def get_task(task_id):
+    """
+    Task record for user for identifier number
+    @task_id task record identification number
+    """
+    return Task.query.filter(Task.id==task_id).filter(Task.user_id == current_user.id).first()
+
 def get_tasks_for_story(story_id):
     """
     Get all task records for the current story
@@ -93,13 +100,6 @@ def create_task(task, story_id, estimate, deadline, sprint_id):
     app_db.session.add(newtask)
     app_db.session.commit()
     return get_task_by_name(task,story_id)
-
-def get_task(task_id):
-    """
-    Task record for user for identifier number
-    @task_id task record identification number
-    """
-    return Task.query.filter(Task.id==task_id).filter(Task.user_id == current_user.id).first()
 
 def update_task(task_id, task, story_id, estimate, status, actual, deadline, sprint_id, recurring):
     """
