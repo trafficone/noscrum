@@ -1,3 +1,6 @@
+"""
+To handle Story Model controller and views
+"""
 import json
 
 from flask import (
@@ -5,13 +8,18 @@ from flask import (
 )
 from flask_user import current_user, login_required
 
-from noscrum.db import get_db, Story, TagStory, Task, Tag
+from noscrum.db import get_db, Story, TagStory, Tag
 from noscrum.epic import get_epic, get_epics
-from noscrum.tag import get_tags
+from noscrum.tag import get_tags_for_story
 
 bp = Blueprint('story', __name__, url_prefix='/story')
 
 def get_stories(sprint_view = False,sprint_id = None):
+    """
+    Get story records with calculated metadata
+    @sprint_view True if querying for a sprint
+    @sprint_id Identity of the sprint to query
+    """
     app_db = get_db()
     if not sprint_view:
         return Story.query.filter(Story.user_id == current_user.id).all()
@@ -19,37 +27,45 @@ def get_stories(sprint_view = False,sprint_id = None):
         'SELECT story.id, story, epic_id, prioritization, story.deadline, '+
         'sum(coalesce(estimate,0)) as estimate, ' +
         'count(task.id) as tasks, ' +
-        "COUNT(DISTINCT CASE WHEN task.status <> 'Done' THEN task.id ELSE NULL END) as active_tasks, "  +
-        'COUNT(DISTINCT CASE WHEN task.estimate IS NULL THEN task.id ELSE NULL END) as unestimated_tasks, ' +
-        "SUM(CASE WHEN task.status <> 'Done' THEN task.estimate - coalesce(task.actual,0) ELSE 0 END) AS rem_estimate " +
+        "COUNT(DISTINCT CASE WHEN task.status <> 'Done' THEN task.id ELSE NULL END) "+
+            "as active_tasks, "  +
+        'COUNT(DISTINCT CASE WHEN task.estimate IS NULL THEN task.id ELSE NULL END) '+
+            'as unestimated_tasks, ' +
+        "SUM(CASE WHEN task.status <> 'Done' THEN task.estimate - coalesce(task.actual,0) ELSE 0 "+
+            "END) AS rem_estimate " +
         'FROM task '+
         'LEFT OUTER JOIN story on task.story_id = story.id '+
         'WHERE task.user_id = :user_id and task.sprint_id = :sprint_id ' +
         'GROUP BY story.id, story, epic_id, prioritization '+
-        'ORDER BY prioritization DESC',{'user_id':current_user.id, 'sprint_id':sprint_id}).fetchall()
-
-def get_story_summary():
-    app_db = get_db()
-    # FIXME: Should this be in task.py?
-    return app_db.session.query(
-        Task.story_id,
-        app_db.func.sum(Task.estimate).label('est'),
-        app_db.func.count(Task.id).filter(Task.estimate is None).label('unest'),
-        app_db.func.count(Task.id).filter(Task.status != 'Done').label('incomplete'),
-        app_db.func.count().label('task_count')).group_by(Task.story_id).all()
-
+        'ORDER BY prioritization DESC',
+        {'user_id':current_user.id, 'sprint_id':sprint_id}).fetchall()
 
 def get_stories_by_epic(epic_id):
+    """
+    Return queried stories faor the given epic
+    @param epic_id Identity of epic being used
+    """
     query = Story.query.filter(Story.epic_id == epic_id).filter(Story.user_id == current_user.id)
     return query.all()
 
 
 def get_story_by_name(story,epic_id):
+    """
+    Returns the story record with a name given
+    @param story Story name (unique per users)
+    @param epic_id Identity of epic being used
+    """
     return Story.query.filter(Story.story == story)\
         .filter(Story.epic_id == epic_id)\
         .filter(Story.user_id == current_user.id).first()
 
 def get_story(story_id,exclude_nostory=True):
+    """
+    Get the story record by its identity value
+    @param story_id story identification value
+    @param exclude_nostory exclude special val
+    "story" which is null (optional parameter)
+    """
     query = Story.query.filter(Story.id == story_id)\
         .filter(Story.user_id == current_user.id)
     if exclude_nostory:
@@ -57,6 +73,9 @@ def get_story(story_id,exclude_nostory=True):
     return query.first()
 
 def get_null_story_for_epic(epic_id):
+    """
+    Returns the special null "story" record
+    """
     story = Story.query.filter(Story.story is None).filter(Story.epic_id == epic_id)\
         .filter(Story.user_id == current_user.id).first()
     if story is None:
@@ -64,6 +83,13 @@ def get_null_story_for_epic(epic_id):
     return story
 
 def create_story(epic_id,story,prioritization,deadline):
+    """
+    Create a new story under the given epic id
+    @param epic_id Epic record identity number
+    @param story Name to describe a story with
+    @param prioritization 1-5 with 1 being low
+    @param deadline date the story will be due
+    """
     app_db = get_db()
     if prioritization is None:
         new_story = Story(story=story,
@@ -83,6 +109,14 @@ def create_story(epic_id,story,prioritization,deadline):
     return story
 
 def update_story(story_id,story,epic_id,prioritization,deadline):
+    """
+    Update properties for a given story record
+    @param story_id story identification value
+    @param story Name to describe a story with
+    @param epic_id Epic record identity number
+    @param prioritization 1-5 with 1 being low
+    @param deadline date the story will be due
+    """
     app_db = get_db()
     Story.query.filter(Story.id == story_id).filter(Story.user_id==current_user.id)\
         .update({
@@ -95,12 +129,22 @@ def update_story(story_id,story,epic_id,prioritization,deadline):
     return get_story(story_id)
 
 def get_tag_story(story_id,tag_id):
+    """
+    Get a tag for a story given their id value
+    @param story_id story identification value
+    @param tag_id tag record identifier number
+    """
     story = get_story(story_id)
     return Tag.query.filter(Tag.stories.contains(story))\
         .filter(Tag.user_id == current_user.id)\
             .filter(Tag.id == tag_id).first()
 
 def insert_tag_story(story_id,tag_id):
+    """
+    Attach a tag to a given story using the id
+    @param story_id story identification value
+    @param tag_id tag record identifier number
+    """
     app_db = get_db()
     # TODO: SQLAlchemy makes it so you can add a tag directly to story
     tag_story_record = TagStory(story_id=story_id,tag_id=tag_id)
@@ -109,6 +153,11 @@ def insert_tag_story(story_id,tag_id):
     return get_tag_story(story_id,tag_id)
 
 def delete_tag_story(story_id,tag_id):
+    """
+    Remove tag from story by their identifiers
+    @param story_id story identification value
+    @param tag_id tag record identifier number
+    """
     app_db = get_db()
     TagStory.query.filter(TagStory.story_id==story_id)\
         .filter(TagStory.tag_id==tag_id)\
@@ -119,6 +168,12 @@ def delete_tag_story(story_id,tag_id):
 @bp.route('/create/<int:epic_id>', methods=('GET', 'POST'))
 @login_required
 def create(epic_id):
+    """
+    Handle creation requests for the new story
+    GET: Returns form: create new story record
+    POST: Create new story record for database
+    @param epic_id Epic record identity number
+    """
     is_json = request.args.get('is_json',False)
     if is_json and request.method == 'GET':
         abort(405,'Method not supported for AJAX')
@@ -154,6 +209,13 @@ def create(epic_id):
 @bp.route('/<int:story_id>/tag', methods=('GET', 'POST', 'DELETE'))
 @login_required
 def tag(story_id):
+    """
+    Handle tag records for a given story value
+    GET: Get tags for some particular story id
+    POST: Attach some tag to an inquired story
+    DELETE: Remove a tag from the story record
+    @param story_id story identification value
+    """
     is_json = request.args.get('is_json',False)
     story = get_story(story_id)
     if story is None:
@@ -177,7 +239,10 @@ def tag(story_id):
         if error is None:
             tag_story = insert_tag_story(story_id,tag_id)
             if is_json:
-                return json.dumps({'Success':True,'story_id':story_id,'tag_id':tag_id,'tag_story_id':tag_story.id})
+                return json.dumps({'Success':True,
+                                   'story_id':story_id,
+                                   'tag_id':tag_id,
+                                   'tag_story_id':tag_story.id})
             return redirect(url_for('story.tag', story_id = story_id))
         if is_json:
             abort(500,error)
@@ -203,7 +268,7 @@ def tag(story_id):
             abort(500,error)
         flash(error,'error')
 
-    tags = get_tags(story=story)
+    tags = get_tags_for_story(story.id)
     if is_json:
         return json.dumps({'Success':True,
                            'story_id':story_id,
@@ -215,6 +280,9 @@ def tag(story_id):
 @bp.route('/', methods=('GET',))
 @login_required
 def list_all():
+    """
+    List all the stories for a particular user
+    """
     is_json = request.args.get('is_json',False)
     stories = get_stories()
     epics = get_epics()
@@ -226,10 +294,14 @@ def list_all():
 @bp.route('/<int:story_id>', methods=('GET','POST'))
 @login_required
 def show(story_id):
+    """
+    Show details of a story with some identity
+    @param story_id identity for a story value
+    """
     is_json = request.args.get('is_json',False)
     story = get_story(story_id)
     if not story:
-        error = f"Story ID {story_id} does not exist."
+        error = "Story ID does not exist."
         if is_json:
             abort(404, error)
         else:
@@ -255,8 +327,8 @@ def show(story_id):
         if error is None:
             story = update_story(story_id,story_name,epic_id,prioritization,deadline)
             if is_json:
-                return json.dumps({'Success':True,'story_id':story_id})
-            return redirect(url_for('story.show', story_id = story_id))
+                return json.dumps({'Success':True,'story_id':story.id})
+            return redirect(url_for('story.show', story_id = story.id))
 
         if is_json:
             abort(500,error)

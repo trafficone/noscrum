@@ -12,6 +12,7 @@ from flask_user import current_user, login_required
 from noscrum.db import get_db, Sprint, Task, ScheduleTask
 from noscrum.epic import get_epics
 from noscrum.story import get_stories
+from noscrum.task import get_task
 
 statuses = ['To-Do','In Progress','Done']
 bp = Blueprint('sprint', __name__, url_prefix='/sprint')
@@ -33,7 +34,11 @@ def get_sprint(sprint_id):
 
 def get_sprint_by_date(start_date=None,end_date=None,middle_date=None):
     """
-    Returns a Sprint object (if one exists) given the date criteria.
+    Returns the Sprint object (if exist) given
+    provided search criteria for a sprint date
+    @param start_date Date where sprint starts
+    @param end_date Date when sprint then ends
+    @param middle_date Any day within a sprint
     """
     query = Sprint.query\
         .filter(Sprint.start_date != '1969-12-31')\
@@ -53,13 +58,24 @@ def get_sprint_by_date(start_date=None,end_date=None,middle_date=None):
     return query.first()
 
 def get_current_sprint():
+    """
+    Given a current date returns active sprint
+    """
     date_string = datetime.now().strftime('%Y-%m-%d')
     return get_sprint_by_date(middle_date=date_string)
 
 def get_last_sprint():
+    """
+    Returns the last(final date) sprint record
+    """
     return Sprint.query.filter(Sprint.user_id == current_user.id).order_by(Sprint.end_date).first()
 
 def create_sprint(start_date,end_date):
+    """
+    Create new Sprint record having the period
+    between @param start_date and the end date
+    @param end_date
+    """
     app_db = get_db()
     new_sprint = Sprint(start_date=start_date,
                         end_date=end_date,
@@ -69,6 +85,9 @@ def create_sprint(start_date,end_date):
     return get_sprint_by_date(start_date=start_date,end_date=end_date)
 
 def update_sprint(sprint_id,start_date,end_date):
+    """
+    Update the start or end date of the sprint
+    """
     app_db = get_db()
     Sprint.query.filter(Sprint.id == sprint_id)\
         .filter(Sprint.user_id == current_user.id)\
@@ -81,9 +100,19 @@ def update_sprint(sprint_id,start_date,end_date):
     return get_sprint(sprint_id)
 
 def get_schedules_for_sprint(sprint_id):
+    """
+    Get ScheduleTasks having a sprint_id value
+    @param sprint_id the queried sprint ID val
+    """
     return ScheduleTask.query.filter(ScheduleTask.sprint_id == sprint_id).all()
 
 def get_schedule_tasks_filtered(sprint_id,task_id,sprint_day,sprint_hour):
+    """
+    Get ScheduleTasks having a sprint_id value
+    @param sprint_id the queried sprint ID val
+    @param sprint_day the day for the schedule
+    @param sprint_hour the schedule time value
+    """
     query = ScheduleTask.query.filter(ScheduleTask.sprint_id == sprint_id)
     query.filter(ScheduleTask.user_id == current_user.id)
     if task_id is not None:
@@ -95,11 +124,25 @@ def get_schedule_tasks_filtered(sprint_id,task_id,sprint_day,sprint_hour):
     return query.all()
 
 def get_schedule(sched_id):
+    """
+    Get a ScheduleTask with a certain sched_id
+    @param sched_id ScheduleTask ID you desire
+    """
     return ScheduleTask.query\
         .filter(ScheduleTask.id==sched_id)\
         .filter(ScheduleTask.user_id==current_user.id).first()
 
 def get_schedule_by_time(sprint_id,sprint_day,sprint_hour,schedule_id=None):
+    """
+    Get single ScheduleTask for a given sprint
+    at a certain day on a certain time (with a
+    schedule_id optional). Usedful if schedule
+    records are being created and you want the
+    @param schedule_id (optional) ID for query
+    @param sprint_id ScheduleTask in Sprint ID
+    @param sprint_day the day for the schedule
+    @param sprint_hour the schedule time value
+    """
     query = ScheduleTask.query.filter(ScheduleTask.user_id==current_user.id)\
         .filter(ScheduleTask.sprint_day == sprint_day)\
         .filter(ScheduleTask.sprint_hour == sprint_hour)\
@@ -110,6 +153,14 @@ def get_schedule_by_time(sprint_id,sprint_day,sprint_hour,schedule_id=None):
 
 
 def create_schedule(sprint_id,task_id,sprint_day,sprint_hour,note):
+    """
+    Create a new schedule for the task with ID
+    @param task_id ID for task being scheduled
+    @param sprint_id ScheduleTask in Sprint ID
+    @param sprint_day the day for the schedule
+    @param sprint_hour the schedule time value
+    @param note Free field for clarifying time
+    """
     app_db = get_db()
     new_schedule = ScheduleTask(sprint_id = sprint_id,
         task_id = task_id,
@@ -123,6 +174,15 @@ def create_schedule(sprint_id,task_id,sprint_day,sprint_hour,note):
 
 
 def update_schedule(sched_id,task_id,sprint_day,sprint_hour,note):
+    """
+    Update a schedule with given ID for sprint
+    @param sched_id a Schedule record identity
+    @param task_id ID for task being scheduled
+    @param sprint_id ScheduleTask in Sprint ID
+    @param sprint_day the day for the schedule
+    @param sprint_hour the schedule time value
+    @param note Free field for clarifying time
+    """
     ScheduleTask.query.filter(ScheduleTask.user_id == current_user.id)\
         .filter(ScheduleTask.id == sched_id).update({
             task_id:task_id,
@@ -132,6 +192,10 @@ def update_schedule(sched_id,task_id,sprint_day,sprint_hour,note):
     return get_schedule(sched_id)
 
 def delete_schedule(sched_id):
+    """
+    Delete a ScheduleTask record with an ident
+    @sched_id ScheduleTask chosen for deletion
+    """
     app_db = get_db()
     ScheduleTask.query.filter(ScheduleTask.id == sched_id)\
             .filter(ScheduleTask.user_id == current_user.id)\
@@ -140,6 +204,10 @@ def delete_schedule(sched_id):
 
 
 def get_sprint_details(sprint_id):
+    """
+    Get detailed records for given sprint with
+    @param sprint_id sprint details are wanted
+    """
     app_db = get_db()
     stories = get_stories(sprint_view=True,sprint_id=sprint_id)
     epics = get_epics(sprint_view=True,sprint_id=sprint_id)
@@ -186,7 +254,13 @@ def get_sprint_details(sprint_id):
     return stories, epics, tasks, schedule_list, schedule_records
 
 
-def get_sprint_board(sprint_id, sprint, isStatic=False):
+def get_sprint_board(sprint_id, sprint, is_static=False):
+    """
+    Gather Sprint Board records for a specific
+    @param sprint_id Sprint which the board is
+    @param sprint record of board (only dates)
+    @param is_static (optional) is unchanging?
+    """
     stories, epics, tasks, schedule_list, schedule_records = get_sprint_details(sprint_id)
     tasks = dict([(x['id'],dict(x)) for x in tasks])
     stories = dict([(x['id'],dict(x)) for x in stories])
@@ -201,9 +275,12 @@ def get_sprint_board(sprint_id, sprint, isStatic=False):
         story_id = task['story_id']
         epic_id = task['epic_id']
         status = task['status']
-        cuts = [status, f'e{epic_id}', f'e{epic_id}_{status}',f's{story_id}',f's{story_id}_{status}']
-        for c in cuts:
-            totals[c] = totals.get(c,0)+estimate
+        cuts = [status, f'e{epic_id}',
+                        f'e{epic_id}_{status}',
+                        f's{story_id}',
+                        f's{story_id}_{status}']
+        for cut in cuts:
+            totals[cut] = totals.get(cut,0)+estimate
     return render_template('sprint/board.html',
                             sprint = sprint,
                             sprint_id = sprint_id,
@@ -212,7 +289,7 @@ def get_sprint_board(sprint_id, sprint, isStatic=False):
                             tasks = tasks,
                             totals = totals,
                             statuses = statuses,
-                            static = isStatic,
+                            static = is_static,
                             schedule = schedule_list,
                             schedule_records = schedule_records)
 
@@ -224,7 +301,6 @@ def schedule(sprint_id):
     Get or set scheduling information for a given sprint.
     """
     is_json = request.args.get('is_json',False)
-    # TODO: Change POST INSERT reqs to PUT?
     if request.method == 'POST':
         sprint = get_sprint(sprint_id)
         task_id = request.form.get('task_id',None)
@@ -235,11 +311,13 @@ def schedule(sprint_id):
         schedule_id = request.form.get('schedule_id',None)
         note = request.form.get('note')
         recurring = request.form.get('recurring',0)
-        print(f'recurring value {recurring}')
-        if recurring == '1' :
-            # TODO: Validate that task is actually recurring
-            sprint_id = 0
         error = None
+        if recurring == '1' :
+            task = get_task(task_id)
+            if not task.recurring:
+                error = 'Task not set as recurring, cannot schedule as recurring'
+            else:
+                sprint_id = 0
         if task_id is None:
             error = 'No Task ID Found in Request'
         elif sprint_day is None:
@@ -251,19 +329,24 @@ def schedule(sprint_id):
         elif int(sprint_hour) > 24:
             error = 'Sprint Hour is > 24'
         if error is None:
-            old_record = get_schedule_by_time(sprint_id,sprint_day,sprint_hour,schedule_id=schedule_id)
+            old_record = get_schedule_by_time(sprint_id,
+                                              sprint_day,
+                                              sprint_hour,
+                                              schedule_id=schedule_id)
             if old_record is not None:
                 if old_record.id == schedule_id:
                     raise Exception("Old schedule flagged as duplicate")
                 delete_schedule(old_record.id)
                 schedule_id = None
-                #error = f'Day {sprint_day} at {sprint_hour} is already scheduled. Delete the existing task before scheduling another'
+                #error = f'Day {sprint_day} at {sprint_hour} is already scheduled.
+                # Delete the existing task before scheduling another'
             if schedule_id is None:
                 schedule_task = create_schedule(sprint_id,task_id,sprint_day,sprint_hour,note)
             else:
                 schedule_task = update_schedule(schedule_id,task_id,sprint_day,sprint_hour,note)
 
-            print(f'Adding schedule for task {task_id} to sprint {sprint_id} on {sprint_day} {sprint_hour}:00')
+            print(f'Adding schedule for task {task_id} to sprint {sprint_id} '+
+                   'on {sprint_day} {sprint_hour}:00')
             if is_json:
                 #schedule_task = dict(zip(schedule_task.keys(), schedule_task))
                 #for key,value in schedule_task.items():
@@ -287,7 +370,9 @@ def schedule(sprint_id):
             deleted_schedule = get_schedule(schedule_id)
             delete_schedule(schedule_id)
             if is_json:
-                return json.dumps({'Success':True,'task_id':deleted_schedule.task_id,'schedule_id':deleted_schedule.id})
+                return json.dumps({'Success':True,
+                                   'task_id':deleted_schedule.task_id,
+                                   'schedule_id':deleted_schedule.id})
             return f'Schedule {schedule_id} deleted.'
         abort(500,error)
     elif is_json and request.method == 'GET':
@@ -301,7 +386,9 @@ def schedule(sprint_id):
         keys = schedule_tasks[0].keys()
         schedule_tasks_out = []
         for task in schedule_tasks:
-            schedule_tasks_out.append(dict(zip(keys,[str(task[k]) if isinstance(task[k],date) else task[k] for k in keys])))
+            task_dict = dict(zip(keys,[str(task[k]) if isinstance(task[k],date)
+                                                    else task[k] for k in keys]))
+            schedule_tasks_out.append(task_dict)
         return json.dumps({'Success':True,'schedule_tasks':schedule_tasks_out})
     return redirect(url_for('sprint.show',sprint_id=sprint_id))
 
@@ -309,8 +396,9 @@ def schedule(sprint_id):
 @bp.route('/create/next', methods=('POST',))
 @login_required
 def create_next():
-    "Create next sprint (currently assuming 7 day sprints)"
-    #TODO: Get user sprint length & start day
+    """
+    Create the next sprint assuming seven days
+    """
     is_json = request.args.get('is_json',False)
     if is_json:
         abort(405,'Method not supported for AJAX mode')
@@ -320,7 +408,8 @@ def create_next():
         if last_sprint is None:
             error = 'No sprint found for user. Next sprint can only be created after initial sprint'
         if error is None:
-            start_date, end_date = (last_sprint.end_date+timedelta(1), last_sprint.end_date+timedelta(8))
+            start_date, = last_sprint.end_date+timedelta(1)
+            end_date = last_sprint.end_date+timedelta(8)
             sprint = create_sprint(start_date,end_date)
             if is_json:
                 return json.dumps({'Success':True,'sprint_id':sprint.id})
@@ -337,7 +426,10 @@ def create_next():
 @bp.route('/create', methods=('GET','POST'))
 @login_required
 def create():
-    "Create a New Sprint (should default to week following last sprint)"
+    """
+    Create a New Sprint defaulting last week's
+    sprint, but it will accept input if needed
+    """
     is_json = request.args.get('is_json',False)
     if is_json and request.method == 'GET':
         abort(405,'Method not supported for AJAX mode')
@@ -382,7 +474,9 @@ def create():
 @bp.route('/', methods=('GET',))
 @login_required
 def list_all():
-    "List all Sprints"
+    """
+    List all of the Sprints for a current user
+    """
     is_json = request.args.get('is_json',False)
     sprints = get_sprints()
     current_sprint = get_current_sprint()
@@ -399,7 +493,10 @@ def list_all():
 @bp.route('/<int:sprint_id>', methods=('GET', 'POST'))
 @login_required
 def show(sprint_id):
-    "Show the Details of Sprint sprint_id"
+    """
+    Show Board for Sprint with sprint identity
+    @param sprint_id identity for sprint board
+    """
     is_json = request.args.get('is_json',False)
     sprint = get_sprint(sprint_id)
     if not sprint:
@@ -428,13 +525,16 @@ def show(sprint_id):
         flash(error,'error')
     if is_json:
         return json.dumps({'Success':True,'sprint_id':sprint_id,'sprint':dict(sprint)})
-    return get_sprint_board(sprint_id, sprint, isStatic=True)
+    return get_sprint_board(sprint_id, sprint, is_static=True)
 
 
 @bp.route('/active', methods=('GET',))
 @login_required
 def active():
-    "See the Active Sprint - if two sprints overlap, pick the one with the higher endDate"
+    """
+    Returns sprint board for the active sprint
+    If two sprints overlap in date pick latter
+    """
     is_json = request.args.get('is_json',False)
     current_sprint = get_current_sprint()
     if not current_sprint:
@@ -443,4 +543,4 @@ def active():
     sprint_id = current_sprint.id
     if is_json:
         return json.dumps({'Success':True,'sprint_id':sprint_id,'sprint':dict(current_sprint)})
-    return get_sprint_board(sprint_id, current_sprint, isStatic=False)
+    return get_sprint_board(sprint_id, current_sprint, is_static=False)

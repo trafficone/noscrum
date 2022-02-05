@@ -1,10 +1,69 @@
+"""
+NoScrum Scheduling Application
+See README.md for full details.
+"""
 import os
-import datetime
-from flask import Flask
+import time
+from asyncio import create_task
 from dotenv import load_dotenv
+from flask import Flask
 from flask_babelex import Babel
 from flask_sqlalchemy import SQLAlchemy
 from flask_user import UserManager
+
+
+class DatabaseSingleton(object):
+    """
+    Database singleton, holds the app database
+    instance information in such a way that it
+    does not break the app/developer's brains.
+    """
+    app_db = None
+    __instance = None
+    def __init__(self,db_object):
+        """
+        Create a database singleton object. Should
+        only be called using the DatabaseSingleton
+        """
+        print('DB Instance',DatabaseSingleton.__instance)
+        if DatabaseSingleton.__instance is None:
+            self.app_db = db_object
+            DatabaseSingleton.__instance = self
+        else:
+            raise Exception("DB is Singleton, cannot re-init")
+
+    @staticmethod
+    def create_singleton(database):
+        """
+        Returns only instance of DatabaseSingleton
+        Creates a new instance if there is not one
+        """
+        if DatabaseSingleton.__instance is None:
+            DatabaseSingleton(database)
+        return DatabaseSingleton.__instance
+
+    @staticmethod
+    async def get_db_instance():
+        """
+        Get instance of the Singleton class. Waits
+        until instance has been created via method
+        DatabaseSingleton.create_singleton(d_base)
+        """
+        while DatabaseSingleton.__instance is None:
+            # Forgive me father for I have sinned
+            time.sleep(1)
+        return DatabaseSingleton.__instance
+
+    @staticmethod
+    async def get_db():
+        """
+        Returns the app database instance used for
+        the application controller modules. It can
+        wait for the DatabaseSingleton instance to
+        Initialize just like get_db_instance() can
+        """
+        instance = await create_task(DatabaseSingleton.get_db_instance())
+        return instance.app_db
 
 class ConfigClass(object):
     """Flask application config"""
@@ -26,6 +85,9 @@ class ConfigClass(object):
 
 
 def create_app(test_config=None):
+    """
+    Creates the Flask application for NoScrum.
+    """
     load_dotenv()
     # Create and Configure the app
     app = Flask(__name__, instance_relative_config=True)
@@ -43,13 +105,13 @@ def create_app(test_config=None):
         pass
 
     # Init SQLAlchemy
-    from noscrum import db
-    db.init_db(SQLAlchemy(app))
-    app_db = db.get_db()
+    app_db = SQLAlchemy(app)
+    DatabaseSingleton.create_singleton(app_db)
     app_db.create_all()
+
+    # These need app to exist before they can be imported
     from noscrum.db import User
     UserManager(app, app_db, User)
-
     from noscrum import epic, story, task, sprint, tag, work, user, semi_static
     app.register_blueprint(epic.bp)
     app.register_blueprint(story.bp)

@@ -1,3 +1,6 @@
+"""
+Story Tag controller/view logic of NoScrum
+"""
 import json
 
 from flask import (
@@ -5,31 +8,46 @@ from flask import (
 )
 from flask_user import current_user
 
-from noscrum.db import get_db, Tag, Story
+from noscrum.db import get_db, Tag
 
 bp = Blueprint('tag', __name__, url_prefix='/tag')
 
-def get_tags(story=None):
-    tags = Tag.query.filter(Tag.user_id==current_user.id).distinct()
-    if story is not None:
-        tags = tags.add_columns(Tag.stories.any(id=story.id).label('tag_in_story'))
-    return tags.all()
+def get_tags():
+    """
+    Get tag records for the given current user
+    """
+    return Tag.query.filter(Tag.user_id==current_user.id).distinct().all()
 
 
 def get_tags_for_story(story_id):
-    return [x.tags for x in Story.query\
-        .filter(Story.user_id==current_user.id)\
-            .filter(Story.id==story_id).all()]
+    """
+    Get all the tag records for the given story
+    @param story_id Identity record for a story
+    """
+    return Tag.query.filter(Tag.user_id==current_user.id).distinct()\
+        .filter(Tag.stories.any(id=story_id)).all()
 
 def get_tag(tag_id):
+    """
+    Get the Tag record having a given identity
+    @param tag_id Identity for the queried tag
+    """
     return Tag.query.filter(Tag.id == tag_id)\
         .filter(Tag.user_id == current_user.id).first()
 
 def get_tag_from_name(tag):
+    """
+    Get the Tag record using a particular name
+    @param tag The name of the tag in question
+    """
     return Tag.query.filter(Tag.tag == tag)\
         .filter(Tag.user_id == current_user.id).first()
 
 def create_tag(tag):
+    """
+    Create some new tag for organizing stories
+    @param tag The name of the tag in question
+    """
     app_db = get_db()
     newtag = Tag(tag = tag, user_id = current_user.id)
     app_db.session.add(newtag)
@@ -37,6 +55,11 @@ def create_tag(tag):
     return get_tag_from_name(tag)
 
 def update_tag(tag_id,tag):
+    """
+    Update some tag record through using ident
+    @param tag The name of the tag in question
+    @param tag_id identity for the queried tag
+    """
     app_db = get_db()
     Tag.query.filter(Tag.id==tag_id)\
         .filter(Tag.user_id == current_user.id)\
@@ -45,6 +68,10 @@ def update_tag(tag_id,tag):
     return get_tag(tag_id)
 
 def delete_tag(tag_id):
+    """
+    Delete tag record having provided identity
+    @param tag_id identity for the deleted tag
+    """
     app_db = get_db()
     Tag.query.filter(Tag.id==tag_id)\
         .filter(Tag.user_id == current_user.id).delete()
@@ -52,6 +79,9 @@ def delete_tag(tag_id):
 
 @bp.route('/create', methods=('GET','POST'))
 def create():
+    """
+    Handle a request to creat a new tag record
+    """
     is_json = request.args.get('is_json',False)
     if is_json and request.method == 'GET':
         abort(405,'Method not supported for AJAX mode')
@@ -80,10 +110,14 @@ def create():
 
 @bp.route('/<int:tag_id>', methods=('GET','POST','DELETE'))
 def show(tag_id):
+    """
+    Return the tag information for a tag by id
+    Handles updates as well as delete requests
+    """
     is_json = request.args.get('is_json',False)
     tag = get_tag(tag_id)
     if tag is None:
-        error = f'Tag ID not found.'
+        error = 'Tag ID not found.'
         if is_json:
             abort(404, error)
         else:
@@ -122,6 +156,9 @@ def show(tag_id):
 
 @bp.route('/', methods=('GET',))
 def list_all():
+    """
+    Handles requests to list all tags for user
+    """
     is_json = request.args.get('is_json',False)
     tags = get_tags()
 

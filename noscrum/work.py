@@ -1,3 +1,6 @@
+"""
+Data handler for work view and controller
+"""
 import json
 from datetime import date, datetime
 
@@ -14,6 +17,15 @@ from noscrum.epic import get_epic
 bp = Blueprint('work', __name__, url_prefix='/work')
 
 def create_work(work_date, hours_worked, status, task_id, new_actual, update_status):
+    """
+    Create new work for task on the given date
+    @param work_date when some action was done
+    @param hours_worked number of hours worked
+    @param status a new task status given work
+    @param task_id task which work is executed
+    @param new_actual task actual hours worked
+    @param update_status boolean update status
+    """
     app_db = get_db()
     new_work = Work(work_date=work_date,
     hours_worked=hours_worked,
@@ -25,16 +37,32 @@ def create_work(work_date, hours_worked, status, task_id, new_actual, update_sta
     app_db.session.commit()
 
 def get_work(work_id):
+    """
+    Get work record from identification number
+    @param work_id work record identity number
+    """
     return Work.query.filter(Work.id==work_id).filter(Work.user_id==current_user.id).first()
 
 def get_work_for_task(task_id):
+    """
+    Get the work records given the task record
+    @param task_id task record work is queried
+    """
     return Work.query.filter(Work.task_id==task_id).filter(Work.user_id==current_user.id).all()
 
 def get_work_for_story(story_id):
+    """
+    Get the work for a particular story record
+    @param story_id a Story record locator val
+    """
     return Work.query.filter(Work.story.id==story_id)\
         .filter(Work.user_id == current_user.id).all()
 
 def get_work_for_epic(epic_id):
+    """
+    Get all work records under the epic record
+    @param epic_id epic for which work queried
+    """
     app_db = get_db()
     return Work(*app_db.execute("SELECT work.id, task_id, work_date, hours_worked, status "+\
         'FROM work JOIN task on work.task_id = task.id '+\
@@ -42,11 +70,20 @@ def get_work_for_epic(epic_id):
         ' WHERE story.epic_id = ? order by work_date',(epic_id,)).fetchall())
 
 def get_work_by_dates(start_date,end_date):
+    """
+    Get work executed between two dates values
+    @param start_date date request lower limit
+    @param end_date date requested upper limit
+    """
     app_db = get_db()
     return Work(*app_db.execute("SELECT id, task_id, work_date, hours_worked, status FROM work "+\
         "WHERE work_date BETWEEN ? and ? order by work_date",(start_date,end_date)).fetchall())
 
 def delete_work(work_id):
+    """
+    Delete work record given a certain identiy
+    @param work_id a work record to be deleted
+    """
     app_db = get_db()
     work = get_work(work_id)
     Work.query.filter(Work.id==work_id).filter(Work.user_id==current_user.id).delete()
@@ -55,6 +92,12 @@ def delete_work(work_id):
 
 @bp.route('/create/<int:task_id>',methods=('POST','GET'))
 def create(task_id):
+    """
+    Handle requests to create work on the task
+    GET: Return form to create new work record
+    POST: Create new work record for some task
+    @param task_id task which work is executed
+    """
     is_json = request.args.get('is_json',False)
     task = get_task(task_id)
     if task is None:
@@ -90,6 +133,12 @@ def create(task_id):
 
 @bp.route('/<int:work_id>',methods=('GET','DELETE'))
 def read_delete(work_id):
+    """
+    Handle read or deletes on some work record
+    GET: Information regarding specific record
+    DELETE: Delete work record with identifier
+    @param work_id work record identifier code
+    """
     is_json = request.args.get('is_json',False)
     work_item = get_work(work_id)
     if work_item is None:
@@ -111,6 +160,11 @@ def read_delete(work_id):
 
 @bp.route('/list/task/<int:task_id>',methods=('GET',))
 def list_for_task(task_id):
+    """
+    Return all work records for the given task
+    GET: route provides the response described
+    @param task_id task record was executed on
+    """
     is_json = request.args.get('is_json',False)
     tasks = get_task(task_id)
     if tasks is None:
@@ -134,10 +188,15 @@ def list_for_task(task_id):
 
 @bp.route('/list/story/<int:story_id>',methods=('GET',))
 def list_for_story(story_id):
+    """
+    List all work completed on tasks for story
+    GET: route provides the response described
+    @param story_id story where work described
+    """
     is_json = request.args.get('is_json',False)
     story = get_story(story_id)
     if story is None:
-        error = f'Story Item not found'
+        error = 'Story Item not found'
         if is_json:
             abort(404, error)
         else:
@@ -161,14 +220,22 @@ def list_for_story(story_id):
             return redirect(url_for('sprint.active'))
     if is_json:
         return json.dumps({'Sucecss':True,'work_items':work_items})
-    return render_template('work/list.html',key='Story '+story['story'],tasks=tasks,work_items=work_items)
+    return render_template('work/list.html',
+                            key='Story '+story['story'],
+                            tasks=tasks,
+                            work_items=work_items)
 
 @bp.route('/list/epic/<int:epic_id>',methods=('GET',))
 def list_for_epic(epic_id):
+    """
+    List work completed on tasks an epic holds
+    GET: route provides the response described
+    @param epic_id record identity for an epic
+    """
     is_json = request.args.get('is_json',False)
     epic = get_epic(epic_id)
     if epic is None:
-        error = f'Epic Item not found'
+        error = 'Epic Item not found'
         if is_json:
             abort(404, error)
         else:
@@ -176,7 +243,7 @@ def list_for_epic(epic_id):
             return redirect(url_for('sprint.active'))
     tasks = get_tasks_for_epic(epic_id)
     if tasks is None:
-        error = f'No Tasks found for Epic {epic.id}'
+        error = 'No Tasks found for Epic {epic.id}'
         if is_json:
             abort(404, error)
         else:
@@ -192,16 +259,23 @@ def list_for_epic(epic_id):
             return redirect(url_for('sprint.active'))
     if is_json:
         return json.dumps({'Sucecss':True,'work_items':work_items})
-    return render_template('work/list.html',key='Epic ' + epic['epic'],tasks=tasks,work_items=work_items)
+    return render_template('work/list.html',
+                            key='Epic ' + epic['epic'],
+                            tasks=tasks,
+                            work_items=work_items)
 
 @bp.route('/list/dates',methods=('GET',))
 def list_for_dates():
+    """
+    List all work completed within given dates
+    GET: route provides the response described
+    """
     is_json = request.args.get('is_json',False)
     start_date = request.args.get('start_date',date(2020,1,1))
     end_date = request.args.get('end_date',date.today())
     work_items = get_work_by_dates(start_date,end_date)
     if work_items is None:
-        error = f'No work items found between dates_provided'
+        error = 'No work items found between dates_provided'
         if is_json:
             abort(404, error)
         else:
@@ -215,5 +289,7 @@ def list_for_dates():
             tasks.append(task)
     if is_json:
         return json.dumps({'Success':True,'work_items':work_items})
-    return render_template('work/list.html',key=f'Dates from {start_date} to {end_date}',tasks=tasks,work_items=work_items)
-
+    return render_template('work/list.html',
+                            key=f'Dates from {start_date} to {end_date}',
+                            tasks=tasks,
+                            work_items=work_items)
