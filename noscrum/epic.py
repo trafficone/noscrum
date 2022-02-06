@@ -67,9 +67,9 @@ def create_epic(epic, color, deadline):
 def update_epic(epic_id,epic,color,deadline):
     app_db = get_db()
     Epic.query.filter(Epic.id==epic_id).update({
-        epic: epic,
-        color: color,
-        deadline: deadline
+        'epic': epic,
+        'color': color,
+        'deadline': deadline
     },synchronize_session="fetch")
     app_db.session.commit()
     return get_epic(epic_id)

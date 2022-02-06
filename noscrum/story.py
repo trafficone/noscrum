@@ -120,10 +120,10 @@ def update_story(story_id,story,epic_id,prioritization,deadline):
     app_db = get_db()
     Story.query.filter(Story.id == story_id).filter(Story.user_id==current_user.id)\
         .update({
-            story:story,
-            epic_id:epic_id,
-            prioritization:prioritization,
-            deadline:deadline
+            'story':story,
+            'epic_id':epic_id,
+            'prioritization':prioritization,
+            'deadline':deadline
         },synchronize_session="fetch")
     app_db.session.commit()
     return get_story(story_id)
