@@ -3,6 +3,7 @@ NoScrum Scheduling Application
 See README.md for full details.
 """
 import os
+
 import time
 from asyncio import create_task
 from dotenv import load_dotenv
@@ -84,6 +85,7 @@ class ConfigClass(object):
     USER_LOGIN_URL = "/login"
     USER_LOGOUT_URL = "/logout"
 
+
     def get_dict(self):
         """
         Return a dictionary for ConfigClass locals
@@ -106,6 +108,7 @@ def create_app(test_config=None):
     Babel(app)
     Foundation(app)
 
+
     if test_config is not None:
         # Load test config if passed in
         app.config.from_mapping(test_config)
@@ -116,6 +119,7 @@ def create_app(test_config=None):
         pass
 
     # Init SQLAlchemy
+
     app_db = SQLAlchemy(app)
     print("Creating Database")
     DatabaseSingleton.create_singleton(app_db)
@@ -125,6 +129,7 @@ def create_app(test_config=None):
     # These need app to exist before they can be imported
     from noscrum.db import User
     UserManager(app, app_db, User)
+
     from noscrum import epic, story, task, sprint, tag, work, user, semi_static
     app.register_blueprint(epic.bp)
     app.register_blueprint(story.bp)

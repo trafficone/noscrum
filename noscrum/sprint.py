@@ -134,6 +134,7 @@ def get_schedule(sched_id):
     Get a ScheduleTask with a certain sched_id
     @param sched_id ScheduleTask ID you desire
     """
+
     return ScheduleTask.query\
         .filter(ScheduleTask.id==sched_id)\
         .filter(ScheduleTask.user_id==current_user.id).first()
@@ -149,6 +150,7 @@ def get_schedule_by_time(sprint_id,sprint_day,sprint_hour,schedule_id=None):
     @param sprint_day the day for the schedule
     @param sprint_hour the schedule time value
     """
+
     query = ScheduleTask.query.filter(ScheduleTask.user_id==current_user.id)\
         .filter(ScheduleTask.sprint_day == sprint_day)\
         .filter(ScheduleTask.sprint_hour == sprint_hour)\
@@ -210,6 +212,7 @@ def delete_schedule(sched_id):
 
 
 def get_sprint_details(sprint_id):
+
     """
     Get detailed records for given sprint with
     @param sprint_id sprint details are wanted
@@ -350,7 +353,7 @@ def schedule(sprint_id):
                 schedule_task = create_schedule(sprint_id,task_id,sprint_day,sprint_hour,note)
             else:
                 schedule_task = update_schedule(schedule_id,task_id,sprint_day,sprint_hour,note)
-
+                
             print(f'Adding schedule for task {task_id} to sprint {sprint_id} '+
                    'on {sprint_day} {sprint_hour}:00')
             if is_json:

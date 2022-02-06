@@ -7,6 +7,7 @@ bp = Blueprint('semi_static', __name__, url_prefix='/')
 
 @bp.route('/',methods=('GET',))
 def index():
+
     """
     Render the application's main landing page
     """

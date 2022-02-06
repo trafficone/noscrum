@@ -1,6 +1,7 @@
 """
 Database Models and Controller (not much to do, thanks SQLAlchemy!)
 """
+
 import asyncio
 import sqlalchemy as sa
 from flask_user import UserMixin

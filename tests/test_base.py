@@ -51,6 +51,7 @@ class noscrumBaseTest(noscrumTestCase):
             self.assertIn(bytes(user.first_name,'UTF-8'),response.data)
             self.assertNotIn(b'Incorrect Username',response.data)
 
+
 if __name__ == '__main__':
     unittest.main()
  

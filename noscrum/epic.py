@@ -1,6 +1,8 @@
+
 """
 Handler for epic creation, read, and etc.
 """
+
 import json
 from datetime import datetime
 
@@ -15,6 +17,7 @@ bp = Blueprint('epic', __name__, url_prefix='/epic')
 
 
 def get_epics(sprint_view=False,sprint_id=None):
+
     """
     Get all epics, optionally for given sprint
     """

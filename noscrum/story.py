@@ -37,6 +37,7 @@ def get_stories(sprint_view = False,sprint_id = None):
         'LEFT OUTER JOIN story on task.story_id = story.id '+
         'WHERE task.user_id = :user_id and task.sprint_id = :sprint_id ' +
         'GROUP BY story.id, story, epic_id, prioritization '+
+
         'ORDER BY prioritization DESC',
         {'user_id':current_user.id, 'sprint_id':sprint_id}).fetchall()
 
