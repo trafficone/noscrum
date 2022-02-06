@@ -17,6 +17,9 @@ from noscrum.db import get_db, Task
 bp = Blueprint('task', __name__, url_prefix='/task')
 
 def get_tasks():
+    """
+    Get every task record for the current user
+    """
     app_db = get_db()
     return app_db.session.execute('SELECT task.id, task, estimate, status, story_id, '+
         'epic_id, actual, task.deadline, task.recurring, coalesce(hours_worked,0) hours_worked, ' +
@@ -32,22 +35,61 @@ def get_tasks():
         'ON task.id = sched.task_id '+
         'WHERE task.user_id = :user_id',{'user_id':current_user.id})
 
+def get_task(task_id):
+    """
+    Task record for user for identifier number
+    @task_id task record identification number
+    """
+    return Task.query.filter(Task.id==task_id).filter(Task.user_id == current_user.id).first()
+
 def get_tasks_for_story(story_id):
+    """
+    Get all task records for the current story
+    @param story_id asked Story identification
+    """
     return Task.query.filter(Task.story_id == story_id)\
         .filter(Task.user_id == current_user.id).all()
 
+def get_story_summary():
+    """
+    Get task summary for each story by task ID
+    """
+    app_db = get_db()
+    return app_db.session.query(
+        Task.story_id,
+        app_db.func.sum(Task.estimate).label('est'),
+        app_db.func.count(Task.id).filter(Task.estimate is None).label('unest'),
+        app_db.func.count(Task.id).filter(Task.status != 'Done').label('incomplete'),
+        app_db.func.count().label('task_count')).group_by(Task.story_id).all()
 
 def get_tasks_for_epic(epic_id):
+    """
+    Get all task records for a certain epic id
+    @param epic_id Epic record identity number
+    """
     return Task.query.filter(Task.stories.epic_id == epic_id)\
         .filter(Task.user_id == current_user.id).all()
 
 
 def get_task_by_name(task,story_id):
+    """
+    Get a task with a certain name in a sprint
+    @param task Name of task being queried for
+    @param story_id Identification for a story
+    """
     return Task.query.filter(Task.story_id == story_id).\
         filter(Task.task == task).\
         filter(Task.user_id == current_user.id).first()
 
 def create_task(task, story_id, estimate, deadline, sprint_id):
+    """
+    Create a new task under a given story with
+    @param task Name of task being queried for
+    @param story_id Identification for a story
+    @param estimate number of hours estimation
+    @param deadline date when task will be due
+    @param sprint_id Sprint where task planned
+    """
     app_db = get_db()
     newtask = Task(task=task,
         story_id = story_id,
@@ -59,10 +101,18 @@ def create_task(task, story_id, estimate, deadline, sprint_id):
     app_db.session.commit()
     return get_task_by_name(task,story_id)
 
-def get_task(task_id):
-    return Task.query.filter(Task.id==task_id).filter(Task.user_id == current_user.id).first()
-
 def update_task(task_id, task, story_id, estimate, status, actual, deadline, sprint_id, recurring):
+    """
+    Update the properties for an existing task
+    @task_id task record identification number
+    @param task Name of task being queried for
+    @param story_id Identification for a story
+    @param estimate number of hours estimation
+    @param actual hours spent to complete task
+    @param deadline date when task will be due
+    @param sprint_id Sprint where task planned
+    @param recurring does it recur each sprint
+    """
     app_db = get_db()
     data = {}
     query = Task.query.filter(Task.id==task_id).filter(Task.user_id == current_user.id)
@@ -91,6 +141,9 @@ def update_task(task_id, task, story_id, estimate, status, actual, deadline, spr
     return get_task(task_id)
 
 def delete_task(task_id):
+    """
+    Delete task, task deletion not implemented
+    """
     #app_db = get_db()
     #Task.query.filter(Task.id==task_id).filter(Task.user_id==current_user.id).delete()
     #app_db.commit()
@@ -99,6 +152,12 @@ def delete_task(task_id):
 @bp.route('/create/<int:story_id>', methods=('GET', 'POST'))
 @login_required
 def create(story_id):
+    """
+    Handle creation requests for task in story
+    GET: Get form to create a story's new task
+    POST: Create task in story using the input
+    @param story_id story inwhich task will be
+    """
     is_json = request.args.get('is_json', False)
     is_asc = request.args.get('is_asc', False)
     story = get_story(story_id)
@@ -150,6 +209,12 @@ def create(story_id):
 @bp.route('/<int:task_id>', methods=('GET', 'POST'))
 @login_required
 def show(task_id):
+    """
+    Show details of the specific task given id
+    GET: Get a task's information nothing else
+    POST: Update the task given input provided
+    @param task_id Task Identity being queried
+    """
     is_json = request.args.get('is_json', False)
     task = get_task(task_id)
     if not task:
@@ -169,7 +234,6 @@ def show(task_id):
         deadline = request.form.get('deadline',task.deadline)
         if isinstance(deadline,str):
             deadline = datetime.strptime(deadline,'%Y-%m-%d')
-        #TODO: Input validation
         sprint_id = request.form.get('sprint_id',task.sprint_id)
         recurring = request.form.get('recurring',task.recurring)
 
@@ -187,6 +251,8 @@ def show(task_id):
             status = task.status
         if not sprint_id:
             sprint_id = task.sprint_id
+        if status not in ['To-Do','In Progress','Done']:
+            error = "Status is invalid. Valid statuses are ['To-Do','In Progress','Done']"
 
         if get_story(story_id) is None:
             error = f'Story with ID {story_id} not found'
@@ -218,6 +284,9 @@ def show(task_id):
 @bp.route('/', methods=['GET'])
 @login_required
 def list_all():
+    """
+    Task showcase: lists epics stories & tasks
+    """
     is_json = request.args.get('is_json', False)
     tasks = get_tasks()
     stories = get_stories()
