@@ -77,7 +77,7 @@ class ConfigClass(object):
     USER_APP_VERSION = "βeta.1.0"
     USER_COPYRIGHT_YEAR = "2021"
     USER_CORPORATION_NAME = "Industrial Systems - A PLBL Brand"
-    USER_ENABLE_EMAIL = False
+    USER_ENABLE_EMAIL = True
     USER_ENABLE_USERNAME = True
     USER_ENABLE_REGISTER = True
     USER_EMAIL_SENDER_NAME = USER_APP_NAME
@@ -124,10 +124,10 @@ def create_app(test_config=None):
     print("Creating Database")
     DatabaseSingleton.create_singleton(app_db)
     print("Populating Database")
+    from noscrum.db import User, Role, Task, Story, Epic, Tag, TagStory, Sprint, Work, UserRoles, ScheduleTask
     app_db.create_all()
 
     # These need app to exist before they can be imported
-    from noscrum.db import User
     UserManager(app, app_db, User)
 
     from noscrum import epic, story, task, sprint, tag, work, user, semi_static
@@ -141,3 +141,6 @@ def create_app(test_config=None):
     app.register_blueprint(semi_static.bp)
 
     return app
+
+if __name__ == 'noscrum':
+    app = create_app()

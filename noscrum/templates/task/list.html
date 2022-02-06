@@ -72,8 +72,8 @@
             <div>Tasks: {{ story.tasks|length }}</div>
             <div>Remain: {{ story.active_tasks|length }}</div>
             {% if story.story != 'NULL' %}
-                <input id="story_deadline_datepicker_{{story.id}}" name="date" class="datepicker-input" type="hidden" />
-                <span  title="Click to Edit" contentEditable="false" update_key="deadline" id="story_deadline_{{story.id}}" class="story-deadline editable deadline">{{ 'No Deadline Set' if not story.deadline else story.deadline }}</span>
+                <input id="story_deadline_{{story.id}}_datepicker" name="date" class="datepicker-input" type="hidden" />
+                <span  title="Click to Edit" contentEditable="false" update_url="{{ url_for('story.show',story_id=story.id,is_json=True) }}" update_key="deadline" id="story_deadline_{{story.id}}" class="story-deadline editable deadline">{{ 'No Deadline Set' if not story.deadline else story.deadline }}</span>
             {% endif %}
             
         </div>
@@ -93,7 +93,7 @@
                     </div>
                     <div class="columns small-2"><span class='float-right'>A:{{ task.actual }}</span></div>
                     <div class="columns large-6">
-                        <input id="task_deadline_datepicker_{{task.id}}" name="date" class="datepicker-input" type="hidden" />
+                        <input id="task_deadline_{{task.id}}_datepicker" name="date" class="datepicker-input" type="hidden" />
                         <span  title="Click to Edit" contentEditable="false" update_key="deadline" id="task_deadline_{{task.id}}" class="task-deadline editable deadline">{{ 'No Deadline Set' if not task.deadline else task.deadline }} </span>
                         {% if task.status != 'Done' and task.sprint_id != current_sprint.id %}
                             <button id="task_sprint_btn_{{task.id}}" class="float-right button sprintPlan invisible float-right" style="margin:0.1rem;padding:0.2em 1em;" task="{{task.id}}" sprint="{{current_sprint.id}}">Add to Sprint</button>
@@ -346,11 +346,11 @@
         $(this).addClass('postable');
         $(this).removeClass('editable');
         if($(this).hasClass('deadline')) {
-            console.log("Total Deadline WTF");
             $(this).attr('contentEditable','false');
-            console.log($(this).siblings('.datepicker-input').attr('id'));
-            $(this).siblings('.datepicker-input').focus();
-            $(this).siblings('.datepicker-input').focus();
+            var datepicker_id = '#'+$(this).attr('id')+'_datepicker';
+            console.log('found datepicker '+datepicker_id);
+            $(datepicker_id).focus()
+            $(datepicker_id).focus()
         } else {
             $(this).attr('contentEditable','true');
             $(this).focus();

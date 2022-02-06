@@ -2,7 +2,7 @@
 To handle Story Model controller and views
 """
 import json
-
+from datetime import datetime
 from flask import (
     Blueprint, flash, redirect, render_template, request, url_for, abort
 )
@@ -310,18 +310,20 @@ def show(story_id):
             return redirect(url_for('story.list_all'))
 
     if request.method == 'POST':
-        story_name = request.form.get('story',story['story'])
-        epic_id = request.form.get('epic_id',story['epic_id'])
-        prioritization = request.form.get('prioritization',story['prioritization'])
-        deadline = request.form.get('deadline',story['deadline'])
+        story_name = request.form.get('story',story.story)
+        epic_id = request.form.get('epic_id',story.epic_id)
+        prioritization = request.form.get('prioritization',story.prioritization)
+        deadline = request.form.get('deadline',story.deadline)
+        if isinstance(deadline,str):
+            deadline = datetime.strptime(deadline,'%Y-%m-%d')
         error = None
-
+        # Handle null input from user
         if not story_name:
-            story_name = story['story']
+            story_name = story.story
         if not epic_id:
-            epic_id = story['epic_id']
+            epic_id = story.epic_id
         if not prioritization:
-            prioritization = story['prioritization']
+            prioritization = story.prioritization
         if get_epic(epic_id) is None:
             error = f'Epic {epic_id} not found.'
 
