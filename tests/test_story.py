@@ -3,7 +3,10 @@ import unittest
 from unittest.mock import patch
 from datetime import date
 import noscrum
-from test_base import noscrumTestCase
+try:
+    from test_base import noscrumTestCase
+except ModuleNotFoundError:
+    from .test_base import noscrumTestCase
 
 class noscrumEpicTest(noscrumTestCase):
     

@@ -1,8 +1,13 @@
 import unittest
 from unittest.mock import patch
+from flask import url_for
 from datetime import date
 import noscrum
-from test_base import noscrumTestCase
+try:
+    from test_base import noscrumTestCase
+except ModuleNotFoundError:
+    from .test_base import noscrumTestCase
+
 
 class noscrumEpicTest(noscrumTestCase):
     epic_was_created = False
@@ -67,6 +72,28 @@ class noscrumEpicTest(noscrumTestCase):
         self.create_epic_once()
         epic = noscrum.epic.update_epic(self.epic.id,self.epic.epic,TEST_COLOR,self.epic.deadline)
         self.assertEqual(epic.color,TEST_COLOR)
+
+    @patch('flask_login.utils._get_user')
+    def test_view_epic_page(self,current_user):
+        user = self.test_user
+        current_user.return_value = user
+        self.create_epic_once()
+        response = self.client.get(url_for('epic.show',epic_id = self.epic.id))
+        self.assert200(response)
+        self.assertIn(bytes(self.epic.epic,'UTF-8'),response.data)
+
+
+    @patch('flask_login.utils._get_user')
+    def test_create_epic_api(self,current_user):
+        user = self.test_user
+        current_user.return_value = user
+        with self.client:
+            #self.client.post(url_for('user.login'),data={'username':user.username,'password':'Password1'})
+            response = self.client.post(url_for('epic.create')+'?is_json=true',
+                data={'epic':'POST Create Epic',
+                    'color':'POSTColor',
+                    'deadline':'2022-02-06'})
+            self.assertIn(bytes('POST Create Epic','UTF-8'), response.data)
 
 if __name__ == '__main__':
     unittest.main()

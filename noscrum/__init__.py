@@ -10,6 +10,7 @@ from flask import Flask
 from flask_babelex import Babel
 from flask_sqlalchemy import SQLAlchemy
 from flask_user import UserManager
+from flask_foundation import Foundation
 
 
 class DatabaseSingleton():
@@ -103,6 +104,7 @@ def create_app(test_config=None):
     app.config.from_object(__name__+'.ConfigClass')
     # Init Flask-BabelEx
     Babel(app)
+    Foundation(app)
 
     if test_config is not None:
         # Load test config if passed in

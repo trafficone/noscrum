@@ -2,6 +2,7 @@
 Handler for epic creation, read, and etc.
 """
 import json
+from datetime import datetime
 
 from flask import (
     Blueprint, flash, redirect, render_template, request, url_for, abort
@@ -83,6 +84,8 @@ def create():
         epic = request.form.get('epic',None)
         color = request.form.get('color',None)
         deadline = request.form.get('deadline',None)
+        if isinstance(deadline,str):
+            deadline = datetime.strptime(deadline,'%Y-%m-%d').date()
         error = None
 
         if not epic:
@@ -93,7 +96,7 @@ def create():
         if error is None:
             epic = create_epic(epic,color,deadline)
             if is_json:
-                return json.dumps({'Success':True,'epic_id':epic.id})
+                return json.dumps({'Success':True,'epic_id':epic.id,'epic_name':epic.epic})
             return redirect(url_for('epic.show', epic_id=epic.id))
         if is_json:
             abort(500,error)
