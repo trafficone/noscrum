@@ -22,6 +22,7 @@ class DatabaseSingleton():
     """
     app_db = None
     __instance = None
+
     def __init__(self, db_object):
         """
         Create a database singleton object. Should
@@ -67,11 +68,12 @@ class DatabaseSingleton():
         instance = await create_task(DatabaseSingleton.get_db_instance())
         return instance.app_db
 
+
 class ConfigClass(object):
     """Flask application config"""
-    SECRET_KEY=os.environ.get('FLASK_SECRET_KEY')
-    SQLALCHEMY_DATABASE_URI='sqlite:///noscrum.sqlite'
-    SQLALCHEMY_TRACK_MODIFICATIONS=False
+    SECRET_KEY = os.environ.get('FLASK_SECRET_KEY')
+    SQLALCHEMY_DATABASE_URI = 'sqlite:///noscrum.sqlite'
+    SQLALCHEMY_TRACK_MODIFICATIONS = False
 
     USER_APP_NAME = "NoScrum"
     USER_APP_VERSION = "βeta.1.0"
@@ -84,7 +86,6 @@ class ConfigClass(object):
     USER_EMAIL_SENDER_EMAIL = "noreply@plbl.net"
     USER_LOGIN_URL = "/login"
     USER_LOGOUT_URL = "/logout"
-
 
     def get_dict(self):
         """
@@ -107,7 +108,6 @@ def create_app(test_config=None):
     # Init Flask-BabelEx
     Babel(running_app)
     Foundation(running_app)
-
 
     if test_config is not None:
         # Load test config if passed in
@@ -141,6 +141,7 @@ def create_app(test_config=None):
     running_app.register_blueprint(semi_static.bp)
 
     return running_app
+
 
 if __name__ == 'noscrum':
     app = create_app()
