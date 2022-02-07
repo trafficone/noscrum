@@ -23,18 +23,22 @@ def get_tasks():
     """
     app_db = get_db()
     return app_db.session.execute('SELECT task.id, task, estimate, status, story_id, ' +
-                                  'epic_id, actual, task.deadline, task.recurring, coalesce(hours_worked,0) hours_worked, ' +
+                                  'epic_id, actual, task.deadline, task.recurring, ' +
+                                  'coalesce(hours_worked,0) hours_worked, ' +
                                   'coalesce(sum_sched,0) sum_sched, ' +
                                   '(task.sprint_ID = sched.sprint_id) single_sprint_task ' +
                                   'FROM task ' +
                                   'JOIN story ON task.story_id = story.id ' +
-                                  'LEFT OUTER JOIN (SELECT task_id, sum(hours_worked) hours_worked ' +
+                                  'LEFT OUTER JOIN (SELECT task_id, ' +
+                                  'sum(hours_worked) hours_worked ' +
                                   'from work group by task_id) woik ' +
                                   'ON woik.task_id = task.id ' +
-                                  'LEFT OUTER JOIN (select task_id, sprint_id, count(1) * 2 sum_sched ' +
+                                  'LEFT OUTER JOIN (select task_id, sprint_id, ' +
+                                  'count(1) * 2 sum_sched ' +
                                   'FROM schedule_task group by task_id, sprint_id) sched ' +
                                   'ON task.id = sched.task_id ' +
-                                  'WHERE task.user_id = :user_id', {'user_id': current_user.id})
+                                  'WHERE task.user_id = :user_id', 
+                                  {'user_id': current_user.id})
 
 
 def get_task(task_id):

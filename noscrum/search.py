@@ -1,3 +1,6 @@
+"""
+Handle search logic (not yet implemeneted)
+"""
 alltext = """select 'task' label,task value, task.id from task
  union all select 'story',story,story.id from story
  union all select 'epic',epic,epic.id from epic

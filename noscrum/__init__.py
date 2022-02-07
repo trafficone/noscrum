@@ -69,7 +69,7 @@ class DatabaseSingleton():
         return instance.app_db
 
 
-class ConfigClass(object):
+class ConfigClass():
     """Flask application config"""
     SECRET_KEY = os.environ.get('FLASK_SECRET_KEY')
     SQLALCHEMY_DATABASE_URI = 'sqlite:///noscrum.sqlite'
@@ -91,7 +91,7 @@ class ConfigClass(object):
         """
         Return a dictionary for ConfigClass locals
         """
-        return dict([(k, v) for k, v in locals()])
+        return {k: self.__getattribute__(k) for k in dir(self)}
 
     def __str__(self):
         return str(self.get_dict())

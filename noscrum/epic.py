@@ -45,6 +45,10 @@ def get_epics(sprint_view=False, sprint_id=None):
 
 
 def get_epic_by_name(epic):
+    """
+    Return the epic given the name of the epic
+    @param epic the requsted epic name queried
+    """
     return Epic.query\
         .filter(Epic.epic == epic)\
         .filter(Epic.user_id == current_user.id)\
@@ -52,6 +56,10 @@ def get_epic_by_name(epic):
 
 
 def get_epic(epic_id):
+    """
+    Returns an epic given the specific epic_id
+    @param epic_id the identifier for the epic
+    """
     return Epic.query\
         .filter(Epic.id == epic_id)\
         .filter(Epic.user_id == current_user.id)\
@@ -59,6 +67,12 @@ def get_epic(epic_id):
 
 
 def create_epic(epic, color, deadline):
+    """
+    Create a new epic with a given color, etc.
+    @param epic name of the epic to be created
+    @param color the highlighted color for use
+    @param deadline (optional) planned end day
+    """
     app_db = get_db()
     new_epic = Epic(
         epic=epic,
@@ -72,6 +86,12 @@ def create_epic(epic, color, deadline):
 
 
 def update_epic(epic_id, epic, color, deadline):
+    """
+    Update the existing epic with fresh values
+    @param epic_id the epic identification val
+    @param epic name of the epic to be updated
+    @param deadline (optional) planned end day
+    """
     app_db = get_db()
     Epic.query.filter(Epic.id == epic_id).update({
         'epic': epic,
@@ -85,6 +105,9 @@ def update_epic(epic_id, epic, color, deadline):
 @bp.route('/create', methods=('GET', 'POST'))
 @login_required
 def create():
+    """
+    Handle creation for a new epic / form data
+    """
     is_json = request.args.get('is_json', False)
     is_asc = request.args.get('is_asc', False)
     if request.method == 'POST':
@@ -115,6 +138,10 @@ def create():
 @bp.route('/<int:epic_id>', methods=('GET', 'POST'))
 @login_required
 def show(epic_id):
+    """
+    Display information or process update epic
+    @param epic_id the epic's identifier value
+    """
     is_json = request.args.get('is_json', False)
     epic = get_epic(epic_id)
     if epic is None:
@@ -152,6 +179,9 @@ def show(epic_id):
 @bp.route('/', methods=('GET',))
 @login_required
 def list_all():
+    """
+    List all of the epics made by current user
+    """
     is_json = request.args.get('is_json', False)
     epics = get_epics()
     if is_json:
