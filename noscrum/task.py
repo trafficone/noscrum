@@ -184,6 +184,8 @@ def create(story_id):
 
         if estimate == 0 or estimate == '':
             estimate = None
+        if not estimate.strip('-').split('.').isdigit():
+            error = 'Cannot set a non-number estimate'
 
         if not task:
             error = 'Task Name is Required'

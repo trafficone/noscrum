@@ -475,7 +475,7 @@ def create():
         flash(error,'error')
     final_sprint = get_last_sprint()
     start_date = date.today() if final_sprint is None else final_sprint.end_date
-    end_date = start_date + timedelta(7)
+    end_date = start_date + timedelta(6)
     return render_template('sprint/create.html', start_date = start_date, end_date = end_date)
 
 
@@ -489,8 +489,7 @@ def list_all():
     sprints = get_sprints()
     current_sprint = get_current_sprint()
     if not sprints:
-        abort(404, "No Sprints Exist Yet: Create your First Sprint " +
-                   f'<a href="{url_for("sprint.create")}">Create it Here</a>')
+        redirect(url_for("sprint.create"))
     if is_json:
         return json.dumps({'Success':True,
                            'sprints':[dict(x) for x in sprints],
@@ -546,7 +545,8 @@ def active():
     is_json = request.args.get('is_json',False)
     current_sprint = get_current_sprint()
     if not current_sprint:
-        return redirect(url_for('sprint.list_all'))
+        flash('Create your first sprint!')
+        return redirect(url_for('sprint.create'))
 
     sprint_id = current_sprint.id
     if is_json:

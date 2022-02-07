@@ -22,7 +22,7 @@ class DatabaseSingleton():
     """
     app_db = None
     __instance = None
-    def __init__(self,db_object):
+    def __init__(self, db_object):
         """
         Create a database singleton object. Should
         only be called using the DatabaseSingleton
@@ -41,7 +41,7 @@ class DatabaseSingleton():
         """
         if DatabaseSingleton.__instance is None:
             DatabaseSingleton(database)
-            print('DB Instance',DatabaseSingleton.__instance)
+            print('DB Instance', DatabaseSingleton.__instance)
         return DatabaseSingleton.__instance
 
     @staticmethod
@@ -77,7 +77,7 @@ class ConfigClass(object):
     USER_APP_VERSION = "βeta.1.0"
     USER_COPYRIGHT_YEAR = "2021"
     USER_CORPORATION_NAME = "Industrial Systems - A PLBL Brand"
-    USER_ENABLE_EMAIL = True
+    USER_ENABLE_EMAIL = False
     USER_ENABLE_USERNAME = True
     USER_ENABLE_REGISTER = True
     USER_EMAIL_SENDER_NAME = USER_APP_NAME
@@ -90,7 +90,7 @@ class ConfigClass(object):
         """
         Return a dictionary for ConfigClass locals
         """
-        return dict([(k,v) for k,v in locals()])
+        return dict([(k, v) for k, v in locals()])
 
     def __str__(self):
         return str(self.get_dict())
@@ -102,25 +102,25 @@ def create_app(test_config=None):
     """
     load_dotenv()
     # Create and Configure the app
-    app = Flask(__name__, instance_relative_config=True)
-    app.config.from_object(__name__+'.ConfigClass')
+    running_app = Flask(__name__, instance_relative_config=True)
+    running_app.config.from_object(__name__+'.ConfigClass')
     # Init Flask-BabelEx
-    Babel(app)
-    Foundation(app)
+    Babel(running_app)
+    Foundation(running_app)
 
 
     if test_config is not None:
         # Load test config if passed in
-        app.config.from_mapping(test_config)
+        running_app.config.from_mapping(test_config)
 
     try:
-        os.makedirs(app.instance_path)
+        os.makedirs(running_app.instance_path)
     except OSError:
         pass
 
     # Init SQLAlchemy
 
-    app_db = SQLAlchemy(app)
+    app_db = SQLAlchemy(running_app)
     print("Creating Database")
     DatabaseSingleton.create_singleton(app_db)
     print("Populating Database")
@@ -128,19 +128,19 @@ def create_app(test_config=None):
     app_db.create_all()
 
     # These need app to exist before they can be imported
-    UserManager(app, app_db, User)
+    UserManager(running_app, app_db, User)
 
     from noscrum import epic, story, task, sprint, tag, work, user, semi_static
-    app.register_blueprint(epic.bp)
-    app.register_blueprint(story.bp)
-    app.register_blueprint(task.bp)
-    app.register_blueprint(sprint.bp)
-    app.register_blueprint(tag.bp)
-    app.register_blueprint(work.bp)
-    app.register_blueprint(user.bp)
-    app.register_blueprint(semi_static.bp)
+    running_app.register_blueprint(epic.bp)
+    running_app.register_blueprint(story.bp)
+    running_app.register_blueprint(task.bp)
+    running_app.register_blueprint(sprint.bp)
+    running_app.register_blueprint(tag.bp)
+    running_app.register_blueprint(work.bp)
+    running_app.register_blueprint(user.bp)
+    running_app.register_blueprint(semi_static.bp)
 
-    return app
+    return running_app
 
 if __name__ == 'noscrum':
     app = create_app()

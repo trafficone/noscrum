@@ -23,10 +23,10 @@ class Work(db.Model):
     """
     __tablename__ = 'work'
     id = sa.Column(sa.Integer(), primary_key=True)
-    work_date = sa.Column(sa.Date(),nullable=False)
-    hours_worked = sa.Column(sa.Integer(),nullable=False)
+    work_date = sa.Column(sa.Date(), nullable=False)
+    hours_worked = sa.Column(sa.Integer(), nullable=False)
     task_id = sa.Column(sa.Integer(), sa.ForeignKey('task.id'))
-    status = sa.Column(sa.String(12),nullable=True,default='To-Do')
+    status = sa.Column(sa.String(12), nullable=True,default='To-Do')
     user_id = sa.Column(sa.Integer(), sa.ForeignKey('user.id'))
     story = relationship('Story','task')
 
