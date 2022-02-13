@@ -200,7 +200,7 @@ def create(story_id):
 
         if estimate == 0 or estimate == '':
             estimate = None
-        if not estimate.strip('-').split('.').isdigit():
+        if estimate is not None and not estimate.strip('-').split('.').isdigit():
             error = 'Cannot set a non-number estimate'
 
         if not task:
@@ -274,7 +274,7 @@ def show(task_id):
 
         if get_story(story_id) is None:
             error = f'Story with ID {story_id} not found'
-        elif sprint_id and get_sprint(sprint_id) is None:
+        elif sprint_id is not None and get_sprint(sprint_id) is None:
             error = f'Sprint {sprint_id} not found.'
 
         if error is None:

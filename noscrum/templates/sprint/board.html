@@ -148,7 +148,7 @@
 <script>
     //{% block jquery %}
     //{% if not static %}
-    $('.editable .task-container').draggable({
+    $('.task-container').draggable({
         revertDuration: 0,
         revert: true
     });
@@ -237,7 +237,9 @@
                     .attr('schedule_id',json.schedule_task.id)
                     .addClass('scheduled')
                     .click(scheduled_click)
-                    .draggable({revertDuration: 0, revert: true })
+                    .draggable({
+                        revertDuration: 0,
+                        revert: true })
                     .droppable({drop: schedule_shuffle_drop});
                 if (recurring) {
                     target.attr('recurring',1);
