@@ -415,11 +415,12 @@ def schedule(sprint_id):
             error = 'No Schedule ID Requested to Delete'
         if error is None:
             deleted_schedule = get_schedule(schedule_id)
+            output = {'Success': True,
+                                   'task_id': deleted_schedule.task_id,
+                                   'schedule_id': deleted_schedule.id}
             delete_schedule(schedule_id)
             if is_json:
-                return json.dumps({'Success': True,
-                                   'task_id': deleted_schedule.task_id,
-                                   'schedule_id': deleted_schedule.id})
+                return json.dumps(output)
             return f'Schedule {schedule_id} deleted.'
         abort(500, error)
     elif is_json and request.method == 'GET':
