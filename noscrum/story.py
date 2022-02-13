@@ -9,7 +9,7 @@ from flask import (
 from flask_user import current_user, login_required
 
 from noscrum.db import get_db, Story, TagStory, Tag
-from noscrum.epic import get_epic, get_epics
+from noscrum.epic import get_epic, get_epics, get_null_epic
 from noscrum.tag import get_tags_for_story
 
 bp = Blueprint('story', __name__, url_prefix='/story')
@@ -25,7 +25,9 @@ def get_stories(sprint_view=False, sprint_id=None):
     if not sprint_view:
         return Story.query.filter(Story.user_id == current_user.id).all()
     return app_db.session.execute(
-        'SELECT story.id, story, epic_id, prioritization, story.deadline, ' +
+        'SELECT story.id, ' +
+        "CASE WHEN story = 'NULL' THEN 'No Story' ELSE story END as story, " +
+        'epic_id, prioritization, story.deadline, ' +
         'sum(coalesce(estimate,0)) as estimate, ' +
         'count(task.id) as tasks, ' +
         "COUNT(DISTINCT CASE WHEN task.status <> 'Done' THEN task.id ELSE NULL END) " +
@@ -34,10 +36,11 @@ def get_stories(sprint_view=False, sprint_id=None):
         'as unestimated_tasks, ' +
         "SUM(CASE WHEN task.status <> 'Done' THEN task.estimate - coalesce(task.actual,0) ELSE 0 " +
         "END) AS rem_estimate " +
-        'FROM task ' +
-        'LEFT OUTER JOIN story on task.story_id = story.id ' +
-        'WHERE task.user_id = :user_id and task.sprint_id = :sprint_id ' +
-        'GROUP BY story.id, story, epic_id, prioritization ' +
+        'FROM story ' +
+        'LEFT OUTER JOIN task on task.story_id = story.id ' +
+        'AND task.user_id = :user_id '+
+        'AND task.sprint_id = :sprint_id ' +
+        'GROUP BY story.id, story.story, story.epic_id, story.prioritization ' +
 
         'ORDER BY prioritization DESC',
         {'user_id': current_user.id, 'sprint_id': sprint_id}).fetchall()
@@ -71,10 +74,12 @@ def get_story(story_id, exclude_nostory=True):
     @param exclude_nostory exclude special val
     "story" which is null (optional parameter)
     """
-    query = Story.query.filter(Story.id == story_id)\
-        .filter(Story.user_id == current_user.id)
+    if story_id == 0:
+        return get_null_story_for_epic(0)
+    query = Story.query.filter(Story.id == story_id)
     if exclude_nostory:
-        query.filter(Story.story is not None)
+        query = query.filter(Story.story is not None)
+    query = query.filter(Story.user_id == current_user.id)
     return query.first()
 
 
@@ -82,7 +87,9 @@ def get_null_story_for_epic(epic_id):
     """
     Returns the special null "story" record
     """
-    story = Story.query.filter(Story.story is None).filter(Story.epic_id == epic_id)\
+    if epic_id == 0:
+        epic_id = get_null_epic().id
+    story = Story.query.filter(Story.story == 'NULL').filter(Story.epic_id == epic_id)\
         .filter(Story.user_id == current_user.id).first()
     if story is None:
         story = create_story(epic_id, 'NULL', None, None)
@@ -97,6 +104,8 @@ def create_story(epic_id, story, prioritization, deadline):
     @param prioritization 1-5 with 1 being low
     @param deadline date the story will be due
     """
+    if epic_id == 0:
+        raise Exception("Tried to create a story without an epic")
     app_db = get_db()
     if prioritization is None:
         new_story = Story(story=story,
@@ -156,7 +165,6 @@ def insert_tag_story(story_id, tag_id):
     @param tag_id tag record identifier number
     """
     app_db = get_db()
-    # TODO: SQLAlchemy makes it so you can add a tag directly to story
     tag_story_record = TagStory(story_id=story_id, tag_id=tag_id)
     app_db.session.add(tag_story_record)
     app_db.session.commit()

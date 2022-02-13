@@ -25,7 +25,9 @@ def get_epics(sprint_view=False, sprint_id=None):
         return Epic.query.filter(Epic.user_id == current_user.id).all()
 
     return app_db.session.execute(
-        'SELECT epic, epic.id, color, epic.deadline, ' +
+        'SELECT epic.id, '+
+        "CASE WHEN epic.epic == 'NULL' THEN 'No Epic' ELSE epic.epic END as epic, "+
+        'color, epic.deadline, ' +
         'sum(coalesce(estimate,0)) as estimate, count(task.id) as tasks, ' +
         "COUNT(DISTINCT CASE WHEN task.status <> 'Done' THEN task.id ELSE NULL END) " +
         "as active_tasks, " +
@@ -35,12 +37,12 @@ def get_epics(sprint_view=False, sprint_id=None):
         " ELSE 0 END) AS rem_estimate " +
         'FROM epic ' +
         'LEFT OUTER JOIN story ON story.epic_id = epic.id ' +
+        'AND story.user_id = :user_id ' +
         'LEFT OUTER JOIN task ON task.story_id = story.id ' +
-        'WHERE epic.user_id = story.user_id AND ' +
-        'story.user_id = task.user_id AND ' +
-        'task.user_id = :user_id ' +
         'AND task.sprint_id = :sprint_id ' +
-        'GROUP BY epic, epic.id, color',
+        'AND task.user_id = :user_id ' +
+        'WHERE epic.user_id = :user_id ' +
+        'GROUP BY epic.epic, epic.id, epic.color',
         {'user_id': current_user.id, 'sprint_id': sprint_id}).fetchall()
 
 
@@ -65,6 +67,16 @@ def get_epic(epic_id):
         .filter(Epic.user_id == current_user.id)\
         .first()
 
+
+def get_null_epic():
+    """
+    Returns the special null "story" record
+    """
+    epic = Epic.query.filter(Epic.epic == 'NULL'
+    ).filter(Epic.user_id == current_user.id).first()
+    if epic is None:
+        epic = create_epic('NULL', None, None)
+    return epic
 
 def create_epic(epic, color, deadline):
     """

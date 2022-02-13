@@ -9,8 +9,8 @@ from flask import (
 )
 from flask_user import current_user, login_required
 
-from noscrum.story import get_null_story_for_epic, get_story, get_stories
-from noscrum.epic import get_epics
+from noscrum.story import get_story, get_stories
+from noscrum.epic import get_epics, get_null_epic
 from noscrum.sprint import get_current_sprint, get_sprint, get_sprint_number_for_user
 from noscrum.db import get_db, Task
 
@@ -177,7 +177,7 @@ def create(story_id):
     is_json = request.args.get('is_json', False)
     is_asc = request.args.get('is_asc', False)
     story = get_story(story_id)
-    if not story and not (request.method == 'POST' and 'epic_id' in request.form):
+    if not story:
         error = f'Cannot create task, parent story ID {story_id} not found'
         if is_json:
             abort(404, error)
@@ -190,11 +190,11 @@ def create(story_id):
         estimate = request.form.get('estimate', None)
         deadline = request.form.get('deadline', None)
         sprint_id = request.form.get('sprint_id', None)
-        if story_id == 0:
-            if 'epic_id' not in request.form:
-                abort(500, 'EPIC ID not found in input')
-            epic_id = request.form['epic_id']
-            story = get_null_story_for_epic(epic_id)
+        if story_id == 0 or request.form.get('epic_id',None) == 0:
+            epic_id = request.form.get('epic_id',get_null_epic().id)
+            if int(epic_id) == 0:
+                epic_id = get_null_epic().id
+            #story = get_null_story_for_epic(epic_id)
             story_id = story.id
         error = None
 
@@ -203,17 +203,21 @@ def create(story_id):
         if estimate is not None and not estimate.strip('-').split('.').isdigit():
             error = 'Cannot set a non-number estimate'
 
-        if not task:
+        if task is None:
             error = 'Task Name is Required'
-        elif not story_id:
+        elif story_id is None:
             error = 'Story ID Not Found, Please Reload'
         elif get_task_by_name(task, story_id) is not None:
             error = f'Task {task} already in Story {story_id}'
 
         if error is None:
             task = create_task(task, story_id, estimate, deadline, sprint_id)
+            story = get_story(task.story_id)
             if is_json:
-                return json.dumps({'Success': True, 'task_id': task.id})
+                return json.dumps({'Success': True,
+                                   'task_id': task.id,
+                                   'story_id':task.story_id,
+                                   'epic_id':story.epic_id})
             return redirect(url_for('task.show', task_id=task.id))
         if is_json:
             abort(500, error)

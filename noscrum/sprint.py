@@ -8,7 +8,7 @@ from flask import (
     Blueprint, flash, redirect, render_template, request, url_for, abort
 )
 from flask_user import current_user, login_required
-
+from sqlalchemy import or_
 from noscrum.db import get_db, Sprint, Task, ScheduleTask
 from noscrum.epic import get_epics
 from noscrum.story import get_stories
@@ -248,7 +248,6 @@ def get_sprint_details(sprint_id):
     @param sprint_id sprint details are wanted
     """
     app_db = get_db()
-    sprint_number = get_sprint_number_for_user(sprint_id)
     stories = get_stories(sprint_view=True, sprint_id=sprint_id)
     epics = get_epics(sprint_view=True, sprint_id=sprint_id)
     # tasks = #get_tasks().filter(Task.sprint_id == sprint_id)
@@ -269,6 +268,11 @@ def get_sprint_details(sprint_id):
         'AND (task.sprint_ID = :sprint_id or task.recurring or ' +
         'task.id in (select task_id from schedule_task where sprint_id = sprint_id))',
         {'sprint_id': sprint_id, 'user_id': current_user.id}).fetchall()
+    unplanned_tasks = Task.query.filter(Task.user_id == current_user.id
+                               ).filter(or_(Task.sprint_id == None,Task.sprint_id != sprint_id)
+                               ).all()
+    for t in tasks:
+        print(t.id,t.task)
     sprint_days = Sprint.query.filter(Sprint.id == sprint_id)\
         .filter(Sprint.user_id == current_user.id).first()
     schedule_records_std = ScheduleTask.query\
@@ -291,7 +295,7 @@ def get_sprint_details(sprint_id):
         schedule_list.append((i, current_day, range(9, 22, 2)))
         i += 1
         current_day += timedelta(1)
-    return stories, epics, tasks, schedule_list, schedule_records, sprint_number
+    return stories, epics, tasks, schedule_list, schedule_records, unplanned_tasks
 
 
 def get_sprint_board(sprint_id, sprint, is_static=False):
@@ -301,7 +305,7 @@ def get_sprint_board(sprint_id, sprint, is_static=False):
     @param sprint record of board (only dates)
     @param is_static (optional) is unchanging?
     """
-    stories, epics, tasks, schedule_list, schedule_records, sprint_number = get_sprint_details(
+    stories, epics, tasks, schedule_list, schedule_records, unplanned_tasks = get_sprint_details(
         sprint_id)
     tasks = {x['id']: dict(x) for x in tasks}
     stories = {x['id']: dict(x) for x in stories}
@@ -332,7 +336,7 @@ def get_sprint_board(sprint_id, sprint, is_static=False):
                            statuses=statuses,
                            static=is_static,
                            schedule=schedule_list,
-                           sprint_number=sprint_number,
+                           unplanned_tasks=unplanned_tasks,
                            schedule_records=schedule_records)
 
 
