@@ -11,7 +11,7 @@ from flask_user import current_user, login_required
 
 from noscrum.story import get_null_story_for_epic, get_story, get_stories
 from noscrum.epic import get_epics
-from noscrum.sprint import get_current_sprint, get_sprint
+from noscrum.sprint import get_current_sprint, get_sprint, get_sprint_number_for_user
 from noscrum.db import get_db, Task
 
 bp = Blueprint('task', __name__, url_prefix='/task')
@@ -37,7 +37,7 @@ def get_tasks():
                                   'count(1) * 2 sum_sched ' +
                                   'FROM schedule_task group by task_id, sprint_id) sched ' +
                                   'ON task.id = sched.task_id ' +
-                                  'WHERE task.user_id = :user_id', 
+                                  'WHERE task.user_id = :user_id',
                                   {'user_id': current_user.id})
 
 
@@ -272,6 +272,9 @@ def show(task_id):
         if status not in ['To-Do', 'In Progress', 'Done']:
             error = "Status is invalid. Valid statuses are ['To-Do','In Progress','Done']"
 
+        print(f"Task {task_id} will be in sprint ID {sprint_id}")
+        print(sprint_id)
+        print(get_sprint(sprint_id))
         if get_story(story_id) is None:
             error = f'Story with ID {story_id} not found'
         elif sprint_id is not None and get_sprint(sprint_id) is None:
@@ -279,14 +282,14 @@ def show(task_id):
 
         if error is None:
             task = update_task(task_id,
-                               task_name,
-                               story_id,
-                               estimate,
-                               status,
-                               actual,
-                               deadline,
-                               sprint_id,
-                               recurring)
+                            task_name,
+                            story_id,
+                            estimate,
+                            status,
+                            actual,
+                            deadline,
+                            sprint_id,
+                            recurring)
             if is_json:
                 return json.dumps({'Success': True, 'task_id': task_id})
             return redirect(url_for('task.show', task_id=task_id))
@@ -295,7 +298,7 @@ def show(task_id):
         flash(error, 'error')
 
     if is_json:
-        return json.dumps({'Success': True, 'task': dict(task)})
+        return json.dumps({'Success': True, 'task': task})
     return render_template('task/show.html', task=task)
 
 
@@ -312,6 +315,7 @@ def list_all():
     epics = get_epics()
     colors = ['primary', 'secondary', 'success', 'alert', 'warning']
     current_sprint = get_current_sprint()
+    current_sprint_number = get_sprint_number_for_user(current_sprint.id)
     if is_json:
         return json.dumps({'Success': True, 'tasks': [dict(x) for x in tasks],
                            'epics': [dict(x) for x in epics],
@@ -319,6 +323,7 @@ def list_all():
                            'current_sprint': current_sprint.id})
     return render_template('task/list.html',
                            current_sprint=current_sprint,
+                           sprint_number=current_sprint_number,
                            tasks=tasks,
                            epics=epics,
                            stories=stories,

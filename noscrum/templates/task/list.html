@@ -1,12 +1,12 @@
 {% extends 'base.html' %}
 
 {% block header %}
-    <h1>{% block title %}Task List{% endblock %}</h1>
+    <h1>{% block title %}Task Showcase{% endblock %}</h1>
     <div>
         {% if not current_sprint %}
         <button id="createSprint" class="button" onclick="window.location.href='{{url_for('sprint.create')}}';">Create First Sprint</button>
         {% else %}
-        <button id="sprintPlan" class="button" sprint="{{current_sprint.id}}">Plan Sprint {{ current_sprint.id }}</button>
+        <button id="sprintPlan" class="button" sprint="{{current_sprint.id}}">Plan Sprint {{ sprint_number }}</button>
         {% endif %}
     </div>
     <div>Filter: 

@@ -24,6 +24,23 @@ def get_task(task_id):
     """
     return Task.query.filter(Task.id == task_id).filter(Task.user_id == current_user.id).first()
 
+def get_sprint_number_for_user(sprint_id):
+    """
+    Return the sprint number for a user/sprint
+    @sprint_id the Sprint ID's number you want
+    """
+    app_db = get_db()
+    sprint_numbers = app_db.session.query(
+        Sprint.id,
+        app_db.func.row_number().over(
+            partition_by=Sprint.user_id,
+            order_by=Sprint.id).label(
+                'sprint_number')
+    ).filter(Sprint.id <= sprint_id
+    ).filter(Sprint.user_id == current_user.id
+    ).all()
+    user_numbers = {x.id:x.sprint_number for x in sprint_numbers}
+    return user_numbers[sprint_id]
 
 def get_sprints():
     """
@@ -231,6 +248,7 @@ def get_sprint_details(sprint_id):
     @param sprint_id sprint details are wanted
     """
     app_db = get_db()
+    sprint_number = get_sprint_number_for_user(sprint_id)
     stories = get_stories(sprint_view=True, sprint_id=sprint_id)
     epics = get_epics(sprint_view=True, sprint_id=sprint_id)
     # tasks = #get_tasks().filter(Task.sprint_id == sprint_id)
@@ -273,7 +291,7 @@ def get_sprint_details(sprint_id):
         schedule_list.append((i, current_day, range(9, 22, 2)))
         i += 1
         current_day += timedelta(1)
-    return stories, epics, tasks, schedule_list, schedule_records
+    return stories, epics, tasks, schedule_list, schedule_records, sprint_number
 
 
 def get_sprint_board(sprint_id, sprint, is_static=False):
@@ -283,7 +301,7 @@ def get_sprint_board(sprint_id, sprint, is_static=False):
     @param sprint record of board (only dates)
     @param is_static (optional) is unchanging?
     """
-    stories, epics, tasks, schedule_list, schedule_records = get_sprint_details(
+    stories, epics, tasks, schedule_list, schedule_records, sprint_number = get_sprint_details(
         sprint_id)
     tasks = {x['id']: dict(x) for x in tasks}
     stories = {x['id']: dict(x) for x in stories}
@@ -314,6 +332,7 @@ def get_sprint_board(sprint_id, sprint, is_static=False):
                            statuses=statuses,
                            static=is_static,
                            schedule=schedule_list,
+                           sprint_number=sprint_number,
                            schedule_records=schedule_records)
 
 
