@@ -72,14 +72,14 @@ def get_sprint_by_date(start_date=None, end_date=None, middle_date=None):
         .filter(Sprint.user_id == current_user.id)
     filter_vars = []
     if start_date is not None:
-        query.filter(Sprint.start_date == start_date)
+        query = query.filter(Sprint.start_date == start_date)
         filter_vars.append(start_date)
     if end_date is not None:
-        query.filter(Sprint.end_date == end_date)
+        query = query.filter(Sprint.end_date == end_date)
         filter_vars.append(end_date)
     if middle_date is not None:
-        query.filter(middle_date >= Sprint.start_date).filter(
-            middle_date <= Sprint.end_date)
+        query = query.filter(Sprint.start_date <= middle_date 
+            ).filter(Sprint.end_date >= middle_date )
         filter_vars.append(middle_date)
     if len(filter_vars) == 0:
         raise Exception('No criteria entered for get_sprint_by_date')
@@ -90,8 +90,8 @@ def get_current_sprint():
     """
     Given a current date returns active sprint
     """
-    date_string = datetime.now().strftime('%Y-%m-%d')
-    return get_sprint_by_date(middle_date=date_string)
+    current_date = datetime.now().date()#.strftime('%Y-%m-%d')
+    return get_sprint_by_date(middle_date=current_date)
 
 
 def get_last_sprint():
@@ -271,8 +271,6 @@ def get_sprint_details(sprint_id):
     unplanned_tasks = Task.query.filter(Task.user_id == current_user.id
                                ).filter(or_(Task.sprint_id == None,Task.sprint_id != sprint_id)
                                ).all()
-    for t in tasks:
-        print(t.id,t.task)
     sprint_days = Sprint.query.filter(Sprint.id == sprint_id)\
         .filter(Sprint.user_id == current_user.id).first()
     schedule_records_std = ScheduleTask.query\
@@ -393,8 +391,8 @@ def schedule(sprint_id):
                 schedule_task = update_schedule(
                     schedule_id, task_id, sprint_day, sprint_hour, note)
 
-            print(f'Adding schedule for task {task_id} to sprint {sprint_id} ' +
-                  'on {sprint_day} {sprint_hour}:00')
+            #print(f'Adding schedule for task {task_id} to sprint {sprint_id} ' +
+            #      'on {sprint_day} {sprint_hour}:00')
             if is_json:
                 #schedule_task = dict(zip(schedule_task.keys(), schedule_task))
                 # for key,value in schedule_task.items():
@@ -406,7 +404,7 @@ def schedule(sprint_id):
             abort(500, error)
         flash(error, 'error')
     elif request.method == 'DELETE':
-        print(f'{request.method} and {request.method == "DELETE"}')
+        #print(f'{request.method} and {request.method == "DELETE"}')
         schedule_id = request.form.get('schedule_id', None)
         if request.form.get('recurring', 0) == 1:
             sprint_id = 0
@@ -586,7 +584,11 @@ def active():
     is_json = request.args.get('is_json', False)
     current_sprint = get_current_sprint()
     if not current_sprint:
-        flash('Create your first sprint!')
+        has_sprints = get_sprints()
+        if len(has_sprints) == 0:
+            flash('Please create your first sprint.')
+        else:
+            flash('No currently active sprint. Create new sprint')
         return redirect(url_for('sprint.create'))
 
     sprint_id = current_sprint.id
