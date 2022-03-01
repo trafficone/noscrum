@@ -4,9 +4,12 @@
     <h1>{% block title %}Task Showcase{% endblock %}</h1>
     <div>
         {% if not current_sprint %}
-        <button id="createSprint" class="button" onclick="window.location.href='{{url_for('sprint.create')}}';">Create First Sprint</button>
+        <button id="createSprint" class="button" onclick="window.location.href='{{url_for('sprint.create')}}';" title="Click here if you haven't created a sprint">Create Sprint</button>
         {% else %}
-        <button id="sprintPlan" class="button" sprint="{{current_sprint.id}}">Plan Sprint {{ sprint_number }}</button>
+        <button id="sprintPlanNow" class="button sprintPlanButton" sprint="{{current_sprint.id}}" title="Current Sprint">Plan Sprint {{ sprint_number[current_sprint.id] }}</button>
+        {% if next_sprint %}
+            <button id="sprintPlanNext" class="button sprintPlanButton" sprint="{{next_sprint.id}}" title="Next Sprint">Plan Sprint {{ sprint_number[next_sprint.id] }}</button>
+        {% endif %}
         {% endif %}
     </div>
     <div>Filter: 
@@ -192,7 +195,7 @@
             filter_dates(start_date,end_date);
         });
     })
-    $('#sprintPlan').click(function(){
+    $('.sprintPlanButton').click(function(){
         if( $(this).hasClass('active')) {
             $(this).html('Plan Sprint ' + $(this).attr('sprint'));
             $(this).removeClass('active')
@@ -200,12 +203,14 @@
         } else {
             $(this).html('Exit Sprint Planning');
             $('.sprintPlan').removeClass('invisible');
+            $('.sprintPlan').attr('sprint',$(this).attr('sprint'));
             $(this).addClass('active');
         }
     });
     $('.sprintPlan').click(function() {
         task_id = $(this).attr('task');
         sprint_id = $(this).attr('sprint');
+        sprint_name = $(this).attr('title');
         var parent = $(this).parent()
         while (parent.attr('update_url') === undefined){
             parent = parent.parent();
@@ -221,7 +226,7 @@
         }).done(function () {
             $("#task_sprint_btn_"+task_id).addClass('invisible');
             $("#task_sprint_btn_"+task_id).remove();
-            $("#task_sprint_status_"+task_id).html("In Current Sprint");
+            $("#task_sprint_status_"+task_id).html("In " + sprint_name);
             task_status = $('#task_status_'+task_id);
             if(task_status.html().endsWith('To-Do')){
                 task_status.click();

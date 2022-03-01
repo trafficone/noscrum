@@ -3,17 +3,16 @@ To handle Story Model controller and views
 """
 import json
 from datetime import datetime
-from flask import (
-    Blueprint, flash, redirect, render_template, request, url_for, abort
-)
-from flask_user import current_user, login_required
+from fastapi import FastAPI
+from fastapi.responses import JSONResponse, RedirectResponse, HTMLResponse
+from fastapi.templating import Jinja2Templates
+from fastapi.encoders import jsonable_encoder
 
-from noscrum.db import get_db, Story, TagStory, Tag
+from noscrum.model import Story, TagStory, Tag
+from noscrum.db import get_db
 from noscrum.epic import get_epic, get_epics, get_null_epic
 from noscrum.tag import get_tags_for_story
-
-bp = Blueprint('story', __name__, url_prefix='/story')
-
+from noscrum.user import current_user
 
 def get_stories(sprint_view=False, sprint_id=None):
     """
@@ -184,50 +183,39 @@ def delete_tag_story(story_id, tag_id):
     app_db.session.commit()
 
 
-@bp.route('/create/<int:epic_id>', methods=('GET', 'POST'))
-@login_required
-def create(epic_id):
+app = FastAPI()
+templates = Jinja2Templates(directory="templates")
+def abort(response_code: int, message: str):
+    return JSONResponse(status_code = response_code, content={'Error':{'message':message}})
+
+@app.get('/create/{epic_id}', response_class=HTMLResponse)
+def get_create_form(epic_id: int, is_asc: bool = False):
     """
     Handle creation requests for the new story
     GET: Returns form: create new story record
     POST: Create new story record for database
     @param epic_id Epic record identity number
     """
-    is_json = request.args.get('is_json', False)
-    if is_json and request.method == 'GET':
-        abort(405, 'Method not supported for AJAX')
-    is_asc = request.args.get('is_asc', False)
     epic = get_epic(epic_id)
     if epic is None:
-        flash(f'Epic with ID "{epic_id}" Not found.', 'error')
-        return redirect(url_for('story.list_all'))
-    if request.method == 'POST':
-        story = request.form.get('story', None)
-        prioritization = request.form.get('prioritization', None)
-        deadline = request.form.get('deadline', None)
-        error = None
+        return abort(404, f"Epic with ID {epic_id} could not be found")
+    return templates.TemplateResponse('story/create.html', {"epic":epic, "asc":is_asc})
 
-        if not story or story == 'NULL':
-            error = 'Story Name is Required'
-        elif not epic_id:
-            error = 'Epic Name not Found, Reload Page'
-        elif get_story_by_name(story, epic_id) is not None:
-            error = f'Story {story} already exists'
+
+@app.put('/create/')
+def api_create(story: Story):
+        error = None
+        if get_story_by_name(story.story, story.epic_id) is not None:
+            return abort(403, f"Story with name {story} already exists for epic")
 
         if error is None:
-            story = create_story(epic_id, story, prioritization, deadline)
-            if is_json:
-                return json.dumps({'Success': True, 'story_id': story.id})
-            return redirect(url_for('story.show', story_id=story.id))
-        if is_json:
-            abort(500, error)
-        flash(error, 'error')
-    return render_template('story/create.html', epic=epic, asc=is_asc)
+            story = create_story(story.epic_id, story.story, story.prioritization, story.deadline)
+            return JSONResponse({'Success': True, 'story': jsonable_encoder(story)})
+        return abort(500, error)
 
 
-@bp.route('/<int:story_id>/tag', methods=('GET', 'POST', 'DELETE'))
-@login_required
-def tag(story_id):
+@app.get('/{story_id}/tag')#, methods=('GET', 'POST', 'DELETE'))
+def list_tags(story_id: int, is_json: bool = True):
     """
     Handle tag records for a given story value
     GET: Get tags for some particular story id
@@ -235,127 +223,100 @@ def tag(story_id):
     DELETE: Remove a tag from the story record
     @param story_id story identification value
     """
-    is_json = request.args.get('is_json', False)
     story = get_story(story_id)
     if story is None:
         error = 'Story "{story_id}" not found, unable to tag'
         if is_json:
-            abort(404, error)
+            return abort(404, error)
         else:
-            flash(error, 'error')
-            return redirect(url_for('story.list_all'))
-    if request.method == 'POST':
-        tag_id = request.form.get('tag_id', None)
-        error = None
-
-        if not story_id:
-            error = 'Story ID not found, how did this happen? Return home'
-        elif not tag_id:
-            error = 'TagID not found, Reload Page'
-        elif get_tag_story(story_id, tag_id) is not None:
-            error = 'Tag already exists on Story'
-
-        if error is None:
-            tag_story = insert_tag_story(story_id, tag_id)
-            if is_json:
-                return json.dumps({'Success': True,
-                                   'story_id': story_id,
-                                   'tag_id': tag_id,
-                                   'tag_story_id': tag_story.id})
-            return redirect(url_for('story.tag', story_id=story_id))
-        if is_json:
-            abort(500, error)
-        flash(error, 'error')
-
-    elif request.method == 'DELETE':
-        tag_id = request.form.get('tag_id', None)
-        error = None
-
-        if not story_id:
-            error = 'Story ID not found, Reload Page'
-        elif not tag_id:
-            error = 'TagID not found, Reload Page'
-        elif get_tag_story(story_id, tag_id) is None:
-            error = 'Tag already deleted from Story'
-
-        if error is None:
-            delete_tag_story(story_id, tag_id)
-            if is_json:
-                return json.dumps({'Success': True, 'story_id': story_id, 'tag_id': tag_id})
-            return redirect(url_for('story.tag', story_id=story_id))
-        if is_json:
-            abort(500, error)
-        flash(error, 'error')
-
-    tags = get_tags_for_story(story.id)
+            return RedirectResponse(app.url_path_for('story.list_all'))
+    tags = get_tags_for_story(story_id)
     if is_json:
         return json.dumps({'Success': True,
                            'story_id': story_id,
                            'story': dict(story),
                            'tags': [tag for tag in tags if tag.tag_in_story]})
-    return render_template('story/tag.html', story_id=story_id, story=story, tags=tags)
+    return templates.TemplateResponse('story/tag.html', 
+            {"story_id":story_id, "story":story, "tags":tags})
+
+@app.put('/{story_id}/tag')
+def api_create_tag(story_id: int, tag_id: int, is_json: bool = True):
+    story = get_story(story_id)
+    if story is None:
+        error = 'Story "{story_id}" not found, unable to tag'
+        if is_json:
+            return abort(404, error)
+        else:
+            return RedirectResponse(app.url_path_for('story.list_all'))
+    error = None
+    if get_tag_story(story_id, tag_id) is not None:
+        error = 'Tag already exists on Story'
+
+    if error is None:
+        tag_story = insert_tag_story(story_id, tag_id)
+        if is_json:
+            return JSONResponse({'Success': True,
+                                'story_id': story_id,
+                                'tag_id': tag_id,
+                                'tag_story_id': tag_story.id})
+        return RedirectResponse(app.url_path_for('story.list_tags', story_id=story_id))
+    return abort(500, error)
+
+@app.delete('/{story_id}/tag')
+def api_remove_tag(story_id: int, tag_id: int, is_json: bool = True):
+    story = get_story(story_id)
+    if story is None:
+        error = 'Story "{story_id}" not found, unable to tag'
+        if is_json:
+            return abort(404, error)
+        else:
+            return RedirectResponse(app.url_path_for('story.list_all'))
+    error = None
+    delete_tag_story(story_id, tag_id)
+    if is_json:
+        return json.dumps({'Success': True, 'story_id': story_id, 'tag_id': tag_id})
+    return RedirectResponse(app.url_path_for('story.list_tag', story_id=story_id))
 
 
-@bp.route('/', methods=('GET',))
-@login_required
-def list_all():
+@app.get('/')
+def list_all(is_json: bool = False):
     """
     List all the stories for a particular user
     """
-    is_json = request.args.get('is_json', False)
     stories = get_stories()
     epics = get_epics()
     if is_json:
         return json.dumps({'Success': True, 'stories': [dict(x) for x in stories]})
-    return render_template('story/list.html', stories=stories, epics=epics)
+    return templates.TemplateResponse('story/list.html', 
+        {"stories":stories, "epics":epics})
 
 
-@bp.route('/<int:story_id>', methods=('GET', 'POST'))
-@login_required
-def show(story_id):
+@app.get('/{story_id}')
+def show(story_id: int, is_json: bool = False):
     """
     Show details of a story with some identity
     @param story_id identity for a story value
     """
-    is_json = request.args.get('is_json', False)
     story = get_story(story_id)
     if not story:
         error = "Story ID does not exist."
         if is_json:
-            abort(404, error)
+            return abort(404, error)
         else:
-            flash(error, 'error')
-            return redirect(url_for('story.list_all'))
-
-    if request.method == 'POST':
-        story_name = request.form.get('story', story.story)
-        epic_id = request.form.get('epic_id', story.epic_id)
-        prioritization = request.form.get(
-            'prioritization', story.prioritization)
-        deadline = request.form.get('deadline', story.deadline)
-        if isinstance(deadline, str):
-            deadline = datetime.strptime(deadline, '%Y-%m-%d')
-        error = None
-        # Handle null input from user
-        if not story_name:
-            story_name = story.story
-        if not epic_id:
-            epic_id = story.epic_id
-        if not prioritization:
-            prioritization = story.prioritization
-        if get_epic(epic_id) is None:
-            error = f'Epic {epic_id} not found.'
-
-        if error is None:
-            story = update_story(story_id, story_name,
-                                 epic_id, prioritization, deadline)
-            if is_json:
-                return json.dumps({'Success': True, 'story_id': story.id})
-            return redirect(url_for('story.show', story_id=story.id))
-
-        if is_json:
-            abort(500, error)
-        flash(error, 'error')
+            return RedirectResponse(app.url_path_for('story.list_all'))
     if is_json:
-        return json.dumps({'Success': True, 'story': dict(story)})
-    return render_template('story/show.html', story=story)
+        return json.dumps({'Success': True, 'story': jsonable_encoder(story)})
+    return templates.TemplateResponse('story/show.html', {"story":story})
+
+@app.post('/{story_id}')
+def api_update_story(story_id: int, story: Story):
+    error = None
+    if get_epic(story.epic_id) is None:
+        error = f'Epic {story.epic_id} not found.'
+
+    if error is None:
+        story = update_story(story_id, story.story_name,
+                                 story.epic_id, story.prioritization, story.deadline)
+        return JSONResponse({'Success': True, 'story': jsonable_encoder(story.id)})
+
+    return abort(500, error)

@@ -2,15 +2,13 @@
 Story Tag controller/view logic of NoScrum
 """
 import json
-
-from flask import (
-    Blueprint, flash, redirect, render_template, request, url_for, abort
-)
-from flask_user import current_user
-
-from noscrum.db import get_db, Tag
-
-bp = Blueprint('tag', __name__, url_prefix='/tag')
+from fastapi import FastAPI
+from fastapi.responses import JSONResponse, HTMLResponse, RedirectResponse
+from fastapi.encoders import jsonable_encoder
+from fastapi.templating import Jinja2Templates
+from noscrum.user import current_user
+from noscrum.model import Tag
+from noscrum.db import get_db
 
 
 def get_tags():
@@ -83,92 +81,74 @@ def delete_tag(tag_id):
         .filter(Tag.user_id == current_user.id).delete()
     app_db.session.commit()
 
+app = FastAPI()
+templates = Jinja2Templates(directory="templates")
+def abort(response_code: int, message: str):
+    return JSONResponse(status_code = response_code, content={'Error':{'message':message}})
 
-@bp.route('/create', methods=('GET', 'POST'))
-def create():
+
+@app.get('/create',response_class=HTMLResponse)
+def get_create_form():
     """
     Handle a request to creat a new tag record
     """
-    is_json = request.args.get('is_json', False)
-    if is_json and request.method == 'GET':
-        abort(405, 'Method not supported for AJAX mode')
-    if request.method == 'POST':
-        tag = request.form.get('tag', None)
-        error = None
+    return templates.TemplateResponse('tag/create.html',{})
 
-        if tag is None:
-            error = "Tag not populated."
-        tag_value = get_tag_from_name(tag)
-        if tag is not None and tag_value is not None:
-            error = f"Tag {tag_value.tag} already exists."
+@app.put('/create')
+def api_create_tag(tag: str):
+    error = None
+    tag_value = get_tag_from_name(tag)
+    if tag is not None and tag_value is not None:
+        error = f"Tag {tag_value.tag} already exists."
 
-        if error is None:
-            tag = create_tag(tag)
-            tag_id = tag.id
-            if is_json:
-                return json.dumps({'Success': True, 'tag_id': tag_id})
-            return redirect(url_for('tag.show', tag_id=tag_id))
-        if is_json:
-            abort(500, error)
-        flash(error, 'error')
+    if error is None:
+        tag_value = create_tag(tag)
+        return json.dumps({'Success': True, 'tag': jsonable_encoder(tag_value)})
+    return abort(500, error)
 
-    return render_template('tag/create.html')
+@app.post('/{tag_id}')
+def api_update_tag(tag_id: int, tag: Tag):
+    if get_tag(tag_id) is None:
+        return abort(404, 'Tag ID Not Found')
+    error = None
+    if get_tag_from_name(tag.tag) is not None:
+        error = f"Tag with name {tag.tag} already exists."
+    if error is None:
+        update_tag(tag_id, tag)
+        return JSONResponse({'Success': True, 'tag': jsonable_encoder(tag)})
+    return abort(500, error)
 
-
-@bp.route('/<int:tag_id>', methods=('GET', 'POST', 'DELETE'))
-def show(tag_id):
+@app.get('/{tag_id}')
+def show(tag_id: int, is_json: bool = False):
     """
     Return the tag information for a tag by id
     Handles updates as well as delete requests
     """
-    is_json = request.args.get('is_json', False)
     tag = get_tag(tag_id)
     if tag is None:
-        error = 'Tag ID not found.'
-        if is_json:
-            abort(404, error)
-        else:
-            flash(error, 'error')
-            return redirect(url_for('tag.list_all'))
-
-    if request.method == 'POST':
-        tag_name = request.form.get('tag', None)
-        error = None
-
-        if tag_name is None:
-            error = "Tag not populated."
-        tag_value = get_tag_from_name(tag)
-        if tag_name is not None and tag_value is not None:
-            error = f"Tag with name {tag_value.tag} already exists."
-
-        if error is None:
-            update_tag(id, tag)
-            if is_json:
-                return json.dumps({'Success': True, 'tag_id': tag_id})
-            return redirect(url_for('tag.view', tag_id=tag_id))
-
-        if is_json:
-            abort(500, error)
-        flash(error, 'error')
-
-    elif request.method == 'DELETE':
-        delete_tag(tag_id)
-        if is_json:
-            return json.dumps({'Success': True, 'tag_id': tag_id})
-        return redirect(url_for('tag.list_all', tag_id=tag_id))
+        return abort(404, 'Tag ID Not Found')
     if is_json:
-        return json.dumps({'Success': True, tag: dict(tag)})
-    return render_template('tag/show.html', tag=tag)
+        return JSONResponse({'Success': True, tag: jsonable_encoder(tag)})
+    return templates.TemplateResponse('tag/show.html', {"tag":tag})
+
+@app.delete('/{tag_id}')
+def api_delete(tag_id: int, is_json: bool = False):
+    tag = get_tag(tag_id)
+    if tag is None:
+        return abort(404, 'Tag ID Not Found')
+    delete_tag(tag_id)
+    if is_json:
+        return json.dumps({'Success': True, 'tag': jsonable_encoder(tag)})
+    return RedirectResponse(app.url_path_for('tag.list_all', {"tag_id":tag_id}))
 
 
-@bp.route('/', methods=('GET',))
-def list_all():
+@app.get('/')
+def list_all(is_json: bool = False):
     """
     Handles requests to list all tags for user
     """
-    is_json = request.args.get('is_json', False)
     tags = get_tags()
 
     if is_json:
-        return json.dumps({'Success': True, tags: [dict(x) for x in tags]})
-    return render_template('tag/list.html', tags=tags)
+        return json.dumps({'Success': True, "tags": [jsonable_encoder(x) for x in tags]})
+    return templates.TemplateResponse('tag/list.html', {"tags":tags})

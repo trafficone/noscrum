@@ -4,18 +4,19 @@ Sprint View and Database Interaction Module
 from datetime import date, timedelta, datetime
 import json
 
-from flask import (
-    Blueprint, flash, redirect, render_template, request, url_for, abort
-)
-from flask_user import current_user, login_required
+from noscrum.user import current_user
 from sqlalchemy import or_
-from noscrum.db import get_db, Sprint, Task, ScheduleTask
+from fastapi import FastAPI
+from fastapi.encoders import jsonable_encoder
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
+from fastapi.templating import Jinja2Templates
+
+from noscrum.db import get_db
+from noscrum.model import Sprint, Task, ScheduleTask
 from noscrum.epic import get_epics
 from noscrum.story import get_stories
 
 statuses = ['To-Do', 'In Progress', 'Done']
-bp = Blueprint('sprint', __name__, url_prefix='/sprint')
-
 
 def get_task(task_id):
     """
@@ -93,6 +94,13 @@ def get_current_sprint():
     current_date = datetime.now().date()#.strftime('%Y-%m-%d')
     return get_sprint_by_date(middle_date=current_date)
 
+def get_next_sprint():
+    current_sprint = get_current_sprint()
+    if current_sprint is None:
+        return None
+    next_sprint = get_sprint_by_date(start_date=current_sprint.end_date + timedelta(1))
+    print(next_sprint)
+    return next_sprint
 
 def get_last_sprint():
     """
@@ -295,6 +303,10 @@ def get_sprint_details(sprint_id):
         current_day += timedelta(1)
     return stories, epics, tasks, schedule_list, schedule_records, unplanned_tasks
 
+app = FastAPI()
+templates = Jinja2Templates(directory="templates")
+def abort(response_code: int, message: str):
+    return JSONResponse(status_code = response_code, content={'Error':{'message':message}})
 
 def get_sprint_board(sprint_id, sprint, is_static=False):
     """
@@ -324,274 +336,213 @@ def get_sprint_board(sprint_id, sprint, is_static=False):
                         f's{story_id}_{status}']
         for cut in cuts:
             totals[cut] = totals.get(cut, 0)+estimate
-    return render_template('sprint/board.html',
-                           sprint=sprint,
-                           sprint_id=sprint_id,
-                           stories=stories,
-                           epics=epics,
-                           tasks=tasks,
-                           totals=totals,
-                           statuses=statuses,
-                           static=is_static,
-                           schedule=schedule_list,
-                           unplanned_tasks=unplanned_tasks,
-                           schedule_records=schedule_records)
+    return templates.TemplateResponse('sprint/board.html',
+                           {"sprint":sprint,
+                           "sprint_id":sprint_id,
+                           "stories":stories,
+                           "epics":epics,
+                           "tasks":tasks,
+                           "totals":totals,
+                           "statuses":statuses,
+                           "static":is_static,
+                           "schedule":schedule_list,
+                           "unplanned_tasks":unplanned_tasks,
+                           "schedule_records":schedule_records})
 
 
-@bp.route('/schedule/<int:sprint_id>', methods=('GET', 'POST', 'DELETE'))
-@login_required
-def schedule(sprint_id):
+@app.post('/schedule/{sprint_id}')
+def api_create_schedule(sprint_id: int, schedule: ScheduleTask):
     """
     Get or set scheduling information for a given sprint.
     """
-    is_json = request.args.get('is_json', False)
-    if request.method == 'POST':
-        sprint = get_sprint(sprint_id)
-        task_id = request.form.get('task_id', None)
-        sprint_day = request.form.get('sprint_day', None)
-        if isinstance(sprint_day, str):
-            sprint_day = datetime.strptime(sprint_day, '%Y-%m-%d').date()
-        sprint_hour = request.form.get('sprint_hour', None)
-        schedule_id = request.form.get('schedule_id', None)
-        note = request.form.get('note')
-        recurring = request.form.get('recurring', 0)
-        error = None
-        if recurring == '1':
-            task = get_task(task_id)
-            if not task.recurring:
-                error = 'Task not set as recurring, cannot schedule as recurring'
-            else:
-                sprint_id = 0
-        if task_id is None:
-            error = 'No Task ID Found in Request'
-        elif sprint_day is None:
-            error = 'No Sprint Day Found in Request'
-        elif sprint_hour is None:
-            error = 'No Sprint Hour Found in Request'
-        elif sprint_day > sprint.end_date:
-            error = 'Scheduled day is after sprint end'
-        elif int(sprint_hour) > 24:
-            error = 'Sprint Hour is > 24'
-        if error is None:
-            old_record = get_schedule_by_time(sprint_id,
-                                              sprint_day,
-                                              sprint_hour,
-                                              schedule_id=schedule_id)
-            if old_record is not None:
-                if old_record.id == schedule_id:
-                    raise Exception("Old schedule flagged as duplicate")
-                delete_schedule(old_record.id)
-                schedule_id = None
-                # error = f'Day {sprint_day} at {sprint_hour} is already scheduled.
-                # Delete the existing task before scheduling another'
-            if schedule_id is None:
-                schedule_task = create_schedule(
-                    sprint_id, task_id, sprint_day, sprint_hour, note)
-            else:
-                schedule_task = update_schedule(
-                    schedule_id, task_id, sprint_day, sprint_hour, note)
+    sprint = get_sprint(sprint_id)
+    recurring = schedule.recurring
+    error = None
+    task = get_task(schedule.task_id)
+    if recurring:
+        if not task.recurring:
+            error = 'Task not set as recurring, cannot schedule as recurring'
+        else:
+            schedule.sprint_id = 0
+    # TODO: This validation should be part of the model
+    elif schedule.sprint_day > sprint.end_date:
+        error = 'Scheduled day is after sprint end'
+    # TODO: This validation should be part of the model
+    elif int(schedule.sprint_hour) > 24:
+        error = 'Sprint Hour is > 24'
+    if error is None:
+        old_record = get_schedule_by_time(schedule.sprint_id,
+                                          schedule.sprint_day,
+                                          schedule.sprint_hour,
+                                          schedule_id=schedule.id)
+        if old_record is not None:
+            if old_record.id == schedule.id:
+                raise Exception("Old schedule flagged as duplicate")
+            delete_schedule(old_record.id)
+            schedule.id = None
+        if schedule.id is None:
+            schedule_task = create_schedule(schedule.sprint_id,
+                                            schedule.task_id, 
+                                            schedule.sprint_day, 
+                                            schedule.sprint_hour, 
+                                            schedule.note)
+        else:
+            schedule_task = update_schedule(schedule.id, 
+                                            schedule.task_id, 
+                                            schedule.sprint_day,
+                                            schedule.sprint_hour,
+                                            schedule.note)
 
-            #print(f'Adding schedule for task {task_id} to sprint {sprint_id} ' +
-            #      'on {sprint_day} {sprint_hour}:00')
-            if is_json:
-                #schedule_task = dict(zip(schedule_task.keys(), schedule_task))
-                # for key,value in schedule_task.items():
-                #    if isinstance(value,date):
-                #        schedule_task[key] = str(value)
-                return {'Success': True, 'schedule_task': schedule_task.to_dict()}
-            return redirect(url_for('sprint.show', sprint_id=sprint_id))
-        if is_json:
-            abort(500, error)
-        flash(error, 'error')
-    elif request.method == 'DELETE':
-        #print(f'{request.method} and {request.method == "DELETE"}')
-        schedule_id = request.form.get('schedule_id', None)
-        if request.form.get('recurring', 0) == 1:
-            sprint_id = 0
-        error = None
-        if schedule_id is None:
-            error = 'No Schedule ID Requested to Delete'
-        if error is None:
-            deleted_schedule = get_schedule(schedule_id)
-            output = {'Success': True,
-                                   'task_id': deleted_schedule.task_id,
-                                   'schedule_id': deleted_schedule.id}
-            delete_schedule(schedule_id)
-            if is_json:
-                return json.dumps(output)
-            return f'Schedule {schedule_id} deleted.'
-        abort(500, error)
-    elif is_json and request.method == 'GET':
-        task_id = request.args.get('task_id', None)
-        sprint_day = request.args.get('sprint_day', None)
-        sprint_hour = request.args.get('sprint_hour', None)
-        schedule_tasks = get_schedule_tasks_filtered(
-            sprint_id, task_id, sprint_day, sprint_hour)
-        if len(schedule_tasks) == 0:
-            # NOTE: This section is only run if is_json is true
-            return abort(404, 'No Schedules Found')
-        keys = schedule_tasks[0].keys()
-        schedule_tasks_out = []
-        for task in schedule_tasks:
-            task_dict = dict(zip(keys, [str(task[k]) if isinstance(task[k], date)
-                                        else task[k] for k in keys]))
-            schedule_tasks_out.append(task_dict)
-        return json.dumps({'Success': True, 'schedule_tasks': schedule_tasks_out})
-    return redirect(url_for('sprint.show', sprint_id=sprint_id))
+            return JSONResponse({'Success': True, 'schedule_task': schedule_task.to_dict()})
+    return abort(500, error)
 
+@app.delete('/schedule/')
+def api_delete_schedule(schedule_id: int, recurring: bool = False):
+    if recurring:
+        sprint_id = 0
+    deleted_schedule = jsonable_encoder(get_schedule(schedule_id))
+    if deleted_schedule is None:
+        return abort(404, f"Cannot find schedule with ID {schedule_id}")
+    output = {'Success': True, "schedule": deleted_schedule}
+    delete_schedule(schedule_id)
+    return JSONResponse(output)
 
-@bp.route('/create/next', methods=('POST',))
-@login_required
+@app.get('/schedule/{sprint_id}')
+def list_schedules(sprint_id: int, task_id: int, sprint_day: date, sprint_hour: int):
+    schedule_tasks = get_schedule_tasks_filtered(sprint_id,
+                                                    task_id,
+                                                    sprint_day, 
+                                                    sprint_hour)
+    if len(schedule_tasks) == 0:
+        return abort(404, 'No Schedules Found')
+    schedule_tasks_out = jsonable_encoder(schedule_tasks) 
+    return json.dumps({'Success': True, 'schedule_tasks': schedule_tasks_out})
+
+@app.post('/create/next')
 def create_next():
     """
     Create the next sprint assuming seven days
     """
-    is_json = request.args.get('is_json', False)
-    if is_json:
-        abort(405, 'Method not supported for AJAX mode')
-    if request.method == 'POST':
-        error = None
-        last_sprint = get_last_sprint()
-        if last_sprint is None:
-            error = 'No sprint found for user. Next sprint can only be created after initial sprint'
-        if error is None:
-            start_date, = last_sprint.end_date+timedelta(1)
-            end_date = last_sprint.end_date+timedelta(8)
-            sprint = create_sprint(start_date, end_date)
-            if is_json:
-                return json.dumps({'Success': True, 'sprint_id': sprint.id})
-            return redirect(url_for('sprint.show', sprint_id=sprint.id))
-        if is_json:
-            abort(500, error)
-        flash(error, 'error')
+    error = None
+    last_sprint = get_last_sprint()
+    if last_sprint is None:
+        error = 'No sprint found for user. Next sprint can only be created after initial sprint'
+    if error is None:
+        start_date, = last_sprint.end_date+timedelta(1)
+        end_date = last_sprint.end_date+timedelta(8)
+        sprint = jsonable_encoder(create_sprint(start_date, end_date))
+        return JSONResponse({'Success': True, 'sprint': sprint})
+    return abort(500,error)
+
+@app.get('/create/next', response_class=HTMLResponse)
+def get_next_html():
+    _ = create_next()
     final_sprint = get_last_sprint()
     start_date = date.today() if final_sprint is None else final_sprint.end_date
     end_date = start_date + timedelta(7)
-    return render_template('sprint/create.html', start_date=start_date, end_date=end_date)
+    return templates.TemplateResponse('sprint/create.html', 
+        {"start_date":start_date, "end_date":end_date})
 
 
-@bp.route('/create', methods=('GET', 'POST'))
-@login_required
-def create():
+@app.post('/create')
+def create(sprint: Sprint, force_create: bool = False):
     """
     Create a New Sprint defaulting last week's
     sprint, but it will accept input if needed
     """
-    is_json = request.args.get('is_json', False)
-    if is_json and request.method == 'GET':
-        abort(405, 'Method not supported for AJAX mode')
-    if request.method == 'POST':
-        start_date = request.form['start_date']
-        end_date = request.form['end_date']
-        force_create = request.form.get('force_create', None)
-        error = None
-        start_sprint = get_sprint_by_date(start_date=start_date)
-        end_sprint = get_sprint_by_date(end_date=end_date)
-        if not start_date:
-            error = "Unable to create sprint without a Start Date"
-        elif not end_date:
-            error = "Unable to create sprint without an End Date"
-        elif end_sprint is not None:
-            error = f"Sprint Ends same day as Existing Sprint {end_sprint.id}"
-        elif start_sprint is not None:
-            error = f"Sprint Starts same day as Existing Sprint {start_sprint.id}"
-        elif force_create is False and (
-                get_sprint_by_date(middle_date=start_date) is not None or
-                get_sprint_by_date(middle_date=end_date) is not None):
-            error = "Sprint overlaps existing Sprint"
+    error = None
+    start_sprint = get_sprint_by_date(start_date=sprint.start_date)
+    end_sprint = get_sprint_by_date(end_date=sprint.end_date)
+    if end_sprint is not None:
+        error = f"Sprint Ends same day as Existing Sprint {end_sprint.id}"
+    elif start_sprint is not None:
+        error = f"Sprint Starts same day as Existing Sprint {start_sprint.id}"
+    elif force_create is False and (
+        get_sprint_by_date(middle_date=sprint.start_date) is not None or
+        get_sprint_by_date(middle_date=sprint.end_date) is not None):
+        error = "Sprint overlaps existing Sprint"
 
-        if error is None:
-            if isinstance(start_date, str):
-                start_date = datetime.strptime(start_date, '%Y-%m-%d').date()
-            if isinstance(end_date, str):
-                end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
-            sprint = create_sprint(start_date, end_date)
-            if is_json:
-                return json.dumps({'Success': True, 'sprint_id': sprint.id})
-            return redirect(url_for('sprint.show', sprint_id=sprint.id))
-        if is_json:
-            abort(500, error)
-        flash(error, 'error')
+    if error is None:
+        sprint = jsonable_encoder(create_sprint(sprint.start_date, sprint.end_date))
+        return JSONResponse({'Success': True, 'sprint': sprint})
+    return abort(500, error)
+    
+@app.get('/create', response_class=HTMLResponse)
+def get_creation_form():
     final_sprint = get_last_sprint()
     start_date = date.today() if final_sprint is None else final_sprint.end_date
     end_date = start_date + timedelta(6)
-    return render_template('sprint/create.html', start_date=start_date, end_date=end_date)
+    return templates.TemplateResponse('sprint/create.html', 
+                        {"start_date":start_date, 
+                        "end_date":end_date})
 
 
-@bp.route('/', methods=('GET',))
-@login_required
-def list_all():
+@app.get('/')
+async def list_all(is_json: bool = False):
     """
     List all of the Sprints for a current user
     """
-    is_json = request.args.get('is_json', False)
     sprints = get_sprints()
     current_sprint = get_current_sprint()
     if not sprints:
-        redirect(url_for("sprint.create"))
+        return RedirectResponse(app.url_path_for("create"))
+    sprint_numbers = {s.id:get_sprint_number_for_user(s.id) for s in sprints}
     if is_json:
-        return json.dumps({'Success': True,
+        return JSONResponse({'Success': True,
                            'sprints': [dict(x) for x in sprints],
                            'has_current_sprint': current_sprint is not None})
-    return render_template('sprint/list.html', sprints=sprints)
+    return templates.TemplateResponse('sprint/list.html', 
+        {"sprints":sprints, "sprint_numbers":sprint_numbers})
 
 
-@bp.route('/<int:sprint_id>', methods=('GET', 'POST'))
-@login_required
-def show(sprint_id):
+@app.post('/{sprint_id}')
+async def update(sprint_id: int, sprint: Sprint):
+    error = None
+    old_sprint = get_sprint(sprint_id)
+    start_sprint = get_sprint_by_date(start_date=sprint.start_date)
+    end_sprint = get_sprint_by_date(end_date=sprint.end_date)
+    if old_sprint is None:
+        return abort(404, f"Sprint with ID {sprint_id} not found")
+    elif start_sprint is not None:
+        error = f"New start date is shared by sprint {start_sprint.id}"
+    elif end_sprint is not None:
+        error = f"New end date is shared by sprint {end_sprint.id}"
+    if error is None:
+        sprint = update_sprint(id, sprint.start_date, sprint.end_date)
+        return json.dumps({'Success': True, 'sprint_id': sprint_id})
+    return abort(500, error)
+
+
+@app.get('/{sprint_id}')
+def show(sprint_id: int, is_json: bool = False):
     """
     Show Board for Sprint with sprint identity
     @param sprint_id identity for sprint board
     """
-    is_json = request.args.get('is_json', False)
     sprint = get_sprint(sprint_id)
     if not sprint:
-        abort(404, f"Sprint with ID {sprint_id} was not found.")
-    if request.method == 'POST':
-        start_date = request.form.get('start_date', None)
-        end_date = request.form.get('end_date', None)
-        error = None
-        start_sprint = get_sprint_by_date(start_date=start_date)
-        end_sprint = get_sprint_by_date(end_date=end_date)
-        if not start_date:
-            error = "Sprint Requires Start date"
-        elif not end_date:
-            error = "Sprint Requires End Date"
-        elif start_sprint is not None:
-            error = f"New start date is shared by sprint {start_sprint.id}"
-        elif end_sprint is not None:
-            error = f"New end date is shared by sprint {end_sprint.id}"
-        if error is None:
-            sprint = update_sprint(id, start_date, end_date)
-            if is_json:
-                return json.dumps({'Success': True, 'sprint_id': sprint_id})
-            return redirect(url_for('sprint.list_all', sprint_id=sprint_id))
-        if is_json:
-            abort(500, error)
-        flash(error, 'error')
+        return abort(404, f"Sprint with ID {sprint_id} was not found.")
     if is_json:
         return json.dumps({'Success': True, 'sprint_id': sprint_id, 'sprint': dict(sprint)})
     return get_sprint_board(sprint_id, sprint, is_static=True)
 
 
-@bp.route('/active', methods=('GET',))
-@login_required
-def active():
+@app.get('/active')
+def active(is_json: bool = False):
     """
     Returns sprint board for the active sprint
     If two sprints overlap in date pick latter
     """
-    is_json = request.args.get('is_json', False)
     current_sprint = get_current_sprint()
     if not current_sprint:
         has_sprints = get_sprints()
         if len(has_sprints) == 0:
-            flash('Please create your first sprint.')
+            return abort(401,"Please create your first sprint.")
+            #flash('Please create your first sprint.')
         else:
-            flash('No currently active sprint. Create new sprint')
-        return redirect(url_for('sprint.create'))
-
+            return RedirectResponse(app.url_path_for('sprint.create'))
+            #flash('No currently active sprint. Create new sprint')
     sprint_id = current_sprint.id
     if is_json:
-        return json.dumps({'Success': True, 'sprint_id': sprint_id, 'sprint': dict(current_sprint)})
+        return JSONResponse({'Success': True, 'sprint_id': sprint_id, 'sprint': jsonable_encoder(current_sprint)})
     return get_sprint_board(sprint_id, current_sprint, is_static=False)

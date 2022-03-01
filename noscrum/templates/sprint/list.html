@@ -16,7 +16,7 @@
 <div class="box">
 <div class="row">
     <div class="column">
-        <h3>Sprint {{ sprint['id'] }}</h3>
+        <h3>Sprint {{ sprint_numbers[sprint['id']] }}</h3>
         Start Date {{ sprint['start_date'] }}<br>
         End Date {{ sprint['end_date'] }}<br>
         <a class="button" href="{{ url_for('sprint.show', sprint_id=sprint['id']) }}">View Sprint</a>

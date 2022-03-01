@@ -4,17 +4,16 @@ Handler for epic creation, read, and etc.
 """
 
 import json
-from datetime import datetime
+from datetime import datetime, date
+from fastapi import FastAPI
+from fastapi.encoders import jsonable_encoder
+from fastapi.responses import JSONResponse, HTMLResponse
+from fastapi.templating import Jinja2Templates
 
-from flask import (
-    Blueprint, flash, redirect, render_template, request, url_for, abort
-)
-from flask_user import current_user, login_required
 
-from noscrum.db import get_db, Epic
-
-bp = Blueprint('epic', __name__, url_prefix='/epic')
-
+from noscrum.model import Epic
+from noscrum.user import current_user
+from noscrum.db import get_db
 
 def get_epics(sprint_view=False, sprint_id=None):
     """
@@ -113,89 +112,66 @@ def update_epic(epic_id, epic, color, deadline):
     app_db.session.commit()
     return get_epic(epic_id)
 
+app = FastAPI()
 
-@bp.route('/create', methods=('GET', 'POST'))
-@login_required
-def create():
+templates = Jinja2Templates(directory="templates")
+
+def abort(response_code: int, message: str):
+    return JSONResponse(status_code = response_code, content={'Error':{'message':message}})
+
+@app.put('/create')
+async def create(epic: Epic):
     """
     Handle creation for a new epic / form data
     """
-    is_json = request.args.get('is_json', False)
-    is_asc = request.args.get('is_asc', False)
-    if request.method == 'POST':
-        epic = request.form.get('epic', None)
-        color = request.form.get('color', None)
-        deadline = request.form.get('deadline', None)
-        if isinstance(deadline, str):
-            deadline = datetime.strptime(deadline, '%Y-%m-%d').date()
-        error = None
+    error=None
+    if get_epic_by_name(epic.epic) is not None:
+        error = f'Epic named "{epic.epic}" already exists'
 
-        if not epic:
-            error = 'Epic Name is Required'
-        elif get_epic_by_name(epic) is not None:
-            error = f'Epic named "{epic}" already exists'
+    if error is None:
+        epic = jsonable_encoder(create_epic(epic.epic, epic.color, epic.deadline))
+        return JSONResponse({'Success': True, 'epic': epic})
+    abort(500, error)
 
-        if error is None:
-            epic = create_epic(epic, color, deadline)
-            if is_json:
-                return json.dumps({'Success': True, 'epic_id': epic.id, 'epic_name': epic.epic})
-            return redirect(url_for('epic.show', epic_id=epic.id))
-        if is_json:
-            abort(500, error)
-        flash(error, 'error')
-
-    return render_template('epic/create.html', asc=is_asc)
+@app.get('/create', response_class=HTMLResponse)
+async def get_creation_template(is_asc: bool=False):
+    return templates.TemplateResponnse('epic/create.html', asc=is_asc)
 
 
-@bp.route('/<int:epic_id>', methods=('GET', 'POST'))
-@login_required
-def show(epic_id):
+@app.get('/{epic_id}')
+async def show(epic_id: int):
     """
     Display information or process update epic
     @param epic_id the epic's identifier value
     """
-    is_json = request.args.get('is_json', False)
-    epic = get_epic(epic_id)
+    epic = jsonable_encoder(get_epic(epic_id))
     if epic is None:
-        if is_json or request.method == 'POST':
-            abort(404, 'Epic ID not found in Database')
-        else:
-            flash(f'Epid ID "{epic_id}" not found.', 'error')
-            return redirect(url_for('epic.list_all'))
-    if request.method == 'POST':
-        error = None
-        epic_name = request.form.get('name', epic['epic'])
-        color = request.form.get('color', epic['color'])
-        deadline = request.form.get('deadline', epic['deadline'])
-        other_epic = get_epic_by_name(epic_name)
+        abort(404, 'Epic ID not found in Database')
+    return JSONResponse({'Success': True, 'epic': epic})
 
-        if not epic_id:
-            error = 'Could not find ID for Epic being edited.'
-        elif other_epic is not None and other_epic.id != epic_id:
-            error = f'A different Epic named "{epic.epic}" already exists'
+@app.post('/{epic_id}')
+async def update(epic_id: int, epic: Epic):
+    epic = jsonable_encoder(get_epic(epic_id))
+    if epic is None:
+        abort(404, 'Epic ID not found in Database')
+    error = None
+    epic_name = epic.epic
+    color = epic.color
+    deadline = epic.deadline
+    other_epic = get_epic_by_name(epic_name)
 
-        if error is None:
-            update_epic(epic_id, epic_name, color, deadline)
-            if is_json:
-                return json.dumps({'Success': True, 'epic_id': epic_id})
-            return redirect(url_for('epic.show', epic_id=epic_id))
-        if is_json:
-            abort(500, error)
-        flash(error, 'error')
+    if other_epic is not None and other_epic.id != epic_id:
+        error = f'A different Epic named "{epic.epic}" already exists'
 
-    if is_json:
-        return json.dumps({'Success': True, 'epic': dict(epic), 'stories': {}})
-    return render_template('epic/show.html', epic=epic, stories={})
+    if error is None:
+        update_epic(epic_id, epic_name, color, deadline)
+        return json.dumps({'Success': True, 'epic': jsonable_encoder(epic)})
 
-
-@bp.route('/', methods=('GET',))
-@login_required
-def list_all():
+@app.get('/')
+async def list_all():
     """
     List all of the epics made by current user
     """
-    is_json = request.args.get('is_json', False)
-    epics = get_epics()
-    if is_json:
-        return json.dumps({'Success': True, 'epics': [dict(x) for x in epics]})
-    return render_template('epic/list.html', epics=epics)
+    epics = jsonable_encoder(get_epics())
+    return JSONResponse({'Success': True, 'epics': epics})
+    #return render_template('epic/list.html', epics=epics)
