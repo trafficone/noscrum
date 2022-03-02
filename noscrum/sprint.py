@@ -4,9 +4,8 @@ Sprint View and Database Interaction Module
 from datetime import date, timedelta, datetime
 import json
 
-from noscrum.user import current_user
 from sqlalchemy import or_
-from fastapi import FastAPI
+from fastapi import APIRouter
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
@@ -15,15 +14,22 @@ from noscrum.db import get_db
 from noscrum.model import Sprint, Task, ScheduleTask
 from noscrum.epic import get_epics
 from noscrum.story import get_stories
+from noscrum.user import current_user
 
-statuses = ['To-Do', 'In Progress', 'Done']
+statuses = ["To-Do", "In Progress", "Done"]
+
 
 def get_task(task_id):
     """
     Task record for user for identifier number
     @task_id task record identification number
     """
-    return Task.query.filter(Task.id == task_id).filter(Task.user_id == current_user.id).first()
+    return (
+        Task.query.filter(Task.id == task_id)
+        .filter(Task.user_id == current_user.id)
+        .first()
+    )
+
 
 def get_sprint_number_for_user(sprint_id):
     """
@@ -31,33 +37,37 @@ def get_sprint_number_for_user(sprint_id):
     @sprint_id the Sprint ID's number you want
     """
     app_db = get_db()
-    sprint_numbers = app_db.session.query(
-        Sprint.id,
-        app_db.func.row_number().over(
-            partition_by=Sprint.user_id,
-            order_by=Sprint.id).label(
-                'sprint_number')
-    ).filter(Sprint.id <= sprint_id
-    ).filter(Sprint.user_id == current_user.id
-    ).all()
-    user_numbers = {x.id:x.sprint_number for x in sprint_numbers}
+    sprint_numbers = (
+        app_db.session.query(
+            Sprint.id,
+            app_db.func.row_number()
+            .over(partition_by=Sprint.user_id, order_by=Sprint.id)
+            .label("sprint_number"),
+        )
+        .filter(Sprint.id <= sprint_id)
+        .filter(Sprint.user_id == current_user.id)
+        .all()
+    )
+    user_numbers = {x.id: x.sprint_number for x in sprint_numbers}
     return user_numbers[sprint_id]
+
 
 def get_sprints():
     """
     Return all sprint records for current user.
     """
-    return Sprint.query\
-        .filter(Sprint.user_id == current_user.id)\
-        .all()
+    return Sprint.query.filter(Sprint.user_id == current_user.id).all()
 
 
 def get_sprint(sprint_id):
     """
     Return Sprint record @param sprint_id for current user
     """
-    return Sprint.query.filter(Sprint.id == sprint_id)\
-        .filter(Sprint.user_id == current_user.id).first()
+    return (
+        Sprint.query.filter(Sprint.id == sprint_id)
+        .filter(Sprint.user_id == current_user.id)
+        .first()
+    )
 
 
 def get_sprint_by_date(start_date=None, end_date=None, middle_date=None):
@@ -68,9 +78,9 @@ def get_sprint_by_date(start_date=None, end_date=None, middle_date=None):
     @param end_date Date when sprint then ends
     @param middle_date Any day within a sprint
     """
-    query = Sprint.query\
-        .filter(Sprint.start_date != '1969-12-31')\
-        .filter(Sprint.user_id == current_user.id)
+    query = Sprint.query.filter(Sprint.start_date != "1969-12-31").filter(
+        Sprint.user_id == current_user.id
+    )
     filter_vars = []
     if start_date is not None:
         query = query.filter(Sprint.start_date == start_date)
@@ -79,11 +89,12 @@ def get_sprint_by_date(start_date=None, end_date=None, middle_date=None):
         query = query.filter(Sprint.end_date == end_date)
         filter_vars.append(end_date)
     if middle_date is not None:
-        query = query.filter(Sprint.start_date <= middle_date 
-            ).filter(Sprint.end_date >= middle_date )
+        query = query.filter(Sprint.start_date <= middle_date).filter(
+            Sprint.end_date >= middle_date
+        )
         filter_vars.append(middle_date)
     if len(filter_vars) == 0:
-        raise Exception('No criteria entered for get_sprint_by_date')
+        raise Exception("No criteria entered for get_sprint_by_date")
     return query.first()
 
 
@@ -91,8 +102,9 @@ def get_current_sprint():
     """
     Given a current date returns active sprint
     """
-    current_date = datetime.now().date()#.strftime('%Y-%m-%d')
+    current_date = datetime.now().date()  # .strftime('%Y-%m-%d')
     return get_sprint_by_date(middle_date=current_date)
+
 
 def get_next_sprint():
     current_sprint = get_current_sprint()
@@ -102,11 +114,16 @@ def get_next_sprint():
     print(next_sprint)
     return next_sprint
 
+
 def get_last_sprint():
     """
     Returns the last(final date) sprint record
     """
-    return Sprint.query.filter(Sprint.user_id == current_user.id).order_by(Sprint.end_date).first()
+    return (
+        Sprint.query.filter(Sprint.user_id == current_user.id)
+        .order_by(Sprint.end_date)
+        .first()
+    )
 
 
 def create_sprint(start_date, end_date):
@@ -116,9 +133,9 @@ def create_sprint(start_date, end_date):
     @param end_date
     """
     app_db = get_db()
-    new_sprint = Sprint(start_date=start_date,
-                        end_date=end_date,
-                        user_id=current_user.id)
+    new_sprint = Sprint(
+        start_date=start_date, end_date=end_date, user_id=current_user.id
+    )
     app_db.session.add(new_sprint)
     app_db.session.commit()
     return get_sprint_by_date(start_date=start_date, end_date=end_date)
@@ -129,13 +146,9 @@ def update_sprint(sprint_id, start_date, end_date):
     Update the start or end date of the sprint
     """
     app_db = get_db()
-    Sprint.query.filter(Sprint.id == sprint_id)\
-        .filter(Sprint.user_id == current_user.id)\
-        .update({
-            start_date: start_date,
-            end_date: end_date},
-            synchronize_session="fetch"
-    )
+    Sprint.query.filter(Sprint.id == sprint_id).filter(
+        Sprint.user_id == current_user.id
+    ).update({start_date: start_date, end_date: end_date}, synchronize_session="fetch")
     app_db.session.commit()
     return get_sprint(sprint_id)
 
@@ -172,9 +185,11 @@ def get_schedule(sched_id):
     @param sched_id ScheduleTask ID you desire
     """
 
-    return ScheduleTask.query\
-        .filter(ScheduleTask.id == sched_id)\
-        .filter(ScheduleTask.user_id == current_user.id).first()
+    return (
+        ScheduleTask.query.filter(ScheduleTask.id == sched_id)
+        .filter(ScheduleTask.user_id == current_user.id)
+        .first()
+    )
 
 
 def get_schedule_by_time(sprint_id, sprint_day, sprint_hour, schedule_id=None):
@@ -189,10 +204,12 @@ def get_schedule_by_time(sprint_id, sprint_day, sprint_hour, schedule_id=None):
     @param sprint_hour the schedule time value
     """
 
-    query = ScheduleTask.query.filter(ScheduleTask.user_id == current_user.id)\
-        .filter(ScheduleTask.sprint_day == sprint_day)\
-        .filter(ScheduleTask.sprint_hour == sprint_hour)\
+    query = (
+        ScheduleTask.query.filter(ScheduleTask.user_id == current_user.id)
+        .filter(ScheduleTask.sprint_day == sprint_day)
+        .filter(ScheduleTask.sprint_hour == sprint_hour)
         .filter(ScheduleTask.sprint_id == sprint_id)
+    )
     if schedule_id is not None:
         query.filter(ScheduleTask.id != schedule_id)
     return query.first()
@@ -208,12 +225,14 @@ def create_schedule(sprint_id, task_id, sprint_day, sprint_hour, note):
     @param note Free field for clarifying time
     """
     app_db = get_db()
-    new_schedule = ScheduleTask(sprint_id=sprint_id,
-                                task_id=task_id,
-                                sprint_day=sprint_day,
-                                sprint_hour=sprint_hour,
-                                note=note,
-                                user_id=current_user.id)
+    new_schedule = ScheduleTask(
+        sprint_id=sprint_id,
+        task_id=task_id,
+        sprint_day=sprint_day,
+        sprint_hour=sprint_hour,
+        note=note,
+        user_id=current_user.id,
+    )
     app_db.session.add(new_schedule)
     app_db.session.commit()
     return get_schedule_by_time(sprint_id, sprint_day, sprint_hour)
@@ -229,12 +248,17 @@ def update_schedule(sched_id, task_id, sprint_day, sprint_hour, note):
     @param sprint_hour the schedule time value
     @param note Free field for clarifying time
     """
-    ScheduleTask.query.filter(ScheduleTask.user_id == current_user.id)\
-        .filter(ScheduleTask.id == sched_id).update({
+    ScheduleTask.query.filter(ScheduleTask.user_id == current_user.id).filter(
+        ScheduleTask.id == sched_id
+    ).update(
+        {
             task_id: task_id,
             sprint_day: sprint_day,
             sprint_hour: sprint_hour,
-            note: note}, synchronize_session="fetch")
+            note: note,
+        },
+        synchronize_session="fetch",
+    )
     return get_schedule(sched_id)
 
 
@@ -244,9 +268,9 @@ def delete_schedule(sched_id):
     @sched_id ScheduleTask chosen for deletion
     """
     app_db = get_db()
-    ScheduleTask.query.filter(ScheduleTask.id == sched_id)\
-        .filter(ScheduleTask.user_id == current_user.id)\
-        .delete()
+    ScheduleTask.query.filter(ScheduleTask.id == sched_id).filter(
+        ScheduleTask.user_id == current_user.id
+    ).delete()
     app_db.session.commit()
 
 
@@ -260,37 +284,46 @@ def get_sprint_details(sprint_id):
     epics = get_epics(sprint_view=True, sprint_id=sprint_id)
     # tasks = #get_tasks().filter(Task.sprint_id == sprint_id)
     tasks = app_db.session.execute(
-        'SELECT task.id, task, estimate, status, story_id, ' +
-        'epic_id, actual, task.deadline, task.recurring, coalesce(hours_worked,0) hours_worked, ' +
-        'coalesce(sum_sched,0) sum_sched, ' +
-        '(task.sprint_ID = sched.sprint_id) single_sprint_task ' +
-        'FROM task ' +
-        'JOIN story ON task.story_id = story.id ' +
-        'LEFT OUTER JOIN (SELECT task_id, sum(hours_worked) hours_worked ' +
-        'FROM work group by task_id) woik ' +
-        'ON woik.task_id = task.id ' +
-        'LEFT OUTER JOIN (select task_id, sprint_id, count(1) * 2 sum_sched ' +
-        'FROM schedule_task group by task_id, sprint_id) sched ' +
-        'ON task.id = sched.task_id AND sched.sprint_id = :sprint_id ' +
-        'WHERE task.user_id = :user_id ' +
-        'AND (task.sprint_ID = :sprint_id or task.recurring or ' +
-        'task.id in (select task_id from schedule_task where sprint_id = sprint_id))',
-        {'sprint_id': sprint_id, 'user_id': current_user.id}).fetchall()
-    unplanned_tasks = Task.query.filter(Task.user_id == current_user.id
-                               ).filter(or_(Task.sprint_id == None,Task.sprint_id != sprint_id)
-                               ).all()
-    sprint_days = Sprint.query.filter(Sprint.id == sprint_id)\
-        .filter(Sprint.user_id == current_user.id).first()
-    schedule_records_std = ScheduleTask.query\
-        .filter(ScheduleTask.sprint_id == sprint_id)\
+        "SELECT task.id, task, estimate, status, story_id, "
+        + "epic_id, actual, task.deadline, task.recurring, coalesce(hours_worked,0) hours_worked, "
+        + "coalesce(sum_sched,0) sum_sched, "
+        + "(task.sprint_ID = sched.sprint_id) single_sprint_task "
+        + "FROM task "
+        + "JOIN story ON task.story_id = story.id "
+        + "LEFT OUTER JOIN (SELECT task_id, sum(hours_worked) hours_worked "
+        + "FROM work group by task_id) woik "
+        + "ON woik.task_id = task.id "
+        + "LEFT OUTER JOIN (select task_id, sprint_id, count(1) * 2 sum_sched "
+        + "FROM schedule_task group by task_id, sprint_id) sched "
+        + "ON task.id = sched.task_id AND sched.sprint_id = :sprint_id "
+        + "WHERE task.user_id = :user_id "
+        + "AND (task.sprint_ID = :sprint_id or task.recurring or "
+        + "task.id in (select task_id from schedule_task where sprint_id = sprint_id))",
+        {"sprint_id": sprint_id, "user_id": current_user.id},
+    ).fetchall()
+    unplanned_tasks = (
+        Task.query.filter(Task.user_id == current_user.id)
+        .filter(or_(Task.sprint_id is None, Task.sprint_id != sprint_id))
+        .all()
+    )
+    sprint_days = (
+        Sprint.query.filter(Sprint.id == sprint_id)
+        .filter(Sprint.user_id == current_user.id)
+        .first()
+    )
+    schedule_records_std = ScheduleTask.query.filter(
+        ScheduleTask.sprint_id == sprint_id
+    ).filter(ScheduleTask.user_id == current_user.id)
+    schedule_records_recurring = (
+        ScheduleTask.query.join(Task)
+        .filter(Task.recurring)
         .filter(ScheduleTask.user_id == current_user.id)
-    schedule_records_recurring = ScheduleTask.query.join(Task)\
-        .filter(Task.recurring)\
-        .filter(ScheduleTask.user_id == current_user.id)
-    schedule_records_dict = {f'{x.sprint_day}T{x.sprint_hour}:00': x
-                             for x in schedule_records_recurring}
+    )
+    schedule_records_dict = {
+        f"{x.sprint_day}T{x.sprint_hour}:00": x for x in schedule_records_recurring
+    }
     for record_std in schedule_records_std:
-        key = f'{record_std.sprint_day}T{record_std.sprint_hour}:00'
+        key = f"{record_std.sprint_day}T{record_std.sprint_hour}:00"
         schedule_records_dict[key] = record_std
     schedule_records = list(schedule_records_dict.values())
 
@@ -303,10 +336,16 @@ def get_sprint_details(sprint_id):
         current_day += timedelta(1)
     return stories, epics, tasks, schedule_list, schedule_records, unplanned_tasks
 
-app = FastAPI()
+
+router = APIRouter(prefix="/sprint", tags=["sprint"])
 templates = Jinja2Templates(directory="templates")
+
+
 def abort(response_code: int, message: str):
-    return JSONResponse(status_code = response_code, content={'Error':{'message':message}})
+    return JSONResponse(
+        status_code=response_code, content={"Error": {"message": message}}
+    )
+
 
 def get_sprint_board(sprint_id, sprint, is_static=False):
     """
@@ -316,41 +355,49 @@ def get_sprint_board(sprint_id, sprint, is_static=False):
     @param is_static (optional) is unchanging?
     """
     stories, epics, tasks, schedule_list, schedule_records, unplanned_tasks = get_sprint_details(
-        sprint_id)
-    tasks = {x['id']: dict(x) for x in tasks}
-    stories = {x['id']: dict(x) for x in stories}
-    epics = {x['id']: dict(x) for x in epics}
+        sprint_id
+    )
+    tasks = {x["id"]: dict(x) for x in tasks}
+    stories = {x["id"]: dict(x) for x in stories}
+    epics = {x["id"]: dict(x) for x in epics}
     # Get Estimate Totals by story/epic at each status level
     totals = {}
     # sum up totals btw I don't like how this is implemented
     # this will appear in your next annual review >:-(
     for task in tasks.values():
-        estimate = task['estimate']
+        estimate = task["estimate"]
         estimate = 0 if estimate is None else estimate
-        story_id = task['story_id']
-        epic_id = task['epic_id']
-        status = task['status']
-        cuts = [status, f'e{epic_id}',
-                        f'e{epic_id}_{status}',
-                        f's{story_id}',
-                        f's{story_id}_{status}']
+        story_id = task["story_id"]
+        epic_id = task["epic_id"]
+        status = task["status"]
+        cuts = [
+            status,
+            f"e{epic_id}",
+            f"e{epic_id}_{status}",
+            f"s{story_id}",
+            f"s{story_id}_{status}",
+        ]
         for cut in cuts:
-            totals[cut] = totals.get(cut, 0)+estimate
-    return templates.TemplateResponse('sprint/board.html',
-                           {"sprint":sprint,
-                           "sprint_id":sprint_id,
-                           "stories":stories,
-                           "epics":epics,
-                           "tasks":tasks,
-                           "totals":totals,
-                           "statuses":statuses,
-                           "static":is_static,
-                           "schedule":schedule_list,
-                           "unplanned_tasks":unplanned_tasks,
-                           "schedule_records":schedule_records})
+            totals[cut] = totals.get(cut, 0) + estimate
+    return templates.TemplateResponse(
+        "sprint/board.html",
+        {
+            "sprint": sprint,
+            "sprint_id": sprint_id,
+            "stories": stories,
+            "epics": epics,
+            "tasks": tasks,
+            "totals": totals,
+            "statuses": statuses,
+            "static": is_static,
+            "schedule": schedule_list,
+            "unplanned_tasks": unplanned_tasks,
+            "schedule_records": schedule_records,
+        },
+    )
 
 
-@app.post('/schedule/{sprint_id}')
+@router.post("/schedule/{sprint_id}")
 def api_create_schedule(sprint_id: int, schedule: ScheduleTask):
     """
     Get or set scheduling information for a given sprint.
@@ -361,64 +408,72 @@ def api_create_schedule(sprint_id: int, schedule: ScheduleTask):
     task = get_task(schedule.task_id)
     if recurring:
         if not task.recurring:
-            error = 'Task not set as recurring, cannot schedule as recurring'
+            error = "Task not set as recurring, cannot schedule as recurring"
         else:
             schedule.sprint_id = 0
     # TODO: This validation should be part of the model
     elif schedule.sprint_day > sprint.end_date:
-        error = 'Scheduled day is after sprint end'
+        error = "Scheduled day is after sprint end"
     # TODO: This validation should be part of the model
     elif int(schedule.sprint_hour) > 24:
-        error = 'Sprint Hour is > 24'
+        error = "Sprint Hour is > 24"
     if error is None:
-        old_record = get_schedule_by_time(schedule.sprint_id,
-                                          schedule.sprint_day,
-                                          schedule.sprint_hour,
-                                          schedule_id=schedule.id)
+        old_record = get_schedule_by_time(
+            schedule.sprint_id,
+            schedule.sprint_day,
+            schedule.sprint_hour,
+            schedule_id=schedule.id,
+        )
         if old_record is not None:
             if old_record.id == schedule.id:
                 raise Exception("Old schedule flagged as duplicate")
             delete_schedule(old_record.id)
             schedule.id = None
         if schedule.id is None:
-            schedule_task = create_schedule(schedule.sprint_id,
-                                            schedule.task_id, 
-                                            schedule.sprint_day, 
-                                            schedule.sprint_hour, 
-                                            schedule.note)
+            schedule_task = create_schedule(
+                schedule.sprint_id,
+                schedule.task_id,
+                schedule.sprint_day,
+                schedule.sprint_hour,
+                schedule.note,
+            )
         else:
-            schedule_task = update_schedule(schedule.id, 
-                                            schedule.task_id, 
-                                            schedule.sprint_day,
-                                            schedule.sprint_hour,
-                                            schedule.note)
+            schedule_task = update_schedule(
+                schedule.id,
+                schedule.task_id,
+                schedule.sprint_day,
+                schedule.sprint_hour,
+                schedule.note,
+            )
 
-            return JSONResponse({'Success': True, 'schedule_task': schedule_task.to_dict()})
+            return JSONResponse(
+                {"Success": True, "schedule_task": schedule_task.to_dict()}
+            )
     return abort(500, error)
 
-@app.delete('/schedule/')
-def api_delete_schedule(schedule_id: int, recurring: bool = False):
-    if recurring:
-        sprint_id = 0
+
+@router.delete("/schedule/")
+def api_delete_schedule(schedule_id: int):
     deleted_schedule = jsonable_encoder(get_schedule(schedule_id))
     if deleted_schedule is None:
         return abort(404, f"Cannot find schedule with ID {schedule_id}")
-    output = {'Success': True, "schedule": deleted_schedule}
+    output = {"Success": True, "schedule": deleted_schedule}
     delete_schedule(schedule_id)
     return JSONResponse(output)
 
-@app.get('/schedule/{sprint_id}')
-def list_schedules(sprint_id: int, task_id: int, sprint_day: date, sprint_hour: int):
-    schedule_tasks = get_schedule_tasks_filtered(sprint_id,
-                                                    task_id,
-                                                    sprint_day, 
-                                                    sprint_hour)
-    if len(schedule_tasks) == 0:
-        return abort(404, 'No Schedules Found')
-    schedule_tasks_out = jsonable_encoder(schedule_tasks) 
-    return json.dumps({'Success': True, 'schedule_tasks': schedule_tasks_out})
 
-@app.post('/create/next')
+@router.get("/schedule/{sprint_id}")
+def list_schedules(sprint_id: int, task_id: int, sprint_day: date, sprint_hour: int):
+    schedule_tasks = get_schedule_tasks_filtered(
+        sprint_id, task_id, sprint_day, sprint_hour
+    )
+    if len(schedule_tasks) == 0:
+        return abort(404, "No Schedules Found")
+    schedule_tasks_out = jsonable_encoder(schedule_tasks)
+    return json.dumps({"Success": True, "schedule_tasks": schedule_tasks_out})
+
+
+@router.post("/create/next")
 def create_next():
     """
     Create the next sprint assuming seven days
@@ -426,25 +481,27 @@ def create_next():
     error = None
     last_sprint = get_last_sprint()
     if last_sprint is None:
-        error = 'No sprint found for user. Next sprint can only be created after initial sprint'
+        error = "No sprint found for user. Next sprint can only be created after initial sprint"
     if error is None:
-        start_date, = last_sprint.end_date+timedelta(1)
-        end_date = last_sprint.end_date+timedelta(8)
+        start_date, = last_sprint.end_date + timedelta(1)
+        end_date = last_sprint.end_date + timedelta(8)
         sprint = jsonable_encoder(create_sprint(start_date, end_date))
-        return JSONResponse({'Success': True, 'sprint': sprint})
-    return abort(500,error)
+        return JSONResponse({"Success": True, "sprint": sprint})
+    return abort(500, error)
 
-@app.get('/create/next', response_class=HTMLResponse)
+
+@router.get("/create/next", response_class=HTMLResponse)
 def get_next_html():
     _ = create_next()
     final_sprint = get_last_sprint()
     start_date = date.today() if final_sprint is None else final_sprint.end_date
     end_date = start_date + timedelta(7)
-    return templates.TemplateResponse('sprint/create.html', 
-        {"start_date":start_date, "end_date":end_date})
+    return templates.TemplateResponse(
+        "sprint/create.html", {"start_date": start_date, "end_date": end_date}
+    )
 
 
-@app.post('/create')
+@router.post("/create")
 def create(sprint: Sprint, force_create: bool = False):
     """
     Create a New Sprint defaulting last week's
@@ -458,26 +515,28 @@ def create(sprint: Sprint, force_create: bool = False):
     elif start_sprint is not None:
         error = f"Sprint Starts same day as Existing Sprint {start_sprint.id}"
     elif force_create is False and (
-        get_sprint_by_date(middle_date=sprint.start_date) is not None or
-        get_sprint_by_date(middle_date=sprint.end_date) is not None):
+        get_sprint_by_date(middle_date=sprint.start_date) is not None
+        or get_sprint_by_date(middle_date=sprint.end_date) is not None
+    ):
         error = "Sprint overlaps existing Sprint"
 
     if error is None:
         sprint = jsonable_encoder(create_sprint(sprint.start_date, sprint.end_date))
-        return JSONResponse({'Success': True, 'sprint': sprint})
+        return JSONResponse({"Success": True, "sprint": sprint})
     return abort(500, error)
-    
-@app.get('/create', response_class=HTMLResponse)
+
+
+@router.get("/create", response_class=HTMLResponse)
 def get_creation_form():
     final_sprint = get_last_sprint()
     start_date = date.today() if final_sprint is None else final_sprint.end_date
     end_date = start_date + timedelta(6)
-    return templates.TemplateResponse('sprint/create.html', 
-                        {"start_date":start_date, 
-                        "end_date":end_date})
+    return templates.TemplateResponse(
+        "sprint/create.html", {"start_date": start_date, "end_date": end_date}
+    )
 
 
-@app.get('/')
+@router.get("/")
 async def list_all(is_json: bool = False):
     """
     List all of the Sprints for a current user
@@ -485,17 +544,22 @@ async def list_all(is_json: bool = False):
     sprints = get_sprints()
     current_sprint = get_current_sprint()
     if not sprints:
-        return RedirectResponse(app.url_path_for("create"))
-    sprint_numbers = {s.id:get_sprint_number_for_user(s.id) for s in sprints}
+        return RedirectResponse(router.url_path_for("create"))
+    sprint_numbers = {s.id: get_sprint_number_for_user(s.id) for s in sprints}
     if is_json:
-        return JSONResponse({'Success': True,
-                           'sprints': [dict(x) for x in sprints],
-                           'has_current_sprint': current_sprint is not None})
-    return templates.TemplateResponse('sprint/list.html', 
-        {"sprints":sprints, "sprint_numbers":sprint_numbers})
+        return JSONResponse(
+            {
+                "Success": True,
+                "sprints": [dict(x) for x in sprints],
+                "has_current_sprint": current_sprint is not None,
+            }
+        )
+    return templates.TemplateResponse(
+        "sprint/list.html", {"sprints": sprints, "sprint_numbers": sprint_numbers}
+    )
 
 
-@app.post('/{sprint_id}')
+@router.post("/{sprint_id}")
 async def update(sprint_id: int, sprint: Sprint):
     error = None
     old_sprint = get_sprint(sprint_id)
@@ -509,11 +573,11 @@ async def update(sprint_id: int, sprint: Sprint):
         error = f"New end date is shared by sprint {end_sprint.id}"
     if error is None:
         sprint = update_sprint(id, sprint.start_date, sprint.end_date)
-        return json.dumps({'Success': True, 'sprint_id': sprint_id})
+        return json.dumps({"Success": True, "sprint_id": sprint_id})
     return abort(500, error)
 
 
-@app.get('/{sprint_id}')
+@router.get("/{sprint_id}")
 def show(sprint_id: int, is_json: bool = False):
     """
     Show Board for Sprint with sprint identity
@@ -523,11 +587,13 @@ def show(sprint_id: int, is_json: bool = False):
     if not sprint:
         return abort(404, f"Sprint with ID {sprint_id} was not found.")
     if is_json:
-        return json.dumps({'Success': True, 'sprint_id': sprint_id, 'sprint': dict(sprint)})
+        return json.dumps(
+            {"Success": True, "sprint_id": sprint_id, "sprint": dict(sprint)}
+        )
     return get_sprint_board(sprint_id, sprint, is_static=True)
 
 
-@app.get('/active')
+@router.get("/active")
 def active(is_json: bool = False):
     """
     Returns sprint board for the active sprint
@@ -537,12 +603,18 @@ def active(is_json: bool = False):
     if not current_sprint:
         has_sprints = get_sprints()
         if len(has_sprints) == 0:
-            return abort(401,"Please create your first sprint.")
-            #flash('Please create your first sprint.')
+            return abort(401, "Please create your first sprint.")
+            # flash('Please create your first sprint.')
         else:
-            return RedirectResponse(app.url_path_for('sprint.create'))
-            #flash('No currently active sprint. Create new sprint')
+            return RedirectResponse(router.url_path_for("sprint.create"))
+            # flash('No currently active sprint. Create new sprint')
     sprint_id = current_sprint.id
     if is_json:
-        return JSONResponse({'Success': True, 'sprint_id': sprint_id, 'sprint': jsonable_encoder(current_sprint)})
+        return JSONResponse(
+            {
+                "Success": True,
+                "sprint_id": sprint_id,
+                "sprint": jsonable_encoder(current_sprint),
+            }
+        )
     return get_sprint_board(sprint_id, current_sprint, is_static=False)

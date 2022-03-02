@@ -2,7 +2,7 @@ from re import T
 import unittest
 from unittest.mock import patch
 from datetime import date
-import noscrum
+import noscrum.main as main
 try:
     from test_base import noscrumTestCase
 except ModuleNotFoundError:
@@ -17,9 +17,9 @@ class noscrumEpicTest(noscrumTestCase):
         current_user.return_value = user
         if not self.story_created:
             self.story_created = True
-            self.epic = noscrum.epic.create_epic(
+            self.epic = main.epic.create_epic(
                 self.test_epic.epic, self.test_epic.color, self.test_epic.deadline)
-            self.story = noscrum.story.create_story(
+            self.story = main.story.create_story(
                 self.test_story.epic_id,
                 self.test_story.story,
                 self.test_story.prioritization,
@@ -29,9 +29,9 @@ class noscrumEpicTest(noscrumTestCase):
     def setUp(self):
         super().setUp()
         self.story_created = False
-        self.test_epic = noscrum.db.Epic(
+        self.test_epic = main.db.Epic(
             epic='TEST EPIC', color='red', deadline=date(2022, 4, 15))
-        self.test_story = noscrum.db.Story(story='TEST Story',
+        self.test_story = main.db.Story(story='TEST Story',
                                            prioritization=3,
                                            epic_id=1,
                                            deadline=date(2022, 4, 15),
@@ -57,7 +57,7 @@ class noscrumEpicTest(noscrumTestCase):
         user = self.test_user
         current_user.return_value = user
         self.create_story()
-        story = noscrum.story.get_story(self.story.id)
+        story = main.story.get_story(self.story.id)
         self.assertIsNotNone(story, 'Story Found')
         self.assertEquals(story.id, self.story.id, 'Story ID Check')
 
@@ -66,7 +66,7 @@ class noscrumEpicTest(noscrumTestCase):
         user = self.test_user
         current_user.return_value = user
         self.create_story()
-        null_story = noscrum.story.get_null_story_for_epic(self.epic.id)
+        null_story = main.story.get_null_story_for_epic(self.epic.id)
         self.assertIsNotNone(null_story)
         self.assertEquals(null_story.epic_id, self.epic.id)
         self.assertIsNone(null_story.deadline)
@@ -77,7 +77,7 @@ class noscrumEpicTest(noscrumTestCase):
         user = self.test_user
         current_user.return_value = user
         self.create_story()
-        stories = noscrum.story.get_stories_by_epic(self.epic.id)
+        stories = main.story.get_stories_by_epic(self.epic.id)
         for story in stories:
             if story.id == self.story.id:
                 self.assertEquals(story.story, self.story.story)
@@ -87,7 +87,7 @@ class noscrumEpicTest(noscrumTestCase):
         user = self.test_user
         current_user.return_value = user
         self.create_story()
-        story = noscrum.story.update_story(self.story.id,
+        story = main.story.update_story(self.story.id,
                                            self.story.story,
                                            self.story.epic_id,
                                            5,

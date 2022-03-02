@@ -2,8 +2,7 @@
 To handle Story Model controller and views
 """
 import json
-from datetime import datetime
-from fastapi import FastAPI
+from fastapi import APIRouter
 from fastapi.responses import JSONResponse, RedirectResponse, HTMLResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.encoders import jsonable_encoder
@@ -13,6 +12,7 @@ from noscrum.db import get_db
 from noscrum.epic import get_epic, get_epics, get_null_epic
 from noscrum.tag import get_tags_for_story
 from noscrum.user import current_user
+
 
 def get_stories(sprint_view=False, sprint_id=None):
     """
@@ -24,25 +24,25 @@ def get_stories(sprint_view=False, sprint_id=None):
     if not sprint_view:
         return Story.query.filter(Story.user_id == current_user.id).all()
     return app_db.session.execute(
-        'SELECT story.id, ' +
-        "CASE WHEN story = 'NULL' THEN 'No Story' ELSE story END as story, " +
-        'epic_id, prioritization, story.deadline, ' +
-        'sum(coalesce(estimate,0)) as estimate, ' +
-        'count(task.id) as tasks, ' +
-        "COUNT(DISTINCT CASE WHEN task.status <> 'Done' THEN task.id ELSE NULL END) " +
-        "as active_tasks, " +
-        'COUNT(DISTINCT CASE WHEN task.estimate IS NULL THEN task.id ELSE NULL END) ' +
-        'as unestimated_tasks, ' +
-        "SUM(CASE WHEN task.status <> 'Done' THEN task.estimate - coalesce(task.actual,0) ELSE 0 " +
-        "END) AS rem_estimate " +
-        'FROM story ' +
-        'LEFT OUTER JOIN task on task.story_id = story.id ' +
-        'AND task.user_id = :user_id '+
-        'AND task.sprint_id = :sprint_id ' +
-        'GROUP BY story.id, story.story, story.epic_id, story.prioritization ' +
-
-        'ORDER BY prioritization DESC',
-        {'user_id': current_user.id, 'sprint_id': sprint_id}).fetchall()
+        "SELECT story.id, "
+        + "CASE WHEN story = 'NULL' THEN 'No Story' ELSE story END as story, "
+        + "epic_id, prioritization, story.deadline, "
+        + "sum(coalesce(estimate,0)) as estimate, "
+        + "count(task.id) as tasks, "
+        + "COUNT(DISTINCT CASE WHEN task.status <> 'Done' THEN task.id ELSE NULL END) "
+        + "as active_tasks, "
+        + "COUNT(DISTINCT CASE WHEN task.estimate IS NULL THEN task.id ELSE NULL END) "
+        + "as unestimated_tasks, "
+        + "SUM(CASE WHEN task.status <> 'Done' THEN task.estimate - coalesce(task.actual,0) ELSE 0 "
+        + "END) AS rem_estimate "
+        + "FROM story "
+        + "LEFT OUTER JOIN task on task.story_id = story.id "
+        + "AND task.user_id = :user_id "
+        + "AND task.sprint_id = :sprint_id "
+        + "GROUP BY story.id, story.story, story.epic_id, story.prioritization "
+        + "ORDER BY prioritization DESC",
+        {"user_id": current_user.id, "sprint_id": sprint_id},
+    ).fetchall()
 
 
 def get_stories_by_epic(epic_id):
@@ -51,7 +51,8 @@ def get_stories_by_epic(epic_id):
     @param epic_id Identity of epic being used
     """
     query = Story.query.filter(Story.epic_id == epic_id).filter(
-        Story.user_id == current_user.id)
+        Story.user_id == current_user.id
+    )
     return query.all()
 
 
@@ -61,9 +62,12 @@ def get_story_by_name(story, epic_id):
     @param story Story name (unique per users)
     @param epic_id Identity of epic being used
     """
-    return Story.query.filter(Story.story == story)\
-        .filter(Story.epic_id == epic_id)\
-        .filter(Story.user_id == current_user.id).first()
+    return (
+        Story.query.filter(Story.story == story)
+        .filter(Story.epic_id == epic_id)
+        .filter(Story.user_id == current_user.id)
+        .first()
+    )
 
 
 def get_story(story_id, exclude_nostory=True):
@@ -88,10 +92,14 @@ def get_null_story_for_epic(epic_id):
     """
     if epic_id == 0:
         epic_id = get_null_epic().id
-    story = Story.query.filter(Story.story == 'NULL').filter(Story.epic_id == epic_id)\
-        .filter(Story.user_id == current_user.id).first()
+    story = (
+        Story.query.filter(Story.story == "NULL")
+        .filter(Story.epic_id == epic_id)
+        .filter(Story.user_id == current_user.id)
+        .first()
+    )
     if story is None:
-        story = create_story(epic_id, 'NULL', None, None)
+        story = create_story(epic_id, "NULL", None, None)
     return story
 
 
@@ -107,17 +115,17 @@ def create_story(epic_id, story, prioritization, deadline):
         raise Exception("Tried to create a story without an epic")
     app_db = get_db()
     if prioritization is None:
-        new_story = Story(story=story,
-                          epic_id=epic_id,
-                          deadline=deadline,
-                          user_id=current_user.id
-                          )
+        new_story = Story(
+            story=story, epic_id=epic_id, deadline=deadline, user_id=current_user.id
+        )
     else:
-        new_story = Story(story=story,
-                          epic_id=epic_id,
-                          prioritization=prioritization,
-                          deadline=deadline,
-                          user_id=current_user.id)
+        new_story = Story(
+            story=story,
+            epic_id=epic_id,
+            prioritization=prioritization,
+            deadline=deadline,
+            user_id=current_user.id,
+        )
     app_db.session.add(new_story)
     app_db.session.commit()
     story = get_story_by_name(story, epic_id)
@@ -134,13 +142,17 @@ def update_story(story_id, story, epic_id, prioritization, deadline):
     @param deadline date the story will be due
     """
     app_db = get_db()
-    Story.query.filter(Story.id == story_id).filter(Story.user_id == current_user.id)\
-        .update({
-            'story': story,
-            'epic_id': epic_id,
-            'prioritization': prioritization,
-            'deadline': deadline
-        }, synchronize_session="fetch")
+    Story.query.filter(Story.id == story_id).filter(
+        Story.user_id == current_user.id
+    ).update(
+        {
+            "story": story,
+            "epic_id": epic_id,
+            "prioritization": prioritization,
+            "deadline": deadline,
+        },
+        synchronize_session="fetch",
+    )
     app_db.session.commit()
     return get_story(story_id)
 
@@ -152,9 +164,12 @@ def get_tag_story(story_id, tag_id):
     @param tag_id tag record identifier number
     """
     story = get_story(story_id)
-    return Tag.query.filter(Tag.stories.contains(story))\
-        .filter(Tag.user_id == current_user.id)\
-        .filter(Tag.id == tag_id).first()
+    return (
+        Tag.query.filter(Tag.stories.contains(story))
+        .filter(Tag.user_id == current_user.id)
+        .filter(Tag.id == tag_id)
+        .first()
+    )
 
 
 def insert_tag_story(story_id, tag_id):
@@ -177,18 +192,23 @@ def delete_tag_story(story_id, tag_id):
     @param tag_id tag record identifier number
     """
     app_db = get_db()
-    TagStory.query.filter(TagStory.story_id == story_id)\
-        .filter(TagStory.tag_id == tag_id)\
-        .delete()
+    TagStory.query.filter(TagStory.story_id == story_id).filter(
+        TagStory.tag_id == tag_id
+    ).delete()
     app_db.session.commit()
 
 
-app = FastAPI()
+router = APIRouter(prefix="/story",tags=["story"])
 templates = Jinja2Templates(directory="templates")
-def abort(response_code: int, message: str):
-    return JSONResponse(status_code = response_code, content={'Error':{'message':message}})
 
-@app.get('/create/{epic_id}', response_class=HTMLResponse)
+
+def abort(response_code: int, message: str):
+    return JSONResponse(
+        status_code=response_code, content={"Error": {"message": message}}
+    )
+
+
+@router.get("/create/{epic_id}", response_class=HTMLResponse)
 def get_create_form(epic_id: int, is_asc: bool = False):
     """
     Handle creation requests for the new story
@@ -199,22 +219,26 @@ def get_create_form(epic_id: int, is_asc: bool = False):
     epic = get_epic(epic_id)
     if epic is None:
         return abort(404, f"Epic with ID {epic_id} could not be found")
-    return templates.TemplateResponse('story/create.html', {"epic":epic, "asc":is_asc})
+    return templates.TemplateResponse(
+        "story/create.html", {"epic": epic, "asc": is_asc}
+    )
 
 
-@app.put('/create/')
+@router.put("/create/")
 def api_create(story: Story):
-        error = None
-        if get_story_by_name(story.story, story.epic_id) is not None:
-            return abort(403, f"Story with name {story} already exists for epic")
+    error = None
+    if get_story_by_name(story.story, story.epic_id) is not None:
+        return abort(403, f"Story with name {story} already exists for epic")
 
-        if error is None:
-            story = create_story(story.epic_id, story.story, story.prioritization, story.deadline)
-            return JSONResponse({'Success': True, 'story': jsonable_encoder(story)})
-        return abort(500, error)
+    if error is None:
+        story = create_story(
+            story.epic_id, story.story, story.prioritization, story.deadline
+        )
+        return JSONResponse({"Success": True, "story": jsonable_encoder(story)})
+    return abort(500, error)
 
 
-@app.get('/{story_id}/tag')#, methods=('GET', 'POST', 'DELETE'))
+@router.get("/{story_id}/tag")  # , methods=('GET', 'POST', 'DELETE'))
 def list_tags(story_id: int, is_json: bool = True):
     """
     Handle tag records for a given story value
@@ -229,17 +253,23 @@ def list_tags(story_id: int, is_json: bool = True):
         if is_json:
             return abort(404, error)
         else:
-            return RedirectResponse(app.url_path_for('story.list_all'))
+            return RedirectResponse(router.url_path_for("story.list_all"))
     tags = get_tags_for_story(story_id)
     if is_json:
-        return json.dumps({'Success': True,
-                           'story_id': story_id,
-                           'story': dict(story),
-                           'tags': [tag for tag in tags if tag.tag_in_story]})
-    return templates.TemplateResponse('story/tag.html', 
-            {"story_id":story_id, "story":story, "tags":tags})
+        return json.dumps(
+            {
+                "Success": True,
+                "story_id": story_id,
+                "story": dict(story),
+                "tags": [tag for tag in tags if tag.tag_in_story],
+            }
+        )
+    return templates.TemplateResponse(
+        "story/tag.html", {"story_id": story_id, "story": story, "tags": tags}
+    )
 
-@app.put('/{story_id}/tag')
+
+@router.put("/{story_id}/tag")
 def api_create_tag(story_id: int, tag_id: int, is_json: bool = True):
     story = get_story(story_id)
     if story is None:
@@ -247,22 +277,27 @@ def api_create_tag(story_id: int, tag_id: int, is_json: bool = True):
         if is_json:
             return abort(404, error)
         else:
-            return RedirectResponse(app.url_path_for('story.list_all'))
+            return RedirectResponse(router.url_path_for("story.list_all"))
     error = None
     if get_tag_story(story_id, tag_id) is not None:
-        error = 'Tag already exists on Story'
+        error = "Tag already exists on Story"
 
     if error is None:
         tag_story = insert_tag_story(story_id, tag_id)
         if is_json:
-            return JSONResponse({'Success': True,
-                                'story_id': story_id,
-                                'tag_id': tag_id,
-                                'tag_story_id': tag_story.id})
-        return RedirectResponse(app.url_path_for('story.list_tags', story_id=story_id))
+            return JSONResponse(
+                {
+                    "Success": True,
+                    "story_id": story_id,
+                    "tag_id": tag_id,
+                    "tag_story_id": tag_story.id,
+                }
+            )
+        return RedirectResponse(router.url_path_for("story.list_tags", story_id=story_id))
     return abort(500, error)
 
-@app.delete('/{story_id}/tag')
+
+@router.delete("/{story_id}/tag")
 def api_remove_tag(story_id: int, tag_id: int, is_json: bool = True):
     story = get_story(story_id)
     if story is None:
@@ -270,15 +305,15 @@ def api_remove_tag(story_id: int, tag_id: int, is_json: bool = True):
         if is_json:
             return abort(404, error)
         else:
-            return RedirectResponse(app.url_path_for('story.list_all'))
+            return RedirectResponse(router.url_path_for("story.list_all"))
     error = None
     delete_tag_story(story_id, tag_id)
     if is_json:
-        return json.dumps({'Success': True, 'story_id': story_id, 'tag_id': tag_id})
-    return RedirectResponse(app.url_path_for('story.list_tag', story_id=story_id))
+        return json.dumps({"Success": True, "story_id": story_id, "tag_id": tag_id})
+    return RedirectResponse(router.url_path_for("story.list_tag", story_id=story_id))
 
 
-@app.get('/')
+@router.get("/")
 def list_all(is_json: bool = False):
     """
     List all the stories for a particular user
@@ -286,12 +321,13 @@ def list_all(is_json: bool = False):
     stories = get_stories()
     epics = get_epics()
     if is_json:
-        return json.dumps({'Success': True, 'stories': [dict(x) for x in stories]})
-    return templates.TemplateResponse('story/list.html', 
-        {"stories":stories, "epics":epics})
+        return json.dumps({"Success": True, "stories": [dict(x) for x in stories]})
+    return templates.TemplateResponse(
+        "story/list.html", {"stories": stories, "epics": epics}
+    )
 
 
-@app.get('/{story_id}')
+@router.get("/{story_id}")
 def show(story_id: int, is_json: bool = False):
     """
     Show details of a story with some identity
@@ -303,20 +339,26 @@ def show(story_id: int, is_json: bool = False):
         if is_json:
             return abort(404, error)
         else:
-            return RedirectResponse(app.url_path_for('story.list_all'))
+            return RedirectResponse(router.url_path_for("story.list_all"))
     if is_json:
-        return json.dumps({'Success': True, 'story': jsonable_encoder(story)})
-    return templates.TemplateResponse('story/show.html', {"story":story})
+        return json.dumps({"Success": True, "story": jsonable_encoder(story)})
+    return templates.TemplateResponse("story/show.html", {"story": story})
 
-@app.post('/{story_id}')
+
+@router.post("/{story_id}")
 def api_update_story(story_id: int, story: Story):
     error = None
     if get_epic(story.epic_id) is None:
-        error = f'Epic {story.epic_id} not found.'
+        error = f"Epic {story.epic_id} not found."
 
     if error is None:
-        story = update_story(story_id, story.story_name,
-                                 story.epic_id, story.prioritization, story.deadline)
-        return JSONResponse({'Success': True, 'story': jsonable_encoder(story.id)})
+        story = update_story(
+            story_id,
+            story.story_name,
+            story.epic_id,
+            story.prioritization,
+            story.deadline,
+        )
+        return JSONResponse({"Success": True, "story": jsonable_encoder(story.id)})
 
     return abort(500, error)

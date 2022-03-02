@@ -3,7 +3,7 @@ from unittest.mock import patch
 from flask_testing import TestCase
 from flask_user.tests.utils import utils_prepare_user
 from flask import url_for
-import noscrum
+import noscrum.main as main
 
 
 class noscrumTestCase(TestCase):
@@ -16,12 +16,12 @@ class noscrumTestCase(TestCase):
         test_config['DEBUG'] = False
         test_config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:'
         print("Creating App - Testing")
-        app = noscrum.create_app(test_config)
+        app = main.create_app(test_config)
         return app
 
     def setUp(self):
         print("Setting up - testing")
-        db = noscrum.db.get_db()
+        db = main.db.get_db()
         db.create_all()
         self.test_user = utils_prepare_user(self.app)
         noscrumTestCase.test_user = self.test_user

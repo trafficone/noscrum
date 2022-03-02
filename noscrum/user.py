@@ -2,12 +2,12 @@
 User view and database controller
 """
 import os
-import dotenv
 from typing import Optional
-from fastapi import Depends, Request, FastAPI
+import dotenv
+from fastapi import Depends, Request, APIRouter
 from fastapi.responses import RedirectResponse
 from fastapi_users import BaseUserManager, FastAPIUsers
-from fastapi_users.db import SQLAlchemyUserDatabase
+from fastapi_users_db_sqlalchemy import SQLAlchemyUserDatabase
 from fastapi_users.authentication import (
     AuthenticationBackend,
     BearerTransport,
@@ -16,11 +16,13 @@ from fastapi_users.authentication import (
 from noscrum.model import User
 from noscrum.db import get_db
 
+UserDB = get_db()
+
 dotenv.load_dotenv()
 
-SECRET = os.environ['PASSWORD_SECRET']
+SECRET = os.environ["PASSWORD_SECRET"]
 
-class UserManager(BaseUserManager[User]):
+class UserManager(BaseUserManager[User,User]):
     user_db_model = User
     reset_password_token_secret = SECRET
     verification_token_secret = SECRET
@@ -30,14 +32,18 @@ class UserManager(BaseUserManager[User]):
 
     async def on_after_forgot_password(
         self, user: User, token: str, request: Optional[Request] = None
-        ):
+    ):
         print(f"User {user.id} has forgotten their password. Reset token: {token}")
-    
-    async def on_after_request_verify(self, user: User, token: str, request: Optional[Request] = None):
-        print(f'Verification requested for user {user.id}. Verification token: {token}')
+
+    async def on_after_request_verify(
+        self, user: User, token: str, request: Optional[Request] = None
+    ):
+        print(f"Verification requested for user {user.id}. Verification token: {token}")
+
 
 async def get_user_manager(user_db: SQLAlchemyUserDatabase = Depends(get_db)):
     yield UserManager(user_db)
+
 
 bearer_transport = BearerTransport(tokenUrl="auth/jwt/login")
 
@@ -47,22 +53,14 @@ def get_jwt_strategy() -> JWTStrategy:
 
 
 auth_backend = AuthenticationBackend(
-    name="jwt",
-    transport=bearer_transport,
-    get_strategy=get_jwt_strategy,
+    name="jwt", transport=bearer_transport, get_strategy=get_jwt_strategy
 )
 
-fastapi_users = FastAPIUsers(
-    get_user_manager,
-    [auth_backend],
-    User,
-    User,
-    User,
-    User,
-)
+fastapi_users = FastAPIUsers(get_user_manager, [auth_backend], User, User, User, User)
 
 current_active_user = fastapi_users.current_user(active=True)
 current_user = current_active_user
+
 
 def get_user(user_id):
     """
@@ -96,9 +94,14 @@ def authenticate_user(username, credential):
     if credential == user.password_hash:
         return user
 
-app = FastAPI()
 
-@app.get('/')
+router = APIRouter(
+    prefix="/user",
+    tags=["users"]
+)
+
+
+@router.get("/")
 def profile():
     """
     The _currently active_ user's profile page
@@ -106,6 +109,6 @@ def profile():
     PUT: not implemented, update a user's data
     """
     if not current_user:
-        login_url = app.url_path_for('login')
+        login_url = router.url_path_for("login")
         RedirectResponse(login_url)
     return current_user.username

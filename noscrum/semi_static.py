@@ -1,14 +1,16 @@
 """
 Semi-static page handler (eg about index)
 """
-from flask import Blueprint, render_template
+from fastapi import APIRouter
+from fastapi.templating import Jinja2Templates
 
-bp = Blueprint('semi_static', __name__, url_prefix='/')
+router = APIRouter(prefix="/semi_static")
+templates = Jinja2Templates(directory="templates")
 
 
-@bp.route('/', methods=('GET',))
+@router.get("/")
 def index():
     """
     Render the application's main landing page
     """
-    return render_template('index.html')
+    return templates.TemplateResponse("index.html",{})
