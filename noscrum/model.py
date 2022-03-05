@@ -2,11 +2,11 @@
 """
 Database Models and Controller (not much to do, thanks SQLAlchemy!)
 """
+from turtle import back
 from typing import Optional, List
 from datetime import date
 from sqlmodel import Field, SQLModel, Relationship
-from fastapi_users_db_sqlalchemy.guid import GUID
-from pydantic import validator
+from fastapi_users.models import BaseUserDB
 
 # from flask_login import UserMixin
 
@@ -23,17 +23,15 @@ class UserRoles(SQLModel, table=True):
 
 
 # Define the UserRoles association table
-class User(SQLModel, table=True):
+class User(BaseUserDB,SQLModel, table=True):
     """
     User model. Contains all properties for a user.
-    """ 
-    __tablename__ = "user"
-    id: Optional[int] = Field(GUID, primary_key=True)
-    email: str = Field(primary_key=True, index=True)
-    hashed_password: str
-    is_active: bool = True
-    is_superuser: bool = False
-    is_verified: bool = False
+    """
+    #email: str = Field(primary_key=True, index=True)
+    #hashed_password: str
+    #is_active: bool = True
+    #is_superuser: bool = False
+    #is_verified: bool = False
     username: str = Field(primary_key=True)
     email_opt_in: bool = False
     # User personal information
@@ -56,6 +54,7 @@ class Role(SQLModel, table=True):
     Role Model for App roles.
     Currently unused.
     """
+
     id: Optional[int] = Field(default=None, primary_key=True)
     name: str = Field(primary_key=True)
     users: List["User"] = Relationship(back_populates="roles", link_model=UserRoles)
@@ -78,14 +77,17 @@ class Story(SQLModel, table=True):
     """
     Story model between Epic and Task
     """
+
     id: Optional[int] = Field(default=None, primary_key=True)
     story: str = Field(primary_key=True)
     epic_id: int = Field(foreign_key="epic.id")
+    epic: "Epic" = Relationship(back_populates="stories")
     prioritization: int = Field(default=1)
     deadline: Optional[date]
     user_id: int = Field(foreign_key="user.id")
     tasks: List["Task"] = Relationship(back_populates="story")
-    tags: List["Tag"] = Relationship(back_populates="stories",link_model=TagStory)
+    tags: List["Tag"] = Relationship(back_populates="stories", link_model=TagStory)
+    #sprints: List["Sprint"] = Relationship(back_populates="stories", link_model="Task")
 
 
 class Tag(SQLModel, table=True):
@@ -98,6 +100,7 @@ class Tag(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     tag: str
     user_id: int = Field(foreign_key="user.id")
+    stories: List[Story] = Relationship(back_populates="tags",link_model=TagStory)
 
 
 class Task(SQLModel, table=True):
@@ -106,11 +109,14 @@ class Task(SQLModel, table=True):
     Task descriptions as well as task metadata
     such as status, sprint, deadline, etc.
     """
+
     __tablename__ = "task"
     id: Optional[int] = Field(default=None, primary_key=True)
     task: str
     story_id: int = Field(default=None, foreign_key="story.id")
+    story: Story = Relationship(back_populates="tasks")
     sprint_id: Optional[int] = Field(default=None, foreign_key="sprint.id")
+    sprint: "Sprint" = Relationship(back_populates="tasks")
     estimate: Optional[float]
     actual: Optional[float]
     deadline: Optional[date]
@@ -126,27 +132,30 @@ class Work(SQLModel, table=True):
     Model class for task work objects.
     Tracks the number of hours worked on a specific task.
     """
-    #__tablename__ = "work"
+
+    # __tablename__ = "work"
     id: Optional[int] = Field(default=None, primary_key=True)
     work_date: date
     hours_worked: int
     task_id: int = Field(default=None, foreign_key="task.id")
+    task: Task = Relationship(back_populates="work_items")
     status: str = Field(default="To-Do", nullable=True)
     user_id: int = Field(default=None, foreign_key="user.id")
-    story: List["Story"] = Relationship(back_populates="work_items", link_model=Task)
+    #story: List["Story"] = Relationship(link_model=Task)
 
 
 class Epic(SQLModel, table=True):
     """
     Epic model which defines the top level of project planning.
     """
+
     __tablename__ = "epic"
     id: Optional[int] = Field(default=None, primary_key=True)
     epic: str
     color: Optional[str]
     deadline: Optional[date]
     user_id: int = Field(foreign_key="user.id")
-    stories: List["Story"] = Relationship(back_populates="story")
+    stories: List["Story"] = Relationship(back_populates="epic")
     # tasks: List[Task] = Relationship(back_populates='task', 'story',
     #                     primaryjoin=Story.epic_id == id,
     #                     secondaryjoin=Task.story_id == Story.id)
@@ -165,8 +174,8 @@ class Sprint(SQLModel, table=True):
     start_date: date
     end_date: date
     user_id: int = Field(foreign_key="user.id")
-    tasks: List[Task] = Relationship(back_populates="task")
-    stories: List[Story] = Relationship(back_populates="story", link_model=Task)
+    tasks: List[Task] = Relationship(back_populates="sprint")
+    #stories: List[Story] = Relationship(link_model=Task)
     # epics = relationship('epic',secondary='story',tertiary='task')
     schedule: List["ScheduleTask"] = Relationship(back_populates="schedulesprint")
 

@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+
+{% block header %}
+    <h2>{% block title %}Register{% endblock %}</h2>
+{% endblock %}
+
+{% block content %}
+Wow, it looks so awful! But it works, dammit!
+<form action="/auth/register" method="POST">
+    <input type="text" name="email" />
+    <input type="text" name="username" />
+    <input type="password" name="password" />
+    <input class="button" type="submit" value="Create New User"/>
+</form>
+{% endblock %}

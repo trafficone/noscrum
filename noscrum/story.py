@@ -198,7 +198,7 @@ def delete_tag_story(story_id, tag_id):
     app_db.session.commit()
 
 
-router = APIRouter(prefix="/story",tags=["story"])
+router = APIRouter(prefix="/story", tags=["story"])
 templates = Jinja2Templates(directory="templates")
 
 
@@ -293,7 +293,9 @@ def api_create_tag(story_id: int, tag_id: int, is_json: bool = True):
                     "tag_story_id": tag_story.id,
                 }
             )
-        return RedirectResponse(router.url_path_for("story.list_tags", story_id=story_id))
+        return RedirectResponse(
+            router.url_path_for("story.list_tags", story_id=story_id)
+        )
     return abort(500, error)
 
 

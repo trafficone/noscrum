@@ -113,7 +113,7 @@ def update_epic(epic_id, epic, color, deadline):
     return get_epic(epic_id)
 
 
-router = APIRouter(prefix="/epic",tags=["epic"])
+router = APIRouter(prefix="/epic", tags=["epic"])
 templates = Jinja2Templates(directory="templates")
 
 
@@ -140,7 +140,7 @@ async def create(epic: Epic):
 
 @router.get("/create", response_class=HTMLResponse)
 async def get_creation_template(is_asc: bool = False):
-    return templates.TemplateResponse("epic/create.html", {"asc":is_asc})
+    return templates.TemplateResponse("epic/create.html", {"asc": is_asc})
 
 
 @router.get("/{epic_id}")

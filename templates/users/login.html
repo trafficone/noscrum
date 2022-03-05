@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+
+{% block header %}
+    <h2>{% block title %}Login{% endblock %}</h2>
+{% endblock %}
+
+{% block content %}
+Wow, it looks so awful! But it works, dammit!
+<form action="/auth/jwt/login" method="POST">
+    <label>Email or Username: <input type="text" name="username" /></label>
+    <input type="password" name="password" />
+    <input class="button" type="submit" value="Login"/>
+</form>
+{% endblock %}

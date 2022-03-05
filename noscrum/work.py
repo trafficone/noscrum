@@ -125,9 +125,7 @@ def delete_work(work_id):
     return work.id
 
 
-router = APIRouter(
-    prefix="/work",
-    tags=["work"])
+router = APIRouter(prefix="/work", tags=["work"])
 
 templates = Jinja2Templates(directory="templates")
 

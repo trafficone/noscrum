@@ -1,3 +1,3 @@
-from noscrum.main import create_app
+from noscrum.main import running_app
 
-app = create_app()
+app = running_app

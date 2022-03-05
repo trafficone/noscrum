@@ -89,7 +89,7 @@ def delete_tag(tag_id):
     app_db.session.commit()
 
 
-router = APIRouter(prefix="/tag",tags=["tags","story"])
+router = APIRouter(prefix="/tag", tags=["tags", "story"])
 templates = Jinja2Templates(directory="templates")
 
 

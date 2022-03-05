@@ -1,0 +1,13 @@
+{% extends 'base.html' %}
+
+{% block header %}
+    <h1>{% block title %}Tag{% endblock %}</h1>
+{% endblock %}
+
+{% block content %}
+{% for tag in tags %}
+<div class="tag" edit_url="{{ url_for('tag.show',tag_id=tag.id) }}">
+    {{ tag.tag }}
+</div>
+{% endfor %}
+{% endblock %}
