@@ -48,6 +48,7 @@ def get_sprints():
     """
     return Sprint.query\
         .filter(Sprint.user_id == current_user.id)\
+        .order_by(Sprint.start_date.desc())\
         .all()
 
 
@@ -56,7 +57,8 @@ def get_sprint(sprint_id):
     Return Sprint record @param sprint_id for current user
     """
     return Sprint.query.filter(Sprint.id == sprint_id)\
-        .filter(Sprint.user_id == current_user.id).first()
+        .filter(Sprint.user_id == current_user.id)\
+        .order_by(Sprint.start_date).first()
 
 
 def get_sprint_by_date(start_date=None, end_date=None, middle_date=None):
@@ -265,8 +267,8 @@ def get_sprint_details(sprint_id):
         'FROM schedule_task group by task_id, sprint_id) sched ' +
         'ON task.id = sched.task_id AND sched.sprint_id = :sprint_id ' +
         'WHERE task.user_id = :user_id ' +
-        'AND (task.sprint_ID = :sprint_id or task.recurring or ' +
-        'task.id in (select task_id from schedule_task where sprint_id = sprint_id))',
+        'AND (task.sprint_ID = :sprint_id or coalesce(task.recurring,0) = 1 or ' +
+        'task.id in (select task_id from schedule_task where sprint_id = :sprint_id))',
         {'sprint_id': sprint_id, 'user_id': current_user.id}).fetchall()
     unplanned_tasks = Task.query.filter(Task.user_id == current_user.id
                                ).filter(or_(Task.sprint_id == None,Task.sprint_id != sprint_id)
@@ -324,6 +326,10 @@ def get_sprint_board(sprint_id, sprint, is_static=False):
                         f's{story_id}_{status}']
         for cut in cuts:
             totals[cut] = totals.get(cut, 0)+estimate
+    for schedule_item in schedule_records:
+        cuts = [f"d{schedule_item.sprint_day.strftime('%yyyy-%mm-%dd')}",'sprint']
+        for cut in cuts:
+            totals[cut] = totals.get(cut,0) + 2 #FIXME: Schedule Item should set hour amount
     return render_template('sprint/board.html',
                            sprint=sprint,
                            sprint_id=sprint_id,
@@ -533,7 +539,7 @@ def list_all():
         return json.dumps({'Success': True,
                            'sprints': [dict(x) for x in sprints],
                            'has_current_sprint': current_sprint is not None})
-    return render_template('sprint/list.html', sprints=sprints)
+    return render_template('sprint/list.html', sprints=sprints, current_sprint=current_sprint)
 
 
 @bp.route('/<int:sprint_id>', methods=('GET', 'POST'))
@@ -544,6 +550,9 @@ def show(sprint_id):
     @param sprint_id identity for sprint board
     """
     is_json = request.args.get('is_json', False)
+    is_static = request.args.get('static','True')
+    if is_static.lower() == 'false':
+        is_static = False
     sprint = get_sprint(sprint_id)
     if not sprint:
         abort(404, f"Sprint with ID {sprint_id} was not found.")
@@ -571,7 +580,7 @@ def show(sprint_id):
         flash(error, 'error')
     if is_json:
         return json.dumps({'Success': True, 'sprint_id': sprint_id, 'sprint': dict(sprint)})
-    return get_sprint_board(sprint_id, sprint, is_static=True)
+    return get_sprint_board(sprint_id, sprint, is_static=is_static)
 
 
 @bp.route('/active', methods=('GET',))

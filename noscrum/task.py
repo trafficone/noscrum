@@ -200,7 +200,7 @@ def create(story_id):
 
         if estimate == 0 or estimate == '':
             estimate = None
-        if estimate is not None and not estimate.strip('-').split('.').isdigit():
+        if estimate is not None and not estimate.strip('-').split('.')[0].isdigit():
             error = 'Cannot set a non-number estimate'
 
         if task is None:
@@ -319,7 +319,10 @@ def list_all():
     epics = get_epics()
     colors = ['primary', 'secondary', 'success', 'alert', 'warning']
     current_sprint = get_current_sprint()
-    current_sprint_number = get_sprint_number_for_user(current_sprint.id)
+    if current_sprint is not None:
+        current_sprint_number = get_sprint_number_for_user(current_sprint.id)
+    else:
+        current_sprint_number = None
     if is_json:
         return json.dumps({'Success': True, 'tasks': [dict(x) for x in tasks],
                            'epics': [dict(x) for x in epics],

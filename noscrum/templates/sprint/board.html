@@ -1,8 +1,9 @@
 {% extends 'base.html' %}
 
 {% block header %}
-    <h3>{% block title %}{% if not static %}Current {% endif %}Sprint{% endblock %}</h3>
+    <h3>{% block title %}{% if static %}Viewing{% else %}Editing{% endif %} Sprint{% endblock %}</h3>
     &nbsp;<p style="color: #aaa;">From {{ sprint['start_date'] }} to {{ sprint['end_date'] }}</p>
+    <p style="margin-left:auto;"><a href="{{url_for('sprint.list_all')}}">Sprint List</a></p>
 {% endblock %}
 
 {% block content %}
@@ -87,17 +88,18 @@
     <button class="close-button" data-close aria-label="Close" > <span aria-hidden="true">&times;</span></button>
 </div>
 {% endif %}
+<h4>Total Hours Scheduled for Sprint: {{totals.sprint}}</h4>
 {% for day in schedule %}
     {% if day[0] % 2 == 0 %}
         <div class="yellow">
     {% else %}
         <div class="green">
     {% endif %}
-        {{day[1]}}
-        {% for hour in day[2] %}
+        {{day[1]}} {{day[1].strftime('%A')}} <em>Hours Scheduled for Day: {{totals['d'+day[1].strftime('%yyyy-%mm-%dd')]}}</em>
+            {% for hour in day[2] %}
             <div style="display:flex;flex-direction:row;" id="r_{{day[0]}}_{{hour}}">
             <div class="small-2" >
-                {{hour}}:00
+                
             </div>
                 {% for schedule in schedule_records if schedule.sprint_day == day[1] and schedule.sprint_hour == hour %}
                 <div class="task-container container {% if not static %}scheduled{% endif %} top" 

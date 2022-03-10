@@ -10,7 +10,7 @@
     <ul class="menu">
         {% if current_user.is_authenticated %}
         <li><a href="{{ url_for('task.list_all') }}">Task Board</a>
-        <li><a href="{{ url_for('sprint.active') }}">Sprint</a>
+        <li><a href="{{ url_for('sprint.active') }}">Active Sprint</a>
         {% else %}
         <li><a href="{{ url_for('user.register') }}">Register for Free</a></li> 
         {% endif %}

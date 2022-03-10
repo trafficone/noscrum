@@ -1,12 +1,12 @@
 {% extends 'base.html' %}
 
 {% block header %}
-    <h1>{% block title %}Task Showcase{% endblock %}</h1>
+    <h2>{% block title %}Task Showcase{% endblock %}</h2>
     <div>
         {% if not current_sprint %}
-        <button id="createSprint" class="button" onclick="window.location.href='{{url_for('sprint.create')}}';">Create First Sprint</button>
+        <button id="createSprint" class="button" onclick="window.location.href='{{url_for('sprint.create')}}';">Create Sprint</button>
         {% else %}
-        <button id="sprintPlan" class="button" sprint="{{current_sprint.id}}">Plan Sprint {{ sprint_number }}</button>
+        <button id="sprintPlan" class="button" sprint="{{current_sprint.id}}">Plan Sprint</button>
         {% endif %}
     </div>
     <div>Filter: 
@@ -53,28 +53,27 @@
 {% for epic in epics %}
 <div class="epic {{ epic.color }}">
     <div class="row">
-        <h3>{{ epic.epic if epic.epic != 'NULL' else 'No Epic' }}</h3>
-                <div class="columns small-3">Estimate: {{ epic.estimate }}</div>
-                <div class="columns small-3">Unestimated : {{ epic.unestimated_tasks|length }}</div>
+        <h3>{{ epic.epic if epic.epic != 'NULL' else 'Unscheduled Stories' }}</h3>
+                <div class="columns small-3">Hours Estimated: {{ epic.tasks|selectattr("estimate")|sum(attribute='estimate')}}</div>
                 <div class="columns small-3">Total Tasks: {{ epic.tasks|length }}</div>
-                <div class="columns small-3">Active: {{ epic.active_tasks|length }}</div>
+                <div class="columns small-3">Incomplete Tasks: {{ epic.tasks|selectattr("status","eq","To-Do")|list|length }}</div>
+                <div class="columns small-3">Tasks without Time Estimates: {{ epic.tasks|selectattr("estimate","none")|list|length }}</div>
     </div>
     {% for story in stories if story.epic_id == epic.id %}
     <div class="row story" update_url="{{ url_for('story.show',story_id=story.id,is_json=True) }}">
-        <div class="float-left"><span class="badge {{ colors[story.prioritization] }}">{{ story.prioritization }}</span></div>
+        <div class="float-left"><span class="badge {{ colors[story.prioritization] }}" title="Prioritization">{{ story.prioritization }}</span></div>
         &nbsp;
         {% if story.story != 'NULL' %}
             <h5 id="story_{{story.id}}" class="editable" title="Click to Edit Story" update_key="story">{{ story.story }}</h5>
         {% else %}
-            <h5 id="story_{{story.id}}" >No Story</h5>
+            <h5 id="story_{{story.id}}" >Unscheduled Tasks</h5>
         {% endif %}
 
     </div>
     <div class="row">
         <div class="small-2 columns story-label">
-            <div>Hours: {{ story.id.estimate }}</div>
-            <div>Tasks: {{ story.tasks|length }}</div>
-            <div>Remain: {{ story.active_tasks|length }}</div>
+            <div>Hours Estimated: {{ story.tasks|selectattr("estimate")|sum(attribute='estimate') }}</div>
+            <div>Incomplete Tasks: {{ story.active_tasks|length }}</div>
             {% if story.story != 'NULL' %}
                 <input id="story_deadline_{{story.id}}_datepicker" name="date" class="datepicker-input" type="hidden" />
                 <span  title="Click to Edit" contentEditable="false" update_url="{{ url_for('story.show',story_id=story.id,is_json=True) }}" update_key="deadline" id="story_deadline_{{story.id}}" class="story-deadline editable deadline">{{ 'No Deadline Set' if not story.deadline else story.deadline }}</span>
@@ -93,7 +92,7 @@
                 </div>
                 <div class="row task-work">
                     <div class="columns small-2">
-                        E:&nbsp;<span title="Click to Edit Estimate"  class="editable note" id="task_est_{{task.id}}" update_key="estimate">{{ task.estimate }}</span>
+                        E:&nbsp;<span title="Click to Edit Estimate"  class="editable note" id="task_est_{{task.id}}" update_key="estimate" placeholder="None">{{ task.estimate }}</span>
                     </div>
                     <div class="columns small-2"><span class='float-right'>A:{{ task.actual }}</span></div>
                     <div class="columns large-6">
@@ -334,6 +333,9 @@
         //FIXME: This is an awful way to do this
         update_url = $(this).attr('update_url');
         var parent = $(this).parent()
+        if ($(this).text() == 'None'){
+            $(this).text('');
+        }
         while(update_url === undefined){
             update_url = parent.attr('update_url');
             parent = parent.parent();
