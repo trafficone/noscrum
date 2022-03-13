@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 
 {% block header %}
-    <h3>{% block title %}{% if static %}Viewing{% else %}Editing{% endif %} Sprint{% endblock %}</h3>
+    <h3>{% block title %}{% if not static %}Editing{% endif %} Sprint Showcase{% endblock %}</h3>
     &nbsp;<p style="color: #aaa;">From {{ sprint['start_date'] }} to {{ sprint['end_date'] }}</p>
     <p style="margin-left:auto;"><a href="{{url_for('sprint.list_all')}}">Sprint List</a></p>
 {% endblock %}
@@ -63,6 +63,9 @@
             {% endfor %}
         </select>
         <input id="newTaskName" type="text" placeholder="New Task Name" class="editable" />
+    </label>
+    <label>Estimate
+        <input id="newTaskEstimate" type="number" placeholder="2" class="editable" />
     </label>
     <button class="button" type="submit" id="create_new_task">AddTask</button>
 </form>

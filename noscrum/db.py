@@ -115,6 +115,9 @@ class Task(db.Model):
     work_items = relationship('Work')
     schedules = relationship('ScheduleTask')
 
+    def to_dict(self):
+        return {c.name: getattr(self, c.name) for c in self.__table__.columns}
+
 
 class Tag(db.Model):
     """
@@ -144,6 +147,9 @@ class Story(db.Model):
     tasks = relationship('Task')
     tags = relationship('Tag', 'tag_story')
 
+    def to_dict(self):
+        return {c.name: getattr(self, c.name) for c in self.__table__.columns}
+
 
 class TagStory(db.Model):
     """
@@ -171,6 +177,9 @@ class Epic(db.Model):
                          secondaryjoin=Task.story_id == Story.id)
     #tags = relationship('Tag','story')
 
+    def to_dict(self):
+        return {c.name: getattr(self, c.name) for c in self.__table__.columns}
+
 
 class Sprint(db.Model):
     """
@@ -187,6 +196,9 @@ class Sprint(db.Model):
     stories = relationship('Story', 'task')
     #epics = relationship('epic',secondary='story',tertiary='task')
     schedule = relationship('ScheduleTask')
+
+    def to_dict(self):
+        return {c.name: getattr(self, c.name) for c in self.__table__.columns}
 
 
 class ScheduleTask(db.Model):

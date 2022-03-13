@@ -1,7 +1,6 @@
 """
 Task View and Database Interaction Module
 """
-import json
 from datetime import datetime
 
 from flask import (
@@ -165,7 +164,7 @@ def delete_task(task_id):
     raise NotImplementedError('Deleting Tasks is Not Supported')
 
 
-@bp.route('/create/<int:story_id>', methods=('GET', 'POST'))
+@bp.route('/create/<int:story_id>', methods=('GET', 'POST', 'PUT'))
 @login_required
 def create(story_id):
     """
@@ -185,7 +184,7 @@ def create(story_id):
             flash(error, 'error')
             return redirect(url_for('task.list_all'))
 
-    if request.method == 'POST':
+    if request.method in ['POST','PUT']:
         task = request.form.get('task', None)
         estimate = request.form.get('estimate', None)
         deadline = request.form.get('deadline', None)
@@ -214,17 +213,17 @@ def create(story_id):
             task = create_task(task, story_id, estimate, deadline, sprint_id)
             story = get_story(task.story_id)
             if is_json:
-                return json.dumps({'Success': True,
-                                   'task_id': task.id,
+                return {'Success': True,
+                                   'task': task.to_dict(),
                                    'story_id':task.story_id,
-                                   'epic_id':story.epic_id})
+                                   'epic_id':story.epic_id}
             return redirect(url_for('task.show', task_id=task.id))
         if is_json:
             abort(500, error)
         flash(error, 'error')
 
     if is_json:
-        return json.dumps({'Success': True, story: dict(story)})
+        return {'Success': True, story: story.to_dict()}
     return render_template('task/create.html', story=story, asc=is_asc)
 
 
@@ -295,16 +294,18 @@ def show(task_id):
                             sprint_id,
                             recurring)
             if is_json:
-                return json.dumps({'Success': True, 'task_id': task_id})
+                return {'Success': True, 'task': task.to_dict()}
             return redirect(url_for('task.show', task_id=task_id))
         if is_json:
             abort(500, error)
         flash(error, 'error')
 
     if is_json:
-        return json.dumps({'Success': True, 'task': task})
+        return {'Success': True, 'task': task.to_dict()}
     return render_template('task/show.html', task=task)
 
+rowproxy_to_dict = lambda x:[{column: value for column, value in rowproxy.items()}
+                            for rowproxy in x]
 
 @bp.route('/', methods=['GET'])
 @login_required
@@ -324,10 +325,10 @@ def list_all():
     else:
         current_sprint_number = None
     if is_json:
-        return json.dumps({'Success': True, 'tasks': [dict(x) for x in tasks],
-                           'epics': [dict(x) for x in epics],
-                           'stories': [dict(x) for x in stories],
-                           'current_sprint': current_sprint.id})
+        return {'Success': True, 'tasks': rowproxy_to_dict(tasks),
+                           'epics': [x.to_dict() for x in epics],
+                           'stories': [x.to_dict() for x in stories],
+                           'current_sprint': current_sprint.id}
     return render_template('task/list.html',
                            current_sprint=current_sprint,
                            sprint_number=current_sprint_number,
