@@ -54,10 +54,10 @@
 <div class="epic {{ epic.color }}">
     <div class="row">
         <h3>{{ epic.epic if epic.epic != 'NULL' else 'Unscheduled Stories' }}</h3>
-                <div class="columns small-3">Hours Estimated: {{ epic.tasks|selectattr("estimate")|sum(attribute='estimate')}}</div>
-                <div class="columns small-3">Total Tasks: {{ epic.tasks|length }}</div>
-                <div class="columns small-3">Incomplete Tasks: {{ epic.tasks|selectattr("status","eq","To-Do")|list|length }}</div>
-                <div class="columns small-3">Tasks without Time Estimates: {{ epic.tasks|selectattr("estimate","none")|list|length }}</div>
+                <div class="columns small-3">Hours Estimated: <span class="epic-metric estimate">{{ epic.tasks|selectattr("estimate")|sum(attribute='estimate')}}</span></div>
+                <div class="columns small-3">Total Tasks: <span class="epic-metric tasks">{{ epic.tasks|length }}</span></div>
+                <div class="columns small-3">Incomplete Tasks: <span class="epic-metric incomplete">{{ epic.tasks|selectattr("status","eq","To-Do")|list|length }}</span></div>
+                <div class="columns small-3">Tasks without Time Estimates: <span class="epic-metric unestimated">{{ epic.tasks|selectattr("estimate","none")|list|length }}</span></div>
     </div>
     {% for story in stories if story.epic_id == epic.id %}
     <div class="row story" update_url="{{ url_for('story.show',story_id=story.id,is_json=True) }}">
@@ -70,10 +70,10 @@
         {% endif %}
 
     </div>
-    <div class="row">
+    <div class="row story-summary">
         <div class="small-2 columns story-label">
-            <div>Hours Estimated: {{ story.tasks|selectattr("estimate")|sum(attribute='estimate') }}</div>
-            <div>Incomplete Tasks: {{ story.active_tasks|length }}</div>
+            <div>Hours Estimated: <span class="story-metric estimate">{{ story.tasks|selectattr("estimate")|sum(attribute='estimate') }}</span></div>
+            <div>Incomplete Tasks: <span class="story-metric incomplete">{{ story.active_tasks|length }}</span></div>
             {% if story.story != 'NULL' %}
                 <input id="story_deadline_{{story.id}}_datepicker" name="date" class="datepicker-input" type="hidden" />
                 <span  title="Click to Edit" contentEditable="false" update_url="{{ url_for('story.show',story_id=story.id,is_json=True) }}" update_key="deadline" id="story_deadline_{{story.id}}" class="story-deadline editable deadline">{{ 'No Deadline Set' if not story.deadline else story.deadline }}</span>
@@ -93,7 +93,7 @@
                 </div>
                 <div class="row task-work">
                     <div class="columns small-2">
-                        E:&nbsp;<span title="Click to Edit Estimate"  class="editable note" id="task_est_{{task.id}}" update_key="estimate" placeholder="None">{{ task.estimate }}</span>
+                        E:&nbsp;<span title="Click to Edit Estimate"  class="editable note estimate" id="task_est_{{task.id}}" update_key="estimate" placeholder="None">{{ task.estimate }}</span>
                     </div>
                     <div class="columns small-2"><span class='float-right'>A:{{ task.actual }}</span></div>
                     <div class="columns large-6">
@@ -299,7 +299,7 @@
                     current_key,
                     current_value,
                     prev_value,
-                    current_id){
+                    updating_object){
             submit_json[current_key] = current_value;
             $.ajax({
                 url: update_url,
@@ -308,16 +308,24 @@
                 dataType: 'json'
             }).done(function(json) {
                 if (json.Success === true){
-                    $('#'+current_id).text(current_value);
+                    updating_object.text(current_value);
+                    //if it's an estimate, update the story and epic
+                    if(updating_object.hasClass('estimate')){
+                        delta = current_value - prev_value;
+                        var story_estimate = updating_object.closest('.story-summary').find('.story-metric.estimate');
+                        var epic_estimate = updating_object.closest('.epic').find('.epic-metric.estimate');
+                        story_estimate.text(Number(story_estimate.text()) + delta)
+                        epic_estimate.text(Number(epic_estimate.text()) + delta)
+                    }
                 } else {
                     pretty_alert("Update failed unexpectedly. Please reload page.");
                 }
             }).fail(function(xhr, status, errorThrown) {
                 pretty_alert("Failed to update");
-                $('#'+current_id).text(prev_value);
+                updating_object.text(prev_value);
             }).always(function() {
-                $('#'+current_id).removeClass('postable');
-                $('#'+current_id).addClass('editable');
+                updating_object.removeClass('postable');
+                updating_object.addClass('editable');
                 console.log("AJAX Request Complete");
             })
         };
@@ -335,7 +343,8 @@
         //FIXME: This is an awful way to do this
         update_url = $(this).attr('update_url');
         var parent = $(this).parent()
-        if ($(this).text() == 'None'){
+        var prev_value = $(this).text().trim();
+        if ($(this).text() == 'None' || $(this).text() == 'Unestimated'){
             $(this).text('');
         }
         while(update_url === undefined){
@@ -345,12 +354,9 @@
                 throw "Update URL not found!"
             }
         }
-        var prev_value = $(this).text().trim();
-        if (prev_value == 'Unestimated'){
-            $(this).text('');
-        }
         current_key = $(this).attr('update_key');
         current_id = $(this).attr('id');
+        var updating_object = $(this);
         var submit_json = {"submit":true};
         $(this).addClass('postable');
         $(this).removeClass('editable');
@@ -375,7 +381,7 @@
                     }
                     console.log("Pressed Enter, so updating value to "+ current_value);
                     $(this).text('Updating...');
-                    update_value(update_url,submit_json,current_key,current_value,prev_value,current_id);
+                    update_value(update_url,submit_json,current_key,current_value,prev_value,updating_object);
                 }
             });
         }
@@ -388,7 +394,7 @@
             }
             console.log("Blurred, so updating value to "+ current_value);
             $(this).text('Updating...');
-            update_value(update_url,submit_json,current_key,current_value,prev_value,current_id);
+            update_value(update_url,submit_json,current_key,current_value,prev_value,updating_object);
             $(this).attr('contentEditable','false');
         });//*/
         

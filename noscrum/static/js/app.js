@@ -133,4 +133,4 @@ var create_task = function(
             .append(recurring)
         );
         return callback(new_task);
-    }
+    };
