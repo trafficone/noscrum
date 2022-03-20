@@ -1,8 +1,9 @@
 {% extends 'base.html' %}
 
 {% block header %}
-    <h3>{% block title %}{% if not static %}Current {% endif %}Sprint{% endblock %}</h3>
+    <h3>{% block title %}{% if not static %}Editing{% endif %} Sprint Showcase{% endblock %}</h3>
     &nbsp;<p style="color: #aaa;">From {{ sprint['start_date'] }} to {{ sprint['end_date'] }}</p>
+    <p style="margin-left:auto;"><a href="{{url_for('sprint.list_all')}}">Sprint List</a></p>
 {% endblock %}
 
 {% block content %}
@@ -41,7 +42,7 @@
     <label >Epic 
         <select id='newTaskEpic'>
             <option value="" selcted>No Epic</option>
-            {% for epic in epics %}
+            {% for epic in epics if epics[epic].epic != 'No Epic' %}
                 <option value="{{epic}}">{{epics[epic].epic}}</option>
             {% endfor %}
         </select>
@@ -49,7 +50,7 @@
     <label >Story
         <select id='newTaskStory'>
             <option value="" selected>No Story</option>
-            {% for story in stories %}
+            {% for story in stories if stories[story].story != 'No Story' %}
                 <option class="hide" value="{{story}}" epic="{{stories[story].epic_id}}">{{stories[story].story}}</option>
             {% endfor %}
         </select>
@@ -57,11 +58,14 @@
     <label class="newable">Task
         <select id="newTaskTask">
             <option value="NEW" selected>New Task</option>
-            {% for task in tasks %}
-            <option class="hide" value="{{task}}" epic="{{tasks[task].epic_id}}" story="{{tasks[task].story_id}}">{{tasks[task].task}}</option>
+            {% for task in unplanned_tasks %}
+            <option class="hide" value="{{task.id}}" epic="{{task.epic_id}}" story="{{task.story_id}}">{{task.task}}</option>
             {% endfor %}
         </select>
         <input id="newTaskName" type="text" placeholder="New Task Name" class="editable" />
+    </label>
+    <label>Estimate
+        <input id="newTaskEstimate" type="number" placeholder="2" class="editable" />
     </label>
     <button class="button" type="submit" id="create_new_task">AddTask</button>
 </form>
@@ -87,17 +91,18 @@
     <button class="close-button" data-close aria-label="Close" > <span aria-hidden="true">&times;</span></button>
 </div>
 {% endif %}
+<h4>Total Hours Scheduled for Sprint: {{totals.sprint}}</h4>
 {% for day in schedule %}
     {% if day[0] % 2 == 0 %}
         <div class="yellow">
     {% else %}
         <div class="green">
     {% endif %}
-        {{day[1]}}
-        {% for hour in day[2] %}
+        {{day[1]}} {{day[1].strftime('%A')}} <em>Hours Scheduled for Day: {{totals['d'+day[1].strftime('%yyyy-%mm-%dd')]}}</em>
+            {% for hour in day[2] %}
             <div style="display:flex;flex-direction:row;" id="r_{{day[0]}}_{{hour}}">
             <div class="small-2" >
-                {{hour}}:00
+                
             </div>
                 {% for schedule in schedule_records if schedule.sprint_day == day[1] and schedule.sprint_hour == hour %}
                 <div class="task-container container {% if not static %}scheduled{% endif %} top" 
@@ -148,7 +153,7 @@
 <script>
     //{% block jquery %}
     //{% if not static %}
-    $('.editable .task-container').draggable({
+    $('.task-container').draggable({
         revertDuration: 0,
         revert: true
     });
@@ -237,7 +242,9 @@
                     .attr('schedule_id',json.schedule_task.id)
                     .addClass('scheduled')
                     .click(scheduled_click)
-                    .draggable({revertDuration: 0, revert: true })
+                    .draggable({
+                        revertDuration: 0,
+                        revert: true })
                     .droppable({drop: schedule_shuffle_drop});
                 if (recurring) {
                     target.attr('recurring',1);
@@ -409,8 +416,14 @@
                         dataType: 'json'
                     }).done(function (json){
                         new_task_id = json.task_id;
+                        new_story_id = json.story_id;
+                        new_epic_id = json.epic_id;
                         schedule(source,day,hour,new_task_id,false);
-                        console.log('Created new task',new_task_id)
+                        console.log('Added Task to source',source);
+                        //FIXME: This is a naughty fix, but this page is pretty naughty to begin with
+                        setTimeout(function() {
+                            window.location.reload(true);
+                        },2000);
                     }).fail(function (xhr,status,errorThrown){
                         pretty_alert('Could not create task');
                     });

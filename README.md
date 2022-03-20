@@ -13,6 +13,7 @@ versatile enough to meet my needs, without the overhead of managing all my proje
 
 Currently the installation "process" is to
 
+- install nginx unit
 - clone the repository
 - create a venv
 - install the requirements.txt
@@ -20,6 +21,7 @@ Currently the installation "process" is to
 - use `flask run` (which is both slow and insecure)
 
 ``` bash
+cd /path/to/app/
 git clone git@github.com:trafficone/noscrum.git
 cd noscrum
 python -m venv venv
@@ -38,10 +40,7 @@ Then install the Foundation platform along with jquery to the noscrum/static dir
 you have the following files:
 
 - css/foundation-float.css
-- css/jquery-ui.min.css
-- js/jquery-ui.js
 - js/vendor/foundation.js
-- js/vendor/jquery.js
 - js/vendor/what-input.js
 
 A proper deployment process is in the backlog.

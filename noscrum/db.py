@@ -8,13 +8,16 @@ from flask_user import UserMixin
 from sqlalchemy.orm import relationship
 from noscrum import DatabaseSingleton
 
+
 def get_db():
     """
     Returns the DB for the instance of the app.
     """
     return asyncio.run(DatabaseSingleton.get_db())
 
+
 db = get_db()
+
 
 class Work(db.Model):
     """
@@ -23,32 +26,37 @@ class Work(db.Model):
     """
     __tablename__ = 'work'
     id = sa.Column(sa.Integer(), primary_key=True)
-    work_date = sa.Column(sa.Date(),nullable=False)
-    hours_worked = sa.Column(sa.Integer(),nullable=False)
+    work_date = sa.Column(sa.Date(), nullable=False)
+    hours_worked = sa.Column(sa.Integer(), nullable=False)
     task_id = sa.Column(sa.Integer(), sa.ForeignKey('task.id'))
-    status = sa.Column(sa.String(12),nullable=True,default='To-Do')
+    status = sa.Column(sa.String(12), nullable=True, default='To-Do')
     user_id = sa.Column(sa.Integer(), sa.ForeignKey('user.id'))
-    story = relationship('Story','task')
+    story = relationship('Story', 'task')
+
 
 class User(db.Model, UserMixin):
     """
     User model. Contains all properties for a user.
     """
     __tablename__ = 'user'
-    id = sa.Column(sa.Integer(),primary_key=True)
-    username = sa.Column(sa.String(100),nullable=False,unique=True)
-    active = sa.Column('is_active',sa.Boolean(), nullable=False, server_default='1')
+    id = sa.Column(sa.Integer(), primary_key=True)
+    username = sa.Column(sa.String(100), nullable=False, unique=True)
+    active = sa.Column('is_active', sa.Boolean(),
+                       nullable=False, server_default='1')
 
     # User auth information.
     # User authentication information. The collation='NOCASE' is required
     # to search case insensitively when USER_IFIND_MODE is 'nocase_collation'.
-    email = sa.Column(sa.String(255, collation='NOCASE'), nullable=True, unique=True)
+    email = sa.Column(sa.String(255, collation='NOCASE'),
+                      nullable=True, unique=True)
     email_confirmed_at = sa.Column(sa.DateTime())
     email_opt_in = sa.Column(sa.Boolean(), nullable=False, server_default='0')
     password = sa.Column(sa.String(255), nullable=False, server_default='')
     # User personal information
-    first_name = sa.Column(sa.String(100, collation='NOCASE'), nullable=False, server_default='')
-    last_name = sa.Column(sa.String(100, collation='NOCASE'), nullable=False, server_default='')
+    first_name = sa.Column(sa.String(100, collation='NOCASE'),
+                           nullable=False, server_default='')
+    last_name = sa.Column(sa.String(100, collation='NOCASE'),
+                          nullable=False, server_default='')
     # Define the relationship to Role via UserRoles
     roles = relationship('Role', 'user_roles')
 
@@ -71,14 +79,19 @@ class Role(db.Model):
     name = sa.Column(sa.String(50), unique=True)
 
 # Define the UserRoles association table
+
+
 class UserRoles(db.Model):
     """
     UserRoles model which joins User to Role.
     """
     __tablename__ = 'user_roles'
     id = sa.Column(sa.Integer(), primary_key=True)
-    user_id = sa.Column(sa.Integer(), sa.ForeignKey('user.id', ondelete='CASCADE'))
-    role_id = sa.Column(sa.Integer(), sa.ForeignKey('roles.id', ondelete='CASCADE'))
+    user_id = sa.Column(sa.Integer(), sa.ForeignKey(
+        'user.id', ondelete='CASCADE'))
+    role_id = sa.Column(sa.Integer(), sa.ForeignKey(
+        'roles.id', ondelete='CASCADE'))
+
 
 class Task(db.Model):
     """
@@ -87,18 +100,24 @@ class Task(db.Model):
     such as status, sprint, deadline, etc.
     """
     __tablename__ = 'task'
-    id = sa.Column(sa.Integer(),primary_key=True)
-    task = sa.Column(sa.String(1024),nullable=False)
-    story_id = sa.Column(sa.Integer(),sa.ForeignKey('story.id'),nullable=False)
-    sprint_id = sa.Column(sa.Integer(),sa.ForeignKey('sprint.id'),nullable=True)
+    id = sa.Column(sa.Integer(), primary_key=True)
+    task = sa.Column(sa.String(1024), nullable=False)
+    story_id = sa.Column(sa.Integer(), sa.ForeignKey(
+        'story.id'), nullable=False)
+    sprint_id = sa.Column(
+        sa.Integer(), sa.ForeignKey('sprint.id'), nullable=True)
     estimate = sa.Column(sa.Float())
     actual = sa.Column(sa.Float())
     deadline = sa.Column(sa.Date())
-    recurring = sa.Column(sa.Boolean(),nullable=False,server_default='0')
-    status = sa.Column(sa.String(12),nullable=False,server_default='To-Do')
-    user_id = sa.Column(sa.Integer(),sa.ForeignKey('user.id'))
+    recurring = sa.Column(sa.Boolean(), nullable=False, server_default='0')
+    status = sa.Column(sa.String(12), nullable=False, server_default='To-Do')
+    user_id = sa.Column(sa.Integer(), sa.ForeignKey('user.id'))
     work_items = relationship('Work')
     schedules = relationship('ScheduleTask')
+
+    def to_dict(self):
+        return {c.name: getattr(self, c.name) for c in self.__table__.columns}
+
 
 class Tag(db.Model):
     """
@@ -106,10 +125,11 @@ class Tag(db.Model):
     Just an additional string to group stories differently from Epic.
     """
     __tablename__ = 'tag'
-    id = sa.Column(sa.Integer(),primary_key=True)
+    id = sa.Column(sa.Integer(), primary_key=True)
     tag = sa.Column(sa.String(255), nullable=False)
-    user_id = sa.Column(sa.Integer,sa.ForeignKey('user.id'),nullable=False)
-    stories = relationship('Story','tag_story')
+    user_id = sa.Column(sa.Integer, sa.ForeignKey('user.id'), nullable=False)
+    stories = relationship('Story', 'tag_story')
+
 
 class Story(db.Model):
     """
@@ -117,23 +137,29 @@ class Story(db.Model):
     Project object between Epic and Task level
     """
     __tablename__ = 'story'
-    id = sa.Column(sa.Integer(),primary_key=True)
-    story = sa.Column(sa.String(255),nullable=False)
-    epic_id = sa.Column(sa.Integer(),sa.ForeignKey('epic.id'),nullable=False)
-    prioritization = sa.Column(sa.Integer(),server_default='1',nullable=False)
+    id = sa.Column(sa.Integer(), primary_key=True)
+    story = sa.Column(sa.String(255), nullable=False)
+    epic_id = sa.Column(sa.Integer(), sa.ForeignKey('epic.id'), nullable=False)
+    prioritization = sa.Column(
+        sa.Integer(), server_default='1', nullable=False)
     deadline = sa.Column(sa.Date())
-    user_id = sa.Column(sa.Integer(),sa.ForeignKey('user.id'),nullable=False)
+    user_id = sa.Column(sa.Integer(), sa.ForeignKey('user.id'), nullable=False)
     tasks = relationship('Task')
     tags = relationship('Tag', 'tag_story')
+
+    def to_dict(self):
+        return {c.name: getattr(self, c.name) for c in self.__table__.columns}
+
 
 class TagStory(db.Model):
     """
     TagStory model which joins Story to Tag.
     """
     __tablename__ = 'tag_story'
-    id = sa.Column(sa.Integer(),primary_key=True)
-    tag_id = sa.Column(sa.Integer(),sa.ForeignKey('tag.id'))
-    story_id = sa.Column(sa.Integer(),sa.ForeignKey('story.id'))
+    id = sa.Column(sa.Integer(), primary_key=True)
+    tag_id = sa.Column(sa.Integer(), sa.ForeignKey('tag.id'))
+    story_id = sa.Column(sa.Integer(), sa.ForeignKey('story.id'))
+
 
 class Epic(db.Model):
     """
@@ -146,10 +172,14 @@ class Epic(db.Model):
     deadline = sa.Column(sa.Date())
     user_id = sa.Column(sa.Integer, sa.ForeignKey('user.id'))
     stories = relationship('Story')
-    tasks = relationship('Task','story',
-        primaryjoin=Story.epic_id==id,
-        secondaryjoin=Task.story_id==Story.id)
+    tasks = relationship('Task', 'story',
+                         primaryjoin=Story.epic_id == id,
+                         secondaryjoin=Task.story_id == Story.id)
     #tags = relationship('Tag','story')
+
+    def to_dict(self):
+        return {c.name: getattr(self, c.name) for c in self.__table__.columns}
+
 
 class Sprint(db.Model):
     """
@@ -158,14 +188,18 @@ class Sprint(db.Model):
     is populated with tasks via Task.sprint_id
     """
     __tablename__ = 'sprint'
-    id = sa.Column(sa.Integer(),primary_key=True)
-    start_date = sa.Column(sa.Date(),nullable=False)
-    end_date = sa.Column(sa.Date(),nullable=False)
-    user_id = sa.Column(sa.Integer(),sa.ForeignKey('user.id'),nullable=False)
+    id = sa.Column(sa.Integer(), primary_key=True)
+    start_date = sa.Column(sa.Date(), nullable=False)
+    end_date = sa.Column(sa.Date(), nullable=False)
+    user_id = sa.Column(sa.Integer(), sa.ForeignKey('user.id'), nullable=False)
     tasks = relationship('Task')
-    stories = relationship('Story','task')
+    stories = relationship('Story', 'task')
     #epics = relationship('epic',secondary='story',tertiary='task')
     schedule = relationship('ScheduleTask')
+
+    def to_dict(self):
+        return {c.name: getattr(self, c.name) for c in self.__table__.columns}
+
 
 class ScheduleTask(db.Model):
     """
@@ -175,13 +209,14 @@ class ScheduleTask(db.Model):
     associated with it.
     """
     __tablename__ = 'schedule_task'
-    id = sa.Column(sa.Integer(),primary_key=True)
-    task_id = sa.Column(sa.Integer(),sa.ForeignKey('task.id'),nullable=False)
-    sprint_id = sa.Column(sa.Integer(),sa.ForeignKey('sprint.id'),nullable=False)
-    user_id = sa.Column(sa.Integer(),sa.ForeignKey('user.id'),nullable=False)
-    sprint_day = sa.Column(sa.Date(),nullable=False)
-    sprint_hour = sa.Column(sa.Integer(),nullable=False)
-    note = sa.Column(sa.String(2048),nullable=True)
+    id = sa.Column(sa.Integer(), primary_key=True)
+    task_id = sa.Column(sa.Integer(), sa.ForeignKey('task.id'), nullable=False)
+    sprint_id = sa.Column(sa.Integer(), sa.ForeignKey(
+        'sprint.id'), nullable=False)
+    user_id = sa.Column(sa.Integer(), sa.ForeignKey('user.id'), nullable=False)
+    sprint_day = sa.Column(sa.Date(), nullable=False)
+    sprint_hour = sa.Column(sa.Integer(), nullable=False)
+    note = sa.Column(sa.String(2048), nullable=True)
 
     def to_dict(self):
         """
@@ -190,6 +225,6 @@ class ScheduleTask(db.Model):
         return {'id': self.id,
                 'task_id': self.task_id,
                 'sprint_id': self.sprint_id,
-                'sprint_day': str(self.sprint_day) ,
-                'sprint_hour':self.sprint_hour ,
-                'note': self.note }
+                'sprint_day': str(self.sprint_day),
+                'sprint_hour': self.sprint_hour,
+                'note': self.note}
