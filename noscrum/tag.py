@@ -12,7 +12,6 @@ from noscrum.db import get_db, Tag
 
 bp = Blueprint('tag', __name__, url_prefix='/tag')
 
-
 def get_tags():
     """
     Get tag records for the given current user

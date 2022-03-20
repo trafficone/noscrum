@@ -97,6 +97,16 @@ class ConfigClass():
         return str(self.get_dict())
 
 
+    def get_dict(self):
+        """
+        Return a dictionary for ConfigClass locals
+        """
+        return dict([(k,v) for k,v in locals()])
+
+    def __str__(self):
+        return str(self.get_dict())
+
+
 def create_app(test_config=None):
     """
     Creates the Flask application for NoScrum.

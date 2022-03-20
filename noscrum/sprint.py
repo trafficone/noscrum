@@ -16,7 +16,6 @@ from noscrum.story import get_stories
 statuses = ['To-Do', 'In Progress', 'Done']
 bp = Blueprint('sprint', __name__, url_prefix='/sprint')
 
-
 def get_task(task_id):
     """
     Task record for user for identifier number

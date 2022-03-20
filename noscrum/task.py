@@ -48,6 +48,13 @@ def get_task(task_id):
     return Task.query.filter(Task.id == task_id).filter(Task.user_id == current_user.id).first()
 
 
+def get_task(task_id):
+    """
+    Task record for user for identifier number
+    @task_id task record identification number
+    """
+    return Task.query.filter(Task.id==task_id).filter(Task.user_id == current_user.id).first()
+
 def get_tasks_for_story(story_id):
     """
     Get all task records for the current story
@@ -56,6 +63,17 @@ def get_tasks_for_story(story_id):
     return Task.query.filter(Task.story_id == story_id)\
         .filter(Task.user_id == current_user.id).all()
 
+def get_story_summary():
+    """
+    Get task summary for each story by task ID
+    """
+    app_db = get_db()
+    return app_db.session.query(
+        Task.story_id,
+        app_db.func.sum(Task.estimate).label('est'),
+        app_db.func.count(Task.id).filter(Task.estimate is None).label('unest'),
+        app_db.func.count(Task.id).filter(Task.status != 'Done').label('incomplete'),
+        app_db.func.count().label('task_count')).group_by(Task.story_id).all()
 
 def get_story_summary():
     """
@@ -111,7 +129,6 @@ def create_task(task, story_id, estimate, deadline, sprint_id):
     app_db.session.add(newtask)
     app_db.session.commit()
     return get_task_by_name(task, story_id)
-
 
 def update_task(task_id, task, story_id, estimate, status, actual, deadline, sprint_id, recurring):
     """

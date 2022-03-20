@@ -17,13 +17,11 @@ def get_user(user_id):
     """
     return User.query.filter(User.id == user_id).first()
 
-
 def get_user_by_username(username):
     """
     Return user record given a username request
     """
     return User.query.filter(User.username == username).first()
-
 
 def get_current_user():
     """
