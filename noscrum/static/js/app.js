@@ -134,3 +134,9 @@ var create_task = function(
         );
         return callback(new_task);
     };
+
+    var selectCurrentWeek = function() {
+        window.setTimeout(function () {
+            $('.week-picker').find('.ui-datepicker-current-day a').addClass('ui-state-active')
+        }, 1);
+    }

@@ -10,7 +10,7 @@ from flask_user import current_user, login_required
 
 from noscrum.story import get_story, get_stories
 from noscrum.epic import get_epics, get_null_epic
-from noscrum.sprint import get_current_sprint, get_sprint, get_sprint_number_for_user
+from noscrum.sprint import get_current_sprint, get_sprint, get_sprints
 from noscrum.db import get_db, Task
 
 bp = Blueprint('task', __name__, url_prefix='/task')
@@ -320,10 +320,7 @@ def list_all():
     epics = get_epics()
     colors = ['primary', 'secondary', 'success', 'alert', 'warning']
     current_sprint = get_current_sprint()
-    if current_sprint is not None:
-        current_sprint_number = get_sprint_number_for_user(current_sprint.id)
-    else:
-        current_sprint_number = None
+    user_sprints = get_sprints()
     if is_json:
         return {'Success': True, 'tasks': rowproxy_to_dict(tasks),
                            'epics': [x.to_dict() for x in epics],
@@ -331,7 +328,7 @@ def list_all():
                            'current_sprint': current_sprint.id}
     return render_template('task/list.html',
                            current_sprint=current_sprint,
-                           sprint_number=current_sprint_number,
+                           sprints=user_sprints,
                            tasks=tasks,
                            epics=epics,
                            stories=stories,

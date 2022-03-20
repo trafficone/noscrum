@@ -491,6 +491,11 @@ def create():
         end_date = request.form['end_date']
         force_create = request.form.get('force_create', None)
         error = None
+        same_sprint = get_sprint_by_date(start_date=start_date,end_date=end_date)
+        if same_sprint is not None:
+            if is_json:
+                return {'Success':True,'sprint_id':same_sprint.id}
+            return redirect(url_for('sprint.show',sprint_id=same_sprint.id))
         start_sprint = get_sprint_by_date(start_date=start_date)
         end_sprint = get_sprint_by_date(end_date=end_date)
         if not start_date:
