@@ -45,9 +45,6 @@ def get_stories(sprint_view=False, sprint_id=None):
         'ORDER BY prioritization DESC',
         {'user_id': current_user.id, 'sprint_id': sprint_id}).fetchall()
 
-        'ORDER BY prioritization DESC',
-        {'user_id':current_user.id, 'sprint_id':sprint_id}).fetchall()
-
 def get_stories_by_epic(epic_id):
     """
     Return queried stories faor the given epic
@@ -159,12 +156,8 @@ def get_tag_story(story_id, tag_id):
         .filter(Tag.user_id == current_user.id)\
         .filter(Tag.id == tag_id).first()
 
-<<<<<<< HEAD
 
 def insert_tag_story(story_id, tag_id):
-=======
-def insert_tag_story(story_id,tag_id):
->>>>>>> main
     """
     Attach a tag to a given story using the id
     @param story_id story identification value
