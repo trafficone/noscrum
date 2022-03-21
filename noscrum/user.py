@@ -1,13 +1,11 @@
 """
 User view and database controller
 """
-from flask import (
-    Blueprint, redirect, url_for
-)
+from flask import Blueprint, redirect, url_for
 from flask_user import current_user
 from noscrum.db import User
 
-bp = Blueprint('user', __name__, url_prefix='/user')
+bp = Blueprint("user", __name__, url_prefix="/user")
 
 
 def get_user(user_id):
@@ -17,11 +15,13 @@ def get_user(user_id):
     """
     return User.query.filter(User.id == user_id).first()
 
+
 def get_user_by_username(username):
     """
     Return user record given a username request
     """
     return User.query.filter(User.username == username).first()
+
 
 def get_current_user():
     """
@@ -41,7 +41,7 @@ def authenticate_user(username, credential):
         return user
 
 
-@bp.route('/', methods=('GET', 'PUT'))
+@bp.route("/", methods=("GET", "PUT"))
 def profile():
     """
     The _currently active_ user's profile page
@@ -49,5 +49,5 @@ def profile():
     PUT: not implemented, update a user's data
     """
     if not current_user:
-        redirect(url_for('user.login'))
+        return redirect(url_for("user.login"))
     return current_user.username

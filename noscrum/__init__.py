@@ -14,12 +14,13 @@ from flask_user import UserManager
 from flask_foundation import Foundation
 
 
-class DatabaseSingleton():
+class DatabaseSingleton:
     """
     Database singleton, holds the app database
     instance information in such a way that it
     does not break the app/developer's brains.
     """
+
     app_db = None
     __instance = None
 
@@ -42,7 +43,7 @@ class DatabaseSingleton():
         """
         if DatabaseSingleton.__instance is None:
             DatabaseSingleton(database)
-            print('DB Instance', DatabaseSingleton.__instance)
+            print("DB Instance", DatabaseSingleton.__instance)
         return DatabaseSingleton.__instance
 
     @staticmethod
@@ -69,10 +70,11 @@ class DatabaseSingleton():
         return instance.app_db
 
 
-class ConfigClass():
+class ConfigClass:
     """Flask application config"""
-    SECRET_KEY = os.environ.get('FLASK_SECRET_KEY')
-    SQLALCHEMY_DATABASE_URI = 'sqlite:///noscrum.sqlite'
+
+    SECRET_KEY = os.environ.get("FLASK_SECRET_KEY")
+    SQLALCHEMY_DATABASE_URI = "sqlite:///noscrum.sqlite"
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
     USER_APP_NAME = "NoScrum"
@@ -97,16 +99,6 @@ class ConfigClass():
         return str(self.get_dict())
 
 
-    def get_dict(self):
-        """
-        Return a dictionary for ConfigClass locals
-        """
-        return dict([(k,v) for k,v in locals()])
-
-    def __str__(self):
-        return str(self.get_dict())
-
-
 def create_app(test_config=None):
     """
     Creates the Flask application for NoScrum.
@@ -114,7 +106,7 @@ def create_app(test_config=None):
     load_dotenv()
     # Create and Configure the app
     running_app = Flask(__name__, instance_relative_config=True)
-    running_app.config.from_object(__name__+'.ConfigClass')
+    running_app.config.from_object(__name__ + ".ConfigClass")
     # Init Flask-BabelEx
     Babel(running_app)
     Foundation(running_app)
@@ -134,13 +126,29 @@ def create_app(test_config=None):
     print("Creating Database")
     DatabaseSingleton.create_singleton(app_db)
     print("Populating Database")
-    from noscrum.db import User, Role, Task, Story, Epic, Tag, TagStory, Sprint, Work, UserRoles, ScheduleTask
+    # TODO: Unused Import is implicitly used by DB, but this prevents import cycle
+    from noscrum.db import ( # pylint: disable=unused-import,import-outside-toplevel
+        User,   # pylint: disable=unused-import
+        Role, # pylint: disable=unused-import
+        Task, # pylint: disable=unused-import
+        Story, # pylint: disable=unused-import
+        Epic, # pylint: disable=unused-import
+        Tag, # pylint: disable=unused-import
+        TagStory, # pylint: disable=unused-import
+        Sprint, # pylint: disable=unused-import
+        Work, # pylint: disable=unused-import
+        UserRoles, # pylint: disable=unused-import
+        ScheduleTask, # pylint: disable=unused-import
+    )
+
     app_db.create_all()
 
     # These need app to exist before they can be imported
     UserManager(running_app, app_db, User)
 
+    # pylint: disable=import-outside-toplevel
     from noscrum import epic, story, task, sprint, tag, work, user, semi_static
+
     running_app.register_blueprint(epic.bp)
     running_app.register_blueprint(story.bp)
     running_app.register_blueprint(task.bp)
@@ -153,5 +161,5 @@ def create_app(test_config=None):
     return running_app
 
 
-if __name__ == 'noscrum':
+if __name__ == "noscrum":
     app = create_app()

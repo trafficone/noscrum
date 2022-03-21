@@ -1,0 +1,82 @@
+************* Module noscrum.__init__
+noscrum/__init__.py:129:5: W0511: TODO: Unused Import is implicitly used by DB, but this prevents import cycle (fixme)
+************* Module noscrum
+noscrum/__init__.py:102:0: R0914: Too many local variables (22/15) (too-many-locals)
+************* Module noscrum.db
+noscrum/db.py:22:0: R0903: Too few public methods (0/2) (too-few-public-methods)
+noscrum/db.py:74:0: R0903: Too few public methods (0/2) (too-few-public-methods)
+noscrum/db.py:88:0: R0903: Too few public methods (0/2) (too-few-public-methods)
+noscrum/db.py:120:4: C0116: Missing function or method docstring (missing-function-docstring)
+noscrum/db.py:99:0: R0903: Too few public methods (1/2) (too-few-public-methods)
+noscrum/db.py:124:0: R0903: Too few public methods (0/2) (too-few-public-methods)
+noscrum/db.py:153:4: C0116: Missing function or method docstring (missing-function-docstring)
+noscrum/db.py:137:0: R0903: Too few public methods (1/2) (too-few-public-methods)
+noscrum/db.py:157:0: R0903: Too few public methods (0/2) (too-few-public-methods)
+noscrum/db.py:188:4: C0116: Missing function or method docstring (missing-function-docstring)
+noscrum/db.py:168:0: R0903: Too few public methods (1/2) (too-few-public-methods)
+noscrum/db.py:209:4: C0116: Missing function or method docstring (missing-function-docstring)
+noscrum/db.py:192:0: R0903: Too few public methods (1/2) (too-few-public-methods)
+noscrum/db.py:213:0: R0903: Too few public methods (1/2) (too-few-public-methods)
+************* Module noscrum.search
+noscrum/search.py:4:0: C0103: Constant name "alltext" doesn't conform to UPPER_CASE naming style (invalid-name)
+************* Module noscrum.sprint
+noscrum/sprint.py:20:5: W0511: FIXME: This function exists to prevent a cyclical import that breaks everything (fixme)
+noscrum/sprint.py:377:16: W0511: FIXME: Schedule Item should set hour amount (fixme)
+noscrum/sprint.py:271:0: R0914: Too many local variables (16/15) (too-many-locals)
+noscrum/sprint.py:301:20: C0121: Comparison 'Task.sprint_id == None' should be 'Task.sprint_id is None' (singleton-comparison)
+noscrum/sprint.py:335:0: R0914: Too many local variables (18/15) (too-many-locals)
+noscrum/sprint.py:396:0: R0914: Too many local variables (19/15) (too-many-locals)
+noscrum/sprint.py:396:0: R0911: Too many return statements (7/6) (too-many-return-statements)
+noscrum/sprint.py:396:0: R0912: Too many branches (25/12) (too-many-branches)
+noscrum/sprint.py:396:0: R0915: Too many statements (67/50) (too-many-statements)
+noscrum/sprint.py:541:0: R0912: Too many branches (14/12) (too-many-branches)
+************* Module noscrum.story
+noscrum/story.py:243:0: R0911: Too many return statements (7/6) (too-many-return-statements)
+noscrum/story.py:243:0: R0912: Too many branches (18/12) (too-many-branches)
+noscrum/story.py:338:0: R0912: Too many branches (13/12) (too-many-branches)
+************* Module noscrum.tag
+noscrum/tag.py:122:0: R0911: Too many return statements (7/6) (too-many-return-statements)
+************* Module noscrum.task
+noscrum/task.py:136:0: R0913: Too many arguments (9/5) (too-many-arguments)
+noscrum/task.py:191:0: R0912: Too many branches (15/12) (too-many-branches)
+noscrum/task.py:256:0: R0912: Too many branches (18/12) (too-many-branches)
+************* Module noscrum.user
+noscrum/user.py:33:0: R1710: Either all return statements in a function should return an expression, or none of them should. (inconsistent-return-statements)
+************* Module noscrum.work
+noscrum/work.py:161:20: R1719: The if expression can be replaced with 'bool(test)' (simplifiable-if-expression)
+noscrum/work.py:187:4: R1705: Unnecessary "elif" after "return" (no-else-return)
+noscrum/work.py:171:0: R1710: Either all return statements in a function should return an expression, or none of them should. (inconsistent-return-statements)
+noscrum/work.py:1:0: R0401: Cyclic import (noscrum -> noscrum.story -> noscrum.db) (cyclic-import)
+noscrum/work.py:1:0: R0401: Cyclic import (noscrum -> noscrum.story -> noscrum.epic -> noscrum.db) (cyclic-import)
+noscrum/work.py:1:0: R0401: Cyclic import (noscrum -> noscrum.user -> noscrum.db) (cyclic-import)
+noscrum/work.py:1:0: R0401: Cyclic import (noscrum -> noscrum.work -> noscrum.task -> noscrum.sprint -> noscrum.story -> noscrum.db) (cyclic-import)
+noscrum/work.py:1:0: R0401: Cyclic import (noscrum -> noscrum.story -> noscrum.tag -> noscrum.db) (cyclic-import)
+noscrum/work.py:1:0: R0401: Cyclic import (noscrum -> noscrum.work -> noscrum.task -> noscrum.story -> noscrum.db) (cyclic-import)
+noscrum/work.py:1:0: R0401: Cyclic import (noscrum -> noscrum.work -> noscrum.story -> noscrum.db) (cyclic-import)
+noscrum/work.py:1:0: R0801: Similar lines in 2 files
+==noscrum.sprint:[17:31]
+==noscrum.task:[42:54]
+def get_task(task_id):
+    """
+    Task record for user for identifier number
+    @task_id task record identification number
+    """
+    return (
+        Task.query.filter(Task.id == task_id)
+        .filter(Task.user_id == current_user.id)
+        .first()
+    )
+
+ (duplicate-code)
+noscrum/work.py:1:0: R0801: Similar lines in 2 files
+==noscrum.task:[202:208]
+==noscrum.work:[139:144]
+        if is_json:
+            abort(404, error)
+        else:
+            flash(error, "error")
+            return redirect(url_for("task.list_all")) (duplicate-code)
+
+------------------------------------------------------------------
+Your code has been rated at 9.62/10 (previous run: 9.57/10, +0.05)
+
