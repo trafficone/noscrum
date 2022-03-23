@@ -5,7 +5,6 @@
 {% endblock %}
 
 {% block content %}
-TODO: Support Editing Story from Here
 <div class="story">
     <div class="{{ story['color'] }}">
         <h2>{{ story['epic'] }}</h2>
@@ -22,4 +21,5 @@ TODO: Support Editing Story from Here
             </ul>
     </div>
 </div>
+<a href="{{url_for('task.list_all')}}" class="button">Return to Task Showcase</a>
 {% endblock %}

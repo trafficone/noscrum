@@ -52,7 +52,7 @@
             <div class="small-2 columns label float-right status {{ tasks[task]['status'].lower().replace(' ','-') }} " task="{{ task }}">{{ tasks[task].status }}</div>
         </div>
         <div class="row task-work">
-            <div class="small-2 columns">Est:{{ tasks[task].estimate }}</div>
+            <div class="small-2 columns estimate">Est:{{ tasks[task].estimate }}</div>
             <div class="small-6 columns hours-worked float-right">Scheduled:{{ tasks[task].sum_sched}}</div>
             <div class="small-8 columns note">Schedule-specific Note</div>
             <div class="small-2 columns label float-right " data-close>Schedule</div>
@@ -116,15 +116,27 @@
     </form>
     <button class="close-button" data-close aria-label="Close" > <span aria-hidden="true">&times;</span></button>
 </div>
+<div id="PlanHours" class="reveal" data-reveal>
+    <h3>Plan Task</h3>
+    How many hours of this task work are you planning?
+    <form data-abid onsubmit="return false;">
+        <label>Hours
+            <input type="text" placeholder="2" class="editable" pattern="\d+\.?\d*" />
+            <small class="error">Hours must be a number.</small>
+        </label>
+        <button type="submit" class="button" id="plan_hours_button">Plan</button>
+    </form>
+    <button class="close-button" data-close aria-label="Close" > <span aria-hidden="true">&times;</span></button>
+</div>
 {% endif %}
-<h4>Total Hours Scheduled for Sprint: {{totals.sprint}}</h4>
+<h4>Total Hours Scheduled for Sprint: <span class="planned_hrs">{{0 if not totals.sprint else totals.sprint}}</span></h4>
 {% for day in schedule %}
     {% if day[0] % 2 == 0 %}
-        <div class="yellow">
+        <div class="day yellow">
     {% else %}
-        <div class="green">
+        <div class="day green">
     {% endif %}
-        {{day[1]}} {{day[1].strftime('%A')}} <em>Hours Scheduled for Day: {{totals['d'+day[1].strftime('%yyyy-%mm-%dd')]}}</em>
+        {{day[1]}} {{day[1].strftime('%A')}} <em>Hours Scheduled for Day: <span class="planned_hrs">{{0 if not totals['d'+day[1].strftime('%yyyy-%mm-%dd')] else totals['d'+day[1].strftime('%yyyy-%mm-%dd')]}}</span></em>
             {% for hour in day[2] %}
             <div style="display:flex;flex-direction:row;" id="r_{{day[0]}}_{{hour}}">
             <div class="small-2" >
@@ -140,6 +152,7 @@
                     id="{{ 'task_%d_%d'%(schedule.task_id,schedule.id) }}" 
                     schedule_id="{{ schedule.id }}"
                     recurring="{{ schedule.recurring_schedule }}"
+                    planned="{{schedule.schedule_time}}"
                     update_url="{{ url_for('task.show',task_id=schedule.task_id,is_json=True) }}">
                     <div class="row">
                         <div class="small-2 columns epic-label">{{ epics[tasks[schedule.task_id].epic_id].epic }}</div>
@@ -148,7 +161,7 @@
                         <div {% if not static %}title="Click to update status"{% endif %} class="small-2 columns label float-right status {{ tasks[schedule.task_id]['status'].lower().replace(' ','-') }} " task="{{ tasks[schedule.task_id].task }}">{{ tasks[schedule.task_id].status }}</div>
                     </div>
                     <div class="row">
-                        <div class="small-2 columns">Est:{{ tasks[schedule.task_id].estimate }}</div>
+                        <div class="small-2 columns">Est:{{ None if not tasks[schedule.task_id].estimate else tasks[schedule.task_id].estimate|round|int }} Plan:{{0 if not schedule.schedule_time else "%.2f"|format(schedule.schedule_time)}}</div>
                         <div class="small-6 columns float-right">Worked:<span class="hours-worked">{{tasks[schedule.task_id].hours_worked}}</span></div>
                         {% if static %}
                         <div class="small-8 columns note">{% if schedule.note %}{{schedule.note}}{% elif not tasks[schedule.task_id].single_sprint_task == 1 %}⚠️Task in multiple sprints!{% endif %}</div>
@@ -198,6 +211,7 @@
         update_url = "{{url_for('sprint.schedule',sprint_id=sprint_id)}}?is_json=True";
         hour = source.attr('hour');
         day = source.attr('day');
+        planned_hours = source.attr('planned');
         index_day = source.attr('index_day');
         task_id = source.attr('task');
         row = source.parent();
@@ -218,6 +232,11 @@
             if(json['task_id']!=task_id){
                 throw 'Task ID doesn\'t match input';
             }
+            daily = row.closest('.day').find('.planned_hrs')
+            sprintly = daily.closest('h4').find('.planned_hrs')
+            planned_hours = Number(planned_hours)
+            daily.text(Number(daily.text())-planned_hours)
+            sprintly.text(Number(sprintly.text())-planned_hours)
             /*row.append($('<div>')
                                 .attr('class','unscheduled-container scheduled container')
                                 .attr('hour',hour)
@@ -231,6 +250,17 @@
     };
     schedule = function(source,day,hour,task_id,recurring){
         index_day = source.attr('index_day');
+        // Get the number of hours planned 
+        $('#plan_hours_button').off('click');
+        $('#PlanHours').foundation('open');
+        $('#plan_hours_button').click(function() {
+            $('#PlanHours').foundation('close');
+            planned_hours = $(this).parent().find('input').val();
+            console.log('Planning: '+planned_hours);
+            schedule_next(source,day,hour,task_id,recurring,planned_hours);
+        });
+    };
+    schedule_next = function(source,day,hour,task_id,recurring,planned_hours){
         if(task_id === undefined) {
             throw "Cannot schedule null task ID";
         }
@@ -246,10 +276,9 @@
             var row = source.parent()
             source.remove();
         }
+        var ajax_data = {task_id:task_id,sprint_day:day,sprint_hour:hour,schedule_time:planned_hours};
         if (recurring) {
-            var ajax_data =  {task_id:task_id,sprint_day:day,sprint_hour:hour,recurring:1};
-        } else { 
-            var ajax_data = {task_id:task_id,sprint_day:day,sprint_hour:hour};
+            ajax_data.recurring = 1;
         }
         update_url = "{{url_for('sprint.schedule',sprint_id=sprint_id)}}?is_json=True";
         //console.log({task_id:task_id,sprint_day:day,sprint_hour:hour})
@@ -268,6 +297,7 @@
                     .attr('hour',hour)
                     .attr('index_day',index_day)
                     .attr('schedule_id',json.schedule_task.id)
+                    .attr('planned',planned_hours)
                     .addClass('scheduled')
                     .click(scheduled_click)
                     .draggable({
@@ -280,13 +310,20 @@
                     target.attr('recurring',0);
                 }
                 target.children('div.task-header').click(scheduled_click);
+                est = target.children('div.estimate');
+                est.text(est.text() + 'Plan: '+planned_hours);
                 target.children('div.task-work').children('div.hours-worked').html('Worked: <span class="hours-worked">0</span>');
                 target.find('div.note').html('<input class="note" type="text" placeholder="Schedule-specific Note" />')
                 target.children('div.task-work').children('div.label.float-right').text('Log Work')
                     .addClass('log-work');
                 row.append(target);
+                daily = row.closest('.day').find('.planned_hrs')
+                sprintly = daily.closest('h4').find('.planned_hrs')
+                planned_hours = Number(planned_hours)
+                daily.text(Number(daily.text())+planned_hours)
+                sprintly.text(Number(sprintly.text())+planned_hours)
                 if (row.parent().find('.unscheduled-container').length == 0){
-                row.parent().append($('<div>').attr('id','r_'+index_day+'_'+(hour+1))
+                   row.parent().append($('<div>').attr('id','r_'+index_day+'_'+(hour+1))
                                     .addClass('row')
                                     .append( $('<div>').addClass('small-2'))
                                     .append(
@@ -326,16 +363,17 @@
             l_day = locator[1];
             l_hour = Number(locator[2]);
             //bump task down one
-            l_hour+=2;
+            l_hour+=1;
             next_row_id = 'r_'+l_day+'_'+l_hour;
             next_row = $('#'+next_row_id);
             console.log('Next row is: '+next_row_id);
             unschedule(source);
+            /* # Should not be possible in current paradigm
             if(!(next_row.html() === undefined)){
                 console.log(locator[2]+' Moving task '+source_id+' to row '+next_row_id);
                 next_task = next_row.children('.scheduled');
                 bump(next_task,source_task_id);
-            }
+            }*/
             schedule(row,day,source_hour,task_id);
         } else {
             schedule(source,day,source_hour,task_id);

@@ -239,6 +239,6 @@ class ScheduleTask(db.Model):
             "sprint_id": self.sprint_id,
             "sprint_day": str(self.sprint_day),
             "sprint_hour": self.sprint_hour,
-            "schedule_time": self.schedule_time,
+            "schedule_time": float(self.schedule_time),
             "note": self.note,
         }

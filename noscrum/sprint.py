@@ -209,7 +209,7 @@ def get_schedule_by_time(sprint_id, sprint_day, sprint_hour, schedule_id=None):
     return query.first()
 
 
-def create_schedule(sprint_id, task_id, sprint_day, sprint_hour, note):
+def create_schedule(sprint_id, task_id, sprint_day, sprint_hour, note, schedule_time):
     """
     Create a new schedule for the task with ID
     @param task_id ID for task being scheduled
@@ -225,6 +225,7 @@ def create_schedule(sprint_id, task_id, sprint_day, sprint_hour, note):
         sprint_day=sprint_day,
         sprint_hour=sprint_hour,
         note=note,
+        schedule_time=schedule_time,
         user_id=current_user.id,
     )
     app_db.session.add(new_schedule)
@@ -232,7 +233,7 @@ def create_schedule(sprint_id, task_id, sprint_day, sprint_hour, note):
     return get_schedule_by_time(sprint_id, sprint_day, sprint_hour)
 
 
-def update_schedule(sched_id, task_id, sprint_day, sprint_hour, note):
+def update_schedule(sched_id, task_id, sprint_day, sprint_hour, note, schedule_time):
     """
     Update a schedule with given ID for sprint
     @param sched_id a Schedule record identity
@@ -249,6 +250,7 @@ def update_schedule(sched_id, task_id, sprint_day, sprint_hour, note):
             task_id: task_id,
             sprint_day: sprint_day,
             sprint_hour: sprint_hour,
+            schedule_time: schedule_time,
             note: note,
         },
         synchronize_session="fetch",
@@ -411,6 +413,7 @@ def schedule(sprint_id):
             sprint_day = datetime.strptime(sprint_day, "%Y-%m-%d").date()
         sprint_hour = request.form.get("sprint_hour", None)
         schedule_id = request.form.get("schedule_id", None)
+        schedule_time = request.form.get('schedule_time',0)
         note = request.form.get("note")
         recurring = request.form.get("recurring", 0)
         error = None
@@ -428,8 +431,6 @@ def schedule(sprint_id):
             error = "No Sprint Hour Found in Request"
         elif sprint_day > sprint.end_date:
             error = "Scheduled day is after sprint end"
-        elif int(sprint_hour) > 24:
-            error = "Sprint Hour is > 24"
         if error is None:
             old_record = get_schedule_by_time(
                 sprint_id, sprint_day, sprint_hour, schedule_id=schedule_id
@@ -443,11 +444,11 @@ def schedule(sprint_id):
                 # Delete the existing task before scheduling another'
             if schedule_id is None:
                 schedule_task = create_schedule(
-                    sprint_id, task_id, sprint_day, sprint_hour, note
+                    sprint_id, task_id, sprint_day, sprint_hour, note, schedule_time
                 )
             else:
                 schedule_task = update_schedule(
-                    schedule_id, task_id, sprint_day, sprint_hour, note
+                    schedule_id, task_id, sprint_day, sprint_hour, note, schedule_time
                 )
 
             # print(f'Adding schedule for task {task_id} to sprint {sprint_id} ' +
