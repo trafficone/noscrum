@@ -167,7 +167,7 @@ def update_task(
     if sprint_id is not None:
         data["sprint_id"] = sprint_id
     if recurring is not None:
-        if isinstance(recurring,str) and recurring.lower().startswith('f'):
+        if isinstance(recurring, str) and recurring.lower().startswith("f"):
             recurring = False
         recurring = bool(recurring)
         data["recurring"] = recurring
@@ -333,7 +333,7 @@ def show(task_id):
     return render_template("task/show.html", task=task)
 
 
-rowproxy_to_dict = lambda x: [ dict(rowproxy.items()) for rowproxy in x ]
+rowproxy_to_dict = lambda x: [dict(rowproxy.items()) for rowproxy in x]
 
 
 @bp.route("/", methods=["GET"])

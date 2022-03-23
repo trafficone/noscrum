@@ -225,6 +225,7 @@ class ScheduleTask(db.Model):
     user_id = sa.Column(sa.Integer(), sa.ForeignKey("user.id"), nullable=False)
     sprint_day = sa.Column(sa.Date(), nullable=False)
     sprint_hour = sa.Column(sa.Integer(), nullable=False)
+    schedule_time = sa.Column(sa.Numeric(), nullable=True)
     note = sa.Column(sa.String(2048), nullable=True)
 
     def to_dict(self):
@@ -237,5 +238,6 @@ class ScheduleTask(db.Model):
             "sprint_id": self.sprint_id,
             "sprint_day": str(self.sprint_day),
             "sprint_hour": self.sprint_hour,
+            "schedule_time": self.schedule_time,
             "note": self.note,
         }

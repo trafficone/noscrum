@@ -127,18 +127,18 @@ def create_app(test_config=None):
     DatabaseSingleton.create_singleton(app_db)
     print("Populating Database")
     # TODO: Unused Import is implicitly used by DB, but this prevents import cycle
-    from noscrum.db import ( # pylint: disable=unused-import,import-outside-toplevel
-        User,   # pylint: disable=unused-import
-        Role, # pylint: disable=unused-import
-        Task, # pylint: disable=unused-import
-        Story, # pylint: disable=unused-import
-        Epic, # pylint: disable=unused-import
-        Tag, # pylint: disable=unused-import
-        TagStory, # pylint: disable=unused-import
-        Sprint, # pylint: disable=unused-import
-        Work, # pylint: disable=unused-import
-        UserRoles, # pylint: disable=unused-import
-        ScheduleTask, # pylint: disable=unused-import
+    from noscrum.db import (  # pylint: disable=unused-import,import-outside-toplevel
+        User,  # pylint: disable=unused-import
+        Role,  # pylint: disable=unused-import
+        Task,  # pylint: disable=unused-import
+        Story,  # pylint: disable=unused-import
+        Epic,  # pylint: disable=unused-import
+        Tag,  # pylint: disable=unused-import
+        TagStory,  # pylint: disable=unused-import
+        Sprint,  # pylint: disable=unused-import
+        Work,  # pylint: disable=unused-import
+        UserRoles,  # pylint: disable=unused-import
+        ScheduleTask,  # pylint: disable=unused-import
     )
 
     app_db.create_all()
