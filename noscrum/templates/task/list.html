@@ -215,6 +215,7 @@
             dataType: "json"
         }).done( function(json_resp){
             sprint_id = json_resp.sprint_id;
+            $('.sprintPlan').attr('sprint',sprint_id);
         })
         $('#sprintPlan').html('Exit Sprint Planning');
         $('#sprintPlan').addClass('active');

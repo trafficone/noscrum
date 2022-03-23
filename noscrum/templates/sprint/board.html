@@ -9,8 +9,8 @@
 {% block content %}
 {% if not static %}
 <div id="Unscheduled" class="large reveal" data-reveal>
-<h4>Tasks</h4>
-{% for task in tasks %}
+<h4>Planned Tasks</h4>
+{% for task in tasks if not tasks[task].recurring %}
     <div class="task-container container" 
         task="{{ task }}" 
         story="{{ tasks[task].story_id }}" 
@@ -32,8 +32,34 @@
         </div>
     </div> 
 {% endfor %}
-<button class="button" id="unschedule-task">Unschedule Task</button>
-<button class="button float-right" id="unplanned-task" data-open="UnplannedTask">Add Unplanned Task</button>
+<button class="button" id="unschedule-task" title="Unschedule Task Clicked (if any)">Unschedule Task</button>
+<button class="button float-right" id="unplanned-task" title="Create or Add Task to Sprint" data-open="UnplannedTask">Add Unplanned Task</button>
+<h5>Recurring Tasks</h5>
+<button class="button" id="showRecurring">Click to Show</button>
+<div id="recurringList" class="hide">
+{% for task in tasks if tasks[task].recurring %}
+    <div class="task-container container recurring" 
+        task="{{ task }}" 
+        story="{{ tasks[task].story_id }}" 
+        id="{{ 'task_%d'%task }}" 
+        update_url="{{ url_for('task.show',task_id=task,is_json=True) }}""
+        recurring="{{tasks[task].recurring}}"
+        unestimated_time="{{ 2 if not tasks[task].estimate else tasks[task].estimate - tasks[task].sum_sched }}">
+        <div class="row task-header">
+            <div class="small-2 columns epic-label">{{ epics[tasks[task].epic_id].epic }}</div>
+            <div class="small-6 columns story-label">{{ stories[tasks[task].story_id].story }}</div>
+            <div class="small-8 columns">{{ tasks[task].task }}</div>
+            <div class="small-2 columns label float-right status {{ tasks[task]['status'].lower().replace(' ','-') }} " task="{{ task }}">{{ tasks[task].status }}</div>
+        </div>
+        <div class="row task-work">
+            <div class="small-2 columns">Est:{{ tasks[task].estimate }}</div>
+            <div class="small-6 columns hours-worked float-right">Scheduled:{{ tasks[task].sum_sched}}</div>
+            <div class="small-8 columns note">Schedule-specific Note</div>
+            <div class="small-2 columns label float-right " data-close>Schedule</div>
+        </div>
+    </div> 
+{% endfor %}
+</div>
 <button class="close-button" data-close aria-label="Close" > <span aria-hidden="true">&times;</span></button>
 </div>
 <div id="UnplannedTask" class="reveal" data-reveal>
@@ -531,6 +557,16 @@
         } else {
             $('#newTaskName').val('');
             $('#newTaskName').attr('contentEditable',false);
+        }
+    });
+    $('#showRecurring').click(function(){
+        var is_hidden = $('#recurringList').hasClass('hide');
+        if(is_hidden){
+            $('#recurringList').removeClass('hide');
+            $('#showRecurring').text('Click to Hide')
+        } else {
+            $('#recurringList').addClass('hide');
+            $('#showRecurring').text('Click to Show')
         }
     });
     //{% endif %}
