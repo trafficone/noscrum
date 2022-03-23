@@ -1,6 +1,7 @@
 """
 Database Models and Controller (not much to do, thanks SQLAlchemy!)
 """
+# pylint: disable=too-few-public-methods
 
 import asyncio
 import sqlalchemy as sa

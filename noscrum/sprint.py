@@ -327,12 +327,10 @@ def get_sprint_details(sprint_id):
     current_day = sprint_days.start_date
     i = 0
     schedule_list = []
-    print(schedule_records_dict.keys())
     while current_day <= sprint_days.end_date:
         task_count = len(
             [1 for x in schedule_records_dict.keys() if x.startswith(str(current_day))]
         )
-        print(str(current_day), task_count)
         schedule_list.append((i, current_day, range(task_count + 1)))
         i += 1
         current_day += timedelta(1)

@@ -25,4 +25,4 @@ jobs:
         pip install -r requirements.txt
     - name: Analysing the code with pylint
       run: |
-        pylint --fail-under 9.5 --generated-members from_json,query $(git ls-files 'noscrum/*.py')
+        pylint --fail-under 9.5 --fail-on E --generated-members from_json,query $(git ls-files 'noscrum/*.py')
