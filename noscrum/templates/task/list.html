@@ -100,7 +100,14 @@
                     <div class="columns small-2"><span class='float-right'>A:{{ task.actual }}</span></div>
                     <div class="columns large-6">
                         <input id="task_deadline_{{task.id}}_datepicker" name="date" class="datepicker-input" type="hidden" />
-                        <span  title="Click to Edit" contentEditable="false" update_key="deadline" id="task_deadline_{{task.id}}" class="task-deadline editable deadline">{{ 'No Deadline Set' if not task.deadline else task.deadline }} </span>
+                        <span  title="Click to Edit" contentEditable="false" update_key="deadline" id="task_deadline_{{task.id}}" class="task-deadline editable deadline">
+                            {% if not task.deadline and not task.recurring %}
+                            No Deadline Set
+                            {% elif not task.deadline and task.recurring %}
+                            No End Date Set
+                            {% else %}
+                            {{task.deadline}}
+                            {% endif %}</span>
                         {% if task.status != 'Done' and task.sprint_id != current_sprint.id %}
                             <button id="task_sprint_btn_{{task.id}}" class="float-right button sprintPlan invisible" style="margin:0.1rem;padding:0.2em 1em;" task="{{task.id}}" sprint="{{current_sprint.id}}">Add to Sprint</button>
                             <span class="float-right" id="task_sprint_status_{{task.id}}"></span>
@@ -168,7 +175,6 @@
             } else {
                 $(this).parent().parent().parent().removeClass('hide');
             }
-            //console.log($(this).parent().parent().parent().attr('task'))
         })
         $('.next_filter').off('click');
         $('#deadline_filter_reveal').off('submit');
@@ -283,10 +289,18 @@
         current_status = $(this).text().trim();
         var changing_status = $(this);
         is_recurring = 1;
-        new_text = 'Recurring';
+        deadline_rec = $(this).parent().find('.deadline')
         if (current_status == 'Recurring') {
             is_recurring = 0;
             new_text = 'One-Time'
+            if(deadline_rec.text().includes('Set')){
+                deadline_rec.text('No Deadline Set')
+            }
+        } else {
+            new_text = 'Recurring';
+            if(deadline_rec.text().includes('Set')){
+                deadline_rec.text('No End Date Set')
+            }
         }
         update_url = $(this).parent().parent().attr('update_url');
         $.ajax({
