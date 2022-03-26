@@ -675,7 +675,6 @@ def active():
     is_json = request.args.get("is_json", False)
     current_sprint = get_current_sprint()
     if not current_sprint:
-        has_sprints = get_sprints()
         today = date.today()
         current_sprint = create_sprint(today-timedelta(today.weekday()),today-timedelta(today.weekday()-6))
     sprint_id = current_sprint.id
