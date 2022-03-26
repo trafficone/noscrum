@@ -389,9 +389,8 @@ def get_sprint_board(sprint_id, sprint, is_static=False):
     for schedule_item in schedule_records:
         cuts = [f"d{schedule_item.sprint_day.strftime('%yyyy-%mm-%dd')}", "sprint"]
         for cut in cuts:
-            totals[cut] = (
-                totals.get(cut, 0) + 2
-            )  # FIXME: Schedule Item should set hour amount
+            if schedule_item.schedule_time is not None:
+                totals[cut] = totals.get(cut, 0) + schedule_item.schedule_time  
     return render_template(
         "sprint/board.html",
         sprint=sprint,
@@ -424,6 +423,8 @@ def schedule(sprint_id):
         sprint_hour = request.form.get("sprint_hour", None)
         schedule_id = request.form.get("schedule_id", None)
         schedule_time = request.form.get('schedule_time',0)
+        if schedule_time == 'None':
+            schedule_time = 0
         note = request.form.get("note")
         recurring = request.form.get("recurring", 0)
         error = None
