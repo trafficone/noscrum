@@ -167,7 +167,9 @@ def update_task(
     if sprint_id is not None:
         data["sprint_id"] = sprint_id
     if recurring is not None:
-        if isinstance(recurring, str) and recurring.lower().startswith("f"):
+        if (isinstance(recurring, str) and (
+            recurring.lower().startswith("f") or
+            recurring == '0')):
             recurring = False
         recurring = bool(recurring)
         data["recurring"] = recurring

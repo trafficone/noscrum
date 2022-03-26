@@ -117,7 +117,7 @@
                             <span class="float-right" id="task_sprint_status_{{task.id}}">In Sprint Starting {{sprints[task.sprint_id].start_date}}</span>
                         {% endif %}
                     </div>
-                    <div title="Click to Edit" class="columns small-2 label recurring" style="margin-right:1rem;">{% if task.recurring %}Recurring{% else %}One-Time{% endif %}</div>
+                    <div title="Click to Edit" class="columns small-2 label recurring {{'recur_color' if task.recurring }}" style="margin-right:1rem;">{% if task.recurring %}Recurring{% else %}One-Time{% endif %}</div>
                 </div>
             </div>
             {% endfor %}
@@ -288,20 +288,8 @@
     $('.recurring').click(function(event) {
         current_status = $(this).text().trim();
         var changing_status = $(this);
-        is_recurring = 1;
-        deadline_rec = $(this).parent().find('.deadline')
-        if (current_status == 'Recurring') {
-            is_recurring = 0;
-            new_text = 'One-Time'
-            if(deadline_rec.text().includes('Set')){
-                deadline_rec.text('No Deadline Set')
-            }
-        } else {
-            new_text = 'Recurring';
-            if(deadline_rec.text().includes('Set')){
-                deadline_rec.text('No End Date Set')
-            }
-        }
+        is_recurring = current_status != 'Recurring';
+        deadline_rec = $(this).parent().find('.deadline');
         update_url = $(this).parent().parent().attr('update_url');
         $.ajax({
             url: update_url,
@@ -309,6 +297,19 @@
             type: 'POST',
             dataType: 'json'
         }).done(function() {
+            if (is_recurring) {
+                new_text = 'Recurring';
+                changing_status.addClass('recur_color')
+                if(deadline_rec.text().includes('Set')){
+                    deadline_rec.text('No End Date Set');
+                }
+            } else {
+                new_text = 'One-Time';
+                changing_status.removeClass('recur_color')
+                if(deadline_rec.text().includes('Set')){
+                    deadline_rec.text('No Deadline Set');
+                }
+            }
             changing_status.text(new_text);
         });
     });

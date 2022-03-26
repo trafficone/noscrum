@@ -63,3 +63,4 @@ div.status { margin: .2rem; padding: .4rem .4rem 0rem .3rem; }
 .editable{ background:#ffffffaa; font-weight:lighter;padding-left:.2rem;padding-right:.2rem;}
 .editable:hover{cursor:pointer;}
 .recurring:hover{cursor:pointer; background-color:#14679e;}
+.recur_color{background-color:rgb(178, 102, 180) !important;}
