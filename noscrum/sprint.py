@@ -146,16 +146,18 @@ def update_sprint(sprint_id, start_date, end_date):
     app_db.session.commit()
     return get_sprint(sprint_id)
 
+
 def delete_sprint(sprint_id):
     """
     Delete a sprint with a given sprint_id
     """
     app_db = get_db()
-    Sprint.query.filter(Sprint.id==sprint_id).filter(
+    Sprint.query.filter(Sprint.id == sprint_id).filter(
         Sprint.user_id == current_user.id
     ).delete()
     app_db.session.commit()
     return sprint_id
+
 
 def get_schedules_for_sprint(sprint_id):
     """
@@ -422,8 +424,8 @@ def schedule(sprint_id):
             sprint_day = datetime.strptime(sprint_day, "%Y-%m-%d").date()
         sprint_hour = request.form.get("sprint_hour", None)
         schedule_id = request.form.get("schedule_id", None)
-        schedule_time = request.form.get('schedule_time',0)
-        if schedule_time == 'None':
+        schedule_time = request.form.get("schedule_time", 0)
+        if schedule_time == "None":
             schedule_time = 0
         note = request.form.get("note")
         recurring = request.form.get("recurring", 0)
@@ -669,7 +671,7 @@ def show(sprint_id):
         if is_json:
             abort(500, error)
         flash(error, "error")
-    if request.method == 'DELETE':
+    if request.method == "DELETE":
         # Not even pretending there's a non-JSON way to reach this
         if len(sprint.tasks) > 0:
             abort(500, "Cannot delete sprint with tasks in it")
@@ -692,7 +694,9 @@ def active():
     current_sprint = get_current_sprint()
     if not current_sprint:
         today = date.today()
-        current_sprint = create_sprint(today-timedelta(today.weekday()),today-timedelta(today.weekday()-6))
+        current_sprint = create_sprint(
+            today - timedelta(today.weekday()), today - timedelta(today.weekday() - 6)
+        )
     sprint_id = current_sprint.id
     if is_json:
         return json.dumps(

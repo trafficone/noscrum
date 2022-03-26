@@ -167,9 +167,9 @@ def update_task(
     if sprint_id is not None:
         data["sprint_id"] = sprint_id
     if recurring is not None:
-        if (isinstance(recurring, str) and (
-            recurring.lower().startswith("f") or
-            recurring == '0')):
+        if isinstance(recurring, str) and (
+            recurring.lower().startswith("f") or recurring == "0"
+        ):
             recurring = False
         recurring = bool(recurring)
         data["recurring"] = recurring
@@ -360,7 +360,7 @@ def list_all():
             "stories": [x.to_dict() for x in stories],
             "current_sprint": current_sprint.id,
         }
-    sprints = {x.id:x for x in user_sprints}
+    sprints = {x.id: x for x in user_sprints}
     return render_template(
         "task/list.html",
         current_sprint=current_sprint,
