@@ -5,19 +5,37 @@
 {% endblock %}
 
 {% block content %}
+    <h3>HERE BE DRAGONS - Do not create a Sprint unles you know what you are doing</h3>
 <div class="post">
     <form method="post">
     <label for="start_date">Start Date: </label>
-    <input name="start_date" id="start_date" type="date" value="{{start_date}}">
+    <input name="start_date" id="start_date" class="datepicker-input" placeholder="Click for Start Date">
     <label for="end_date">End Date: </label>
-    <input name="end_date" id="end_date" type="date" value="{{end_date}}">
+    <input name="end_date" id="end_date" class="datepicker-input" placeholder="Click for End Date">
     </form>
     <input class="button float-left" type="submit" value="Create">
     <button id="cancelCreate" class="button float-right" >Cancel</button>
 </div>
-<script>
-    $('#cancelCreate').click(function() {
-        $(location).attr(‘href’, "{{url_for('sprint.list_all')}}");
-    });
-</script>
 {% endblock %}
+
+<script>
+//{% block jquery %}
+    $('#cancelCreate').click(function() {
+        $(location).attr('href', "{{url_for('sprint.list_all')}}");
+    });
+    $('#start_date').datepicker({
+        firstDay: 1,
+        dateFormat: 'yy-mm-dd',
+        onClose: function(dateText, inst){
+            if ($('#end_date').val() == undefined) {
+                var date = new Date();
+                var d = $('#start_date').datepicker('getDate');
+                date.setDate(d.getDate() + 7);
+                pretty_date = $.datepicker.formatDate('yy-mm-dd',date);
+                $('#end_date').val(pretty_date);
+            }
+        }
+    });
+    $('#end_date').datepicker({firstDay: 1});
+//{% endblock %}
+</script>
