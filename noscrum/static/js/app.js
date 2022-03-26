@@ -42,6 +42,7 @@ var create_task = function(
                 .html('E:&nbsp;'+
                     $('<span>').addClass('editable')
                     .addClass('note')
+                    .addClass('estimate')
                     .attr('title','Click to Edit Estimate')
                     .attr('id','task_est_'+task_json.id)
                     .attr('update_key','estimate')

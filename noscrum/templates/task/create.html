@@ -55,8 +55,11 @@ $('.create_task').submit(function(){
     }
     var caller = $(this);
     var append_and_clear = function(new_property){
+        var estimate = new_property.find('.estimate').text();
+        estimate = isNaN(Number(estimate)) ? undefined : Number(estimate);
         caller.parent().parent().parent().children('.containers').append(new_property);
         caller.find('.cancel').trigger('click');
+        update_task_metrics(new_property,estimate);
     };
     $.ajax({
         url:'/task/create/'+story_id+'?is_json=true',//FIXME: Hard coded URLS? *tsk tsk*

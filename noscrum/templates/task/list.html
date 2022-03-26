@@ -75,7 +75,7 @@
     <div class="row story-summary">
         <div class="small-2 columns story-label">
             <div>Hours Estimated: <span class="story-metric estimate">{{ story.tasks|selectattr("estimate")|sum(attribute='estimate') }}</span></div>
-            <div>Incomplete Tasks: <span class="story-metric incomplete">{{ story.active_tasks|length }}</span></div>
+            <div>Incomplete Tasks: <span class="story-metric incomplete">{{ story.tasks|selectattr("status","eq","To-Do")|list|length }}</span></div>
             {% if story.story != 'NULL' %}
                 <input id="story_deadline_{{story.id}}_datepicker" name="date" class="datepicker-input" type="hidden" />
                 <span  title="Click to Edit" contentEditable="false" update_url="{{ url_for('story.show',story_id=story.id,is_json=True) }}" update_key="deadline" id="story_deadline_{{story.id}}" class="story-deadline editable deadline">{{ 'No Deadline Set' if not story.deadline else story.deadline }}</span>
@@ -325,7 +325,7 @@
     $('.create').click(function(){
         var get_url = $(this).val()
         //FIXME: This looks like an XSS attack waiting to happen
-        $(this).siblings('div').load($(this).val(),function(){
+        $(this).siblings('div').load(get_url,function(){
             console.log('Loaded '+get_url);
         });
         $(this).addClass('invisible');
@@ -473,8 +473,30 @@
             update_value(update_url,submit_json,current_key,current_value,prev_value,updating_object);
             $(this).attr('contentEditable','false');
         });//*/
-        
     });
+    update_task_metrics = function(updating_object,delta) {
+        var story_estimate = updating_object.closest('.story-summary').find('.story-metric.estimate');
+        var story_incomplete = updating_object.closest('.story-summary').find('.story-metric.incomplete');
+        var epic_incomplete = updating_object.closest('.epic').find('.epic-metric.incomplete');
+        var epic_tasks = updating_object.closest('.epic').find('.epic-metric.tasks');
+        var epic_unest = updating_object.closest('.epic').find('.epic-metric.unestimated');
+        var epic_estimate = updating_object.closest('.epic').find('.epic-metric.estimate');
+        story_estimate_val = isNaN(Number(story_estimate.text())) ? 0 : Number(story_estimate.text())
+        story_incomplete_val = isNaN(Number(story_incomplete.text())) ? 0 : Number(story_incomplete.text())
+        epic_estimate_val = isNaN(Number(epic_estimate.text())) ? 0 : Number(epic_estimate.text())
+        epic_incomplete_val = isNaN(Number(epic_incomplete.text())) ? 0 : Number(epic_incomplete.text())
+        epic_unest_val = isNaN(Number(epic_unest.text())) ? 0 : Number(epic_unest.text())
+        epic_tasks_val = isNaN(Number(epic_tasks.text())) ? 0 : Number(epic_tasks.text())
+        epic_tasks.text(epic_tasks_val + 1);
+        if (delta === undefined) {
+            epic_unest.text(epic_unest_val + 1);
+        } else {
+            story_estimate.text(story_estimate_val + delta);
+            epic_estimate.text(epic_estimate_val + delta);
+        }
+        story_incomplete.text(story_incomplete_val + 1);
+        epic_incomplete.text(epic_incomplete_val + 1);
+    };
 
 // {% endblock %}
 </script>
