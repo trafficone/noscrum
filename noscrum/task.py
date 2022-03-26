@@ -360,10 +360,11 @@ def list_all():
             "stories": [x.to_dict() for x in stories],
             "current_sprint": current_sprint.id,
         }
+    sprints = {x.id:x for x in user_sprints}
     return render_template(
         "task/list.html",
         current_sprint=current_sprint,
-        sprints=user_sprints,
+        sprints=sprints,
         tasks=tasks,
         epics=epics,
         stories=stories,

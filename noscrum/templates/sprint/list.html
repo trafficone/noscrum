@@ -24,7 +24,7 @@
     <div class="column">
         <h4>{% if sprint.id == current_sprint.id%}Current {% endif %}Sprint Summary:</h4>
         <ul>
-            <li>Estimate of Work: {{ sprint['estimate'] }}</li>
+            <li>Estimate of Work: {{ sprint.tasks | selectattr('estimate') | sum(attribute='estimate')}}</li>
             <li>Stories: {{ sprint['stories']|length }}</li>
             <li>Total Tasks: {{ sprint['tasks']|length }}</li>
         </ul>

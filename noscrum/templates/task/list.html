@@ -108,13 +108,17 @@
                             {% else %}
                             {{task.deadline}}
                             {% endif %}</span>
-                        {% if task.status != 'Done' and task.sprint_id != current_sprint.id %}
-                            <button id="task_sprint_btn_{{task.id}}" class="float-right button sprintPlan invisible" style="margin:0.1rem;padding:0.2em 1em;" task="{{task.id}}" sprint="{{current_sprint.id}}">Add to Sprint</button>
-                            <span class="float-right" id="task_sprint_status_{{task.id}}"></span>
+                        {% if task.status != Done %}
+                            <button id="task_sprint_btn_{{task.id}}" class="float-right button sprintPlan hidden" style="margin:0.1rem;padding:0.2em 1em;" task="{{task.id}}" sprint="{{current_sprint.id}}">Add to Sprint</button>
+                        {% endif %}
+                        {% if task.status == 'Done' %}
+                            <span class="float-right" id="task_sprint_status_{{task.id}}">Task Complete</span>
                         {% elif task.sprint_id == current_sprint.id %}
                             <span class="float-right" id="task_sprint_status_{{task.id}}">In Current Sprint</span>
                         {% elif task.sprint_id %}
-                            <span class="float-right" id="task_sprint_status_{{task.id}}">In Sprint Starting {{sprints[task.sprint_id].start_date}}</span>
+                            <span class="float-right" id="task_sprint_status_{{task.id}}">In Sprint of {{sprints[task.sprint_id].start_date}}</span>
+                        {% else %}
+                            <span class="float-right" id="task_sprint_status_{{task.id}}">Task Not in Sprint</span>
                         {% endif %}
                     </div>
                     <div title="Click to Edit" class="columns small-2 label recurring {{'recur_color' if task.recurring }}" style="margin-right:1rem;">{% if task.recurring %}Recurring{% else %}One-Time{% endif %}</div>
@@ -207,7 +211,7 @@
         } else {
             $(this).removeClass('active');
             $(this).text("Plan Sprint");
-            $('.sprintPlan').addClass('invisible');
+            $('.sprintPlan').addClass('hidden');
         }
     });
     $('#SprintPlanActivate').click(function(){
@@ -225,7 +229,7 @@
         })
         $('#sprintPlan').html('Exit Sprint Planning');
         $('#sprintPlan').addClass('active');
-        $('.sprintPlan').removeClass('invisible');
+        $('.sprintPlan').removeClass('hidden');
     });
     $('.sprintPlan').click(function() {
         task_id = $(this).attr('task');
@@ -245,7 +249,12 @@
         }).done(function () {
             $("#task_sprint_btn_"+task_id).addClass('invisible');
             $("#task_sprint_btn_"+task_id).remove();
-            $("#task_sprint_status_"+task_id).html("In Current Sprint");
+            if (sprint_id == '{{ current_sprint.id }}'){
+                $("#task_sprint_status_"+task_id).html("In Current Sprint");
+            } else {
+                $("#task_sprint_status_"+task_id).html("In Sprint");
+                $("#task_sprint_status_"+task_id).attr('title','Refresh to See Sprint');
+            }
             task_status = $('#task_status_'+task_id);
             if(task_status.html().endsWith('To-Do')){
                 task_status.click();
