@@ -146,6 +146,16 @@ def update_sprint(sprint_id, start_date, end_date):
     app_db.session.commit()
     return get_sprint(sprint_id)
 
+def delete_sprint(sprint_id):
+    """
+    Delete a sprint with a given sprint_id
+    """
+    app_db = get_db()
+    Sprint.query.filter(Sprint.id==sprint_id).filter(
+        Sprint.user_id == current_user.id
+    ).delete()
+    app_db.session.commit()
+    return sprint_id
 
 def get_schedules_for_sprint(sprint_id):
     """
@@ -622,7 +632,7 @@ def list_all():
     )
 
 
-@bp.route("/<int:sprint_id>", methods=("GET", "POST"))
+@bp.route("/<int:sprint_id>", methods=("GET", "POST", "DELETE"))
 @login_required
 def show(sprint_id):
     """
@@ -658,10 +668,15 @@ def show(sprint_id):
         if is_json:
             abort(500, error)
         flash(error, "error")
+    if request.method == 'DELETE':
+        # Not even pretending there's a non-JSON way to reach this
+        if len(sprint.tasks) > 0:
+            abort(500, "Cannot delete sprint with tasks in it")
+        else:
+            delete_sprint(sprint.id)
+            return {"Success": True, "sprint_id": sprint_id}
     if is_json:
-        return json.dumps(
-            {"Success": True, "sprint_id": sprint_id, "sprint": dict(sprint)}
-        )
+        return {"Success": True, "sprint_id": sprint_id, "sprint": dict(sprint)}
     return get_sprint_board(sprint_id, sprint, is_static=is_static)
 
 
