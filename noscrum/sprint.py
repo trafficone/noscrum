@@ -676,12 +676,8 @@ def active():
     current_sprint = get_current_sprint()
     if not current_sprint:
         has_sprints = get_sprints()
-        if len(has_sprints) == 0:
-            flash("Please create your first sprint.")
-        else:
-            flash("No currently active sprint. Create new sprint")
-        return redirect(url_for("sprint.create"))
-
+        today = date.today()
+        current_sprint = create_sprint(today-timedelta(today.weekday()),today-timedelta(today.weekday()-6))
     sprint_id = current_sprint.id
     if is_json:
         return json.dumps(
