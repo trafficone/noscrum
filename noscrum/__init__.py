@@ -147,7 +147,7 @@ def create_app(test_config=None):
     UserManager(running_app, app_db, User)
 
     # pylint: disable=import-outside-toplevel
-    from noscrum import epic, story, task, sprint, tag, work, user, semi_static
+    from noscrum import epic, story, task, sprint, tag, work, user, semi_static, search
 
     running_app.register_blueprint(epic.bp)
     running_app.register_blueprint(story.bp)
@@ -157,6 +157,7 @@ def create_app(test_config=None):
     running_app.register_blueprint(work.bp)
     running_app.register_blueprint(user.bp)
     running_app.register_blueprint(semi_static.bp)
+    running_app.register_blueprint(search.bp)
 
     return running_app
 
