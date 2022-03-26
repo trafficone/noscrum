@@ -33,7 +33,7 @@
         </div>
     </div> 
 {% endfor %}
-<button class="button" id="unschedule-task" title="Unschedule Task Clicked (if any)">Unschedule Task</button>
+<button class="button" id="unschedule-task" title="Unschedule Task Clicked (if any)" data-close>Unschedule Task</button>
 <button class="button float-right" id="unplanned-task" title="Create or Add Task to Sprint" data-open="UnplannedTask">Add Unplanned Task</button>
 <h5>Recurring Tasks</h5>
 <button class="button" id="showRecurring" data-toggle="recurringList">Click to Show</button>
@@ -133,7 +133,7 @@
     <button class="close-button" data-close aria-label="Close" > <span aria-hidden="true">&times;</span></button>
 </div>
 {% endif %}
-<h4>Total Hours Scheduled for Sprint: <span class="planned_hrs">{{0 if not totals.sprint else totals.sprint|float}}</span></h4>
+<h4>Total Hours Scheduled for Sprint: <span id="totalHours" class="planned_hrs">{{0 if not totals.sprint else totals.sprint|float}}</span></h4>
 {% for day in schedule %}
     {% if day[0] % 2 == 0 %}
         <div class="day yellow">
@@ -165,8 +165,8 @@
                         <div {% if not static %}title="Click to update status"{% endif %} class="small-2 columns label float-right status {{ tasks[schedule.task_id]['status'].lower().replace(' ','-') }} " task="{{ tasks[schedule.task_id].task }}">{{ tasks[schedule.task_id].status }}</div>
                     </div>
                     <div class="row">
-                        <div class="small-2 columns">Est:{{ None if not tasks[schedule.task_id].estimate else tasks[schedule.task_id].estimate|round|int }} Plan:{{0 if not schedule.schedule_time else "%.2f"|format(schedule.schedule_time)}}</div>
-                        <div class="small-6 columns float-right">Worked:<span class="hours-worked">{{tasks[schedule.task_id].hours_worked}}</span></div>
+                        <div class="small-2 columns">Est:{{ None if not tasks[schedule.task_id].estimate else tasks[schedule.task_id].estimate|float }} Plan:{{0 if not schedule.schedule_time else "%.2f"|format(schedule.schedule_time)}}</div>
+                        <div class="small-6 columns float-right">Worked:<span class="hours-worked">{{tasks[schedule.task_id].hours_worked|float}}</span></div>
                         {% if static %}
                         <div class="small-8 columns note">{% if schedule.note %}{{schedule.note}}{% elif not tasks[schedule.task_id].single_sprint_task == 1 %}⚠️Task in multiple sprints!{% endif %}</div>
                         <div class="small-2 columns"></div>
@@ -236,8 +236,8 @@
             if(json['task_id']!=task_id){
                 throw 'Task ID doesn\'t match input';
             }
-            daily = row.closest('.day').find('.planned_hrs')
-            sprintly = daily.closest('h4').find('.planned_hrs')
+            daily = row.closest('.day').find('.planned_hrs');
+            sprintly_nr = $('#totalHours');
             planned_hours = Number(planned_hours)
             daily.text(Number(daily.text())-planned_hours)
             sprintly.text(Number(sprintly.text())-planned_hours)
@@ -326,11 +326,11 @@
                 target.children('div.task-work').children('div.label.float-right').text('Log Work')
                     .addClass('log-work');
                 row.append(target);
-                daily = row.closest('.day').find('.planned_hrs')
-                sprintly = daily.closest('h4').find('.planned_hrs')
-                planned_hours = Number(planned_hours)
-                daily.text(Number(daily.text())+planned_hours)
-                sprintly.text(Number(sprintly.text())+planned_hours)
+                daily = row.closest('.day').find('.planned_hrs');
+                sprintly = $('#totalHours');
+                planned_hours = Number(planned_hours);
+                daily.text(Number(daily.text())+planned_hours);
+                sprintly.text(Number(sprintly.text())+planned_hours);
                 if (row.parent().find('.unscheduled-container').length == 0){
                    row.parent().append($('<div>').attr('id','r_'+index_day+'_'+(hour+1))
                                     .addClass('row')
