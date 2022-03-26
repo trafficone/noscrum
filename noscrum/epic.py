@@ -164,9 +164,9 @@ def show(epic_id):
             return redirect(url_for("epic.list_all"))
     if request.method == "POST":
         error = None
-        epic_name = request.form.get("name", epic["epic"])
-        color = request.form.get("color", epic["color"])
-        deadline = request.form.get("deadline", epic["deadline"])
+        epic_name = request.form.get("epic", epic.epic)
+        color = request.form.get("color", epic.color)
+        deadline = request.form.get("deadline", epic.deadline)
         other_epic = get_epic_by_name(epic_name)
 
         if not epic_id:
@@ -177,7 +177,7 @@ def show(epic_id):
         if error is None:
             update_epic(epic_id, epic_name, color, deadline)
             if is_json:
-                return json.dumps({"Success": True, "epic_id": epic_id})
+                return {"Success": True, "epic": epic.to_dict()}
             return redirect(url_for("epic.show", epic_id=epic_id))
         if is_json:
             abort(500, error)

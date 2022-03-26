@@ -390,7 +390,7 @@ def get_sprint_board(sprint_id, sprint, is_static=False):
         cuts = [f"d{schedule_item.sprint_day.strftime('%yyyy-%mm-%dd')}", "sprint"]
         for cut in cuts:
             if schedule_item.schedule_time is not None:
-                totals[cut] = totals.get(cut, 0) + schedule_item.schedule_time  
+                totals[cut] = totals.get(cut, 0) + schedule_item.schedule_time
     return render_template(
         "sprint/board.html",
         sprint=sprint,

@@ -55,7 +55,7 @@
 {% for epic in epics %}
 <div class="epic {{ epic.color }}">
     <div class="row">
-        <h3>{{ epic.epic if epic.epic != 'NULL' else 'Unscheduled Stories' }}</h3>
+        <h3 class="editable" update_key="epic" update_url="{{url_for('epic.show',epic_id=epic.id,is_json=True)}}">{{ epic.epic if epic.epic != 'NULL' else 'Unscheduled Stories' }}</h3>
                 <div class="columns small-3">Hours Estimated: <span class="epic-metric estimate">{{ epic.tasks|selectattr("estimate")|sum(attribute='estimate')}}</span></div>
                 <div class="columns small-3">Total Tasks: <span class="epic-metric tasks">{{ epic.tasks|length }}</span></div>
                 <div class="columns small-3">Incomplete Tasks: <span class="epic-metric incomplete">{{ epic.tasks|selectattr("status","eq","To-Do")|list|length }}</span></div>
