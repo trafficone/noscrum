@@ -59,7 +59,14 @@ var create_task = function(
         datepicker_input = $('<input>').addClass('datepicker-input')
                     .attr('id','task_deadline_'+task_json.id+'_datepicker')
                     .attr('name','date')
-                    .attr('type','hidden');
+                    .attr('type','hidden')
+                    .datepicker({
+                            firstDay: 1,
+                            dateFormat: 'yy-mm-dd',
+                            onClose: function(dateText, inst) {
+                            $(this).siblings('.deadline').focus().html(dateText).blur();
+                            }
+                        });
         task_deadline = $('<span>').addClass('task-deadline')
                     .addClass('editable')
                     .addClass('deadline')
@@ -133,6 +140,66 @@ var create_task = function(
             )
             .append(recurring)
         );
+        new_task.find('.editable').click(function(){
+            console.log("Clicked value "+$(this).text().trim());
+            //FIXME: This is an awful way to do this
+            update_url = $(this).attr('update_url');
+            var parent = $(this).parent()
+            var prev_value = $(this).text().trim();
+            if ($(this).text() == 'None' || $(this).text() == 'Unestimated'){
+                $(this).text('');
+            }
+            while(update_url === undefined){
+                update_url = parent.attr('update_url');
+                parent = parent.parent();
+                if (parent.parent() === undefined) {
+                    throw "Update URL not found!"
+                }
+            }
+            current_key = $(this).attr('update_key');
+            current_id = $(this).attr('id');
+            var updating_object = $(this);
+            var submit_json = {"submit":true};
+            $(this).addClass('postable');
+            $(this).removeClass('editable');
+            if($(this).hasClass('deadline')) {
+                $(this).attr('contentEditable','false');
+                var datepicker_id = '#'+$(this).attr('id')+'_datepicker';
+                console.log('found datepicker '+datepicker_id);
+                $(datepicker_id).focus()
+                $(datepicker_id).focus()
+            } else {
+                $(this).attr('contentEditable','true');
+                $(this).focus();
+                $(this).keydown(function(e) {
+                    // trap the return key being pressed
+                    if (e.keyCode === 13) {
+                        $(this).off('keydown');
+                        $(this).off('blur');
+                        $(this).attr('contentEditable','false');
+                        var current_value = $(this).text().trim();
+                        if (current_value === 'Updating...' || current_value == prev_value) {
+                            return;
+                        }
+                        console.log("Pressed Enter, so updating value to "+ current_value);
+                        $(this).text('Updating...');
+                        update_value(update_url,submit_json,current_key,current_value,prev_value,updating_object);
+                    }
+                });
+            }
+            $(this).blur(function(e) {
+                $(this).off('keydown');
+                $(this).off('blur');
+                current_value = $(this).text().trim();
+                if (current_value === 'Updating...' || current_value == prev_value) {
+                    return;
+                }
+                console.log("Blurred, so updating value to "+ current_value);
+                $(this).text('Updating...');
+                update_value(update_url,submit_json,current_key,current_value,prev_value,updating_object);
+                $(this).attr('contentEditable','false');
+            });//*/
+        });
         return callback(new_task);
     };
 
