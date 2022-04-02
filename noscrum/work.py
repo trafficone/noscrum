@@ -150,11 +150,11 @@ def create(task_id):
         work_date = datetime.strptime(work_date, "%Y-%m-%d").date()
     hours_worked = request.form.get("hours_worked", 0)
     try:
-        hours_worked = 0 if hours_worked == "" else int(hours_worked)
+        hours_worked = 0 if hours_worked == "" else float(hours_worked)
     except ValueError:
         if is_json:
-            abort(500, "Could not convert hours_worked to int.")
-        flash(f"Could not convert hours worked {hours_worked} to int.")
+            abort(500, "Could not convert hours_worked to number.")
+        flash(f"Could not convert hours worked {hours_worked} to number.")
         return redirect(url_for("work.list_for_task", task_id=task_id))
     status = request.form.get("status", task.status)
     update_status = request.form.get("update_status", False)
