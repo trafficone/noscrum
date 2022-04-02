@@ -152,6 +152,20 @@ def update_sprint(sprint_id, start_date, end_date):
     app_db.session.commit()
     return get_sprint(sprint_id)
 
+def delete_sprint(sprint_id):
+    """
+    Delete a sprint (if empty)
+    """
+    sprint = get_sprint(sprint_id)
+    if len(sprint.tasks) > 0:
+        raise Exception("Cannot delete empty sprint")
+    app_db = get_db()
+    Sprint.query.filter(Sprint.id == sprint_id).filter(
+        Sprint.user_id == current_user.id
+    ).delete()
+    app_db.session.commit()
+    return sprint_id
+
 
 def get_schedules_for_sprint(sprint_id):
     """

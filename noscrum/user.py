@@ -6,6 +6,7 @@ from typing import Optional
 import dotenv
 from fastapi import Depends, Request, APIRouter
 from fastapi.responses import RedirectResponse
+from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
 from fastapi_users import BaseUserManager, FastAPIUsers, models
 from fastapi_users_db_sqlalchemy import SQLAlchemyUserDatabase
 from fastapi_users.authentication import (
@@ -46,6 +47,7 @@ class UserManager(BaseUserManager[UserCreate, User]):
 
 async def get_user_manager(user_db: SQLAlchemyUserDatabase = Depends(get_db)):
     yield UserManager(user_db)
+
 bearer_transport = BearerTransport(tokenUrl="auth/jwt/login")
 def get_jwt_strategy() -> JWTStrategy:
     return JWTStrategy(secret=SECRET, lifetime_seconds=3600)
@@ -59,12 +61,14 @@ current_user = current_active_user
 def get_jwt_strategy() -> JWTStrategy:
     return JWTStrategy(secret=SECRET, lifetime_seconds=3600)
 
-def get_user(user_id):
+def get_user(db, username: str):
     """
     Return user record given an identity value
     @param user_id user's identification value
     """
-    return User.query.filter(User.id == user_id).first()
+    if username in db:
+        user_dict = db[username]
+        return UserInDB(**user_dict)
 
 
 def get_user_by_username(username):
