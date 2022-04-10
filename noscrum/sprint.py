@@ -328,11 +328,14 @@ def get_sprint_details(sprint_id):
     schedule_records_recurring = (
         ScheduleTask.query.join(Task)
         .filter(Task.recurring)
+        .filter(or_(Task.deadline == None,Task.deadline <= sprint_days.end_date))
         .filter(ScheduleTask.user_id == current_user.id)
     )
-    schedule_records_dict = {
-        f"{x.sprint_day}T{x.sprint_hour}:00": x for x in schedule_records_recurring
-    }
+    recurring_sprint_day = {i:sprint_days.start_date+timedelta(i) for i in range(7)}
+    schedule_records_dict = {}
+    for x in schedule_records_recurring:
+        x.sprint_day = recurring_sprint_day[x.sprint_day.weekday()]
+        schedule_records_dict[f"{x.sprint_day}T{x.sprint_hour}:00"] = x
     for record_std in schedule_records_std:
         key = f"{record_std.sprint_day}T{record_std.sprint_hour}:00"
         schedule_records_dict[key] = record_std
@@ -342,10 +345,9 @@ def get_sprint_details(sprint_id):
     i = 0
     schedule_list = []
     while current_day <= sprint_days.end_date:
-        task_count = len(
-            [1 for x in schedule_records_dict.keys() if x.startswith(str(current_day))]
-        )
-        schedule_list.append((i, current_day, range(task_count + 1)))
+        task_hours = [y.sprint_hour for x,y in schedule_records_dict.items() if x.startswith(str(current_day))]
+        task_hours.append(max(task_hours)+1)
+        schedule_list.append((i, current_day, task_hours))
         i += 1
         current_day += timedelta(1)
     return stories, epics, tasks, schedule_list, schedule_records, unplanned_tasks
