@@ -346,7 +346,10 @@ def get_sprint_details(sprint_id):
     schedule_list = []
     while current_day <= sprint_days.end_date:
         task_hours = [y.sprint_hour for x,y in schedule_records_dict.items() if x.startswith(str(current_day))]
-        task_hours.append(max(task_hours)+1)
+        if task_hours == []:
+            task_hours = [1]
+        else:
+            task_hours.append(max(task_hours)+1)
         schedule_list.append((i, current_day, task_hours))
         i += 1
         current_day += timedelta(1)
