@@ -21,7 +21,7 @@
         recurring="{{tasks[task].recurring}}"
         unestimated_time="{{ 2 if not tasks[task].estimate else tasks[task].estimate - tasks[task].sum_sched }}">
         <div class="row task-header">
-            <div class="small-2 columns epic-label">{{ epics[tasks[task].epic_id].epic }}</div>
+            <div class="small-2 columns epic-label {{epics[tasks[task].epic_id].color}}">{{ epics[tasks[task].epic_id].epic }}</div>
             <div class="small-6 columns story-label">{{ stories[tasks[task].story_id].story }}</div>
             <div class="small-8 columns">{{ tasks[task].task }}</div>
             <div class="small-2 columns label float-right status {{ tasks[task]['status'].lower().replace(' ','-') }} " task="{{ task }}">{{ tasks[task].status }}</div>
@@ -49,7 +49,7 @@
         recurring="{{tasks[task].recurring}}"
         unestimated_time="{{ 2 if not tasks[task].estimate else tasks[task].estimate - tasks[task].sum_sched }}">
         <div class="row task-header">
-            <div class="small-2 columns epic-label">{{ epics[tasks[task].epic_id].epic }}</div>
+            <div class="small-2 columns epic-label {{epics[tasks[task].epic_id].color }}">{{ epics[tasks[task].epic_id].epic }}</div>
             <div class="small-6 columns story-label">{{ stories[tasks[task].story_id].story }}</div>
             <div class="small-8 columns">{{ tasks[task].task }}</div>
             <div class="small-2 columns label float-right status {{ tasks[task]['status'].lower().replace(' ','-') }} " task="{{ task }}">{{ tasks[task].status }}</div>
@@ -161,7 +161,7 @@
                     planned="{{schedule.schedule_time}}"
                     update_url="{{ url_for('task.show',task_id=schedule.task_id,is_json=True) }}">
                     <div class="row">
-                        <div class="small-2 columns epic-label">{{ epics[tasks[schedule.task_id].epic_id].epic }}</div>
+                        <div class="small-2 columns epic-label {{epics[tasks[schedule.task_id].epic_id].color }} ">{{ epics[tasks[schedule.task_id].epic_id].epic }}</div>
                         <div class="small-6 columns story-label">{{ stories[tasks[schedule.task_id].story_id].story }}</div>
                         <div class="small-8 columns">{{ tasks[schedule.task_id].task }}</div>
                         <div {% if not static %}title="Click to update status"{% endif %} class="small-2 columns label float-right status {{ tasks[schedule.task_id]['status'].lower().replace(' ','-') }} " task="{{ tasks[schedule.task_id].task }}">{{ tasks[schedule.task_id].status }}</div>
@@ -505,7 +505,6 @@
                 append_planned_task = function(new_task) {
                     // do any additional magic here as needed
                     $('#PlannedTaskList').append(new_task);
-                    console.log("Created task "+new_task_id);
                     new_task.click( function() {
                         schedule(source,day,hour,new_task_id,false);
                         $('#Unscheduled').foundation('close');
