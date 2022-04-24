@@ -35,7 +35,8 @@ def get_tasks():
         + "count(1) * 2 sum_sched "
         + "FROM schedule_task group by task_id, sprint_id) sched "
         + "ON task.id = sched.task_id "
-        + "WHERE task.user_id = :user_id",
+        + "WHERE task.user_id = :user_id "
+        + "ORDER BY task.status, coalesce(task.deadline,'2222-12-22') ASC ",
         {"user_id": current_user.id},
     )
 

@@ -121,6 +121,18 @@ class Task(db.Model):
     def to_dict(self):
         return {c.name: getattr(self, c.name) for c in self.__table__.columns}
 
+    def __lt__(self,other):
+        if not isinstance(other,Task):
+            raise TypeError("Cannot compare Task with non-Task object")
+        if self.deadline is None:
+            return False
+        if other.deadline is None:
+            return True
+        return self.deadline < other.deadline
+
+    def __gt__(self,other):
+        return not self < other
+
 
 class Tag(db.Model):
     """
@@ -153,6 +165,23 @@ class Story(db.Model):
 
     def to_dict(self):
         return {c.name: getattr(self, c.name) for c in self.__table__.columns}
+
+    def __lt__(self,other):
+        if not isinstance(other,Story):
+            raise TypeError("Cannot compare Story to non-Story")
+        if other.prioritization > self.prioritization:
+            return True
+        if other.prioritization < self.prioritization:
+            return False
+        # prioritizations are equal
+        if self.deadline is None:
+            return False
+        if other.deadline is None:
+            return True
+        return self.deadline < other.deadline
+    
+    def __gt__(self,other):
+        return not self < other
 
 
 class TagStory(db.Model):

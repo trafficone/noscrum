@@ -61,7 +61,7 @@
                 <div class="columns small-3">Incomplete Tasks: <span class="epic-metric incomplete">{{ epic.tasks|selectattr("status","eq","To-Do")|list|length }}</span></div>
                 <div class="columns small-3">Tasks without Time Estimates: <span class="epic-metric unestimated">{{ epic.tasks|selectattr("estimate","none")|list|length }}</span></div>
     </div>
-    {% for story in stories if story.epic_id == epic.id %}
+    {% for story in stories | sort()  if story.epic_id == epic.id %}
     <div class="row story" update_url="{{ url_for('story.show',story_id=story.id,is_json=True) }}">
         <div class="float-left"><span class="badge {{ colors[story.prioritization] }}" title="Prioritization">{{ story.prioritization }}</span></div>
         &nbsp;
@@ -84,7 +84,7 @@
         </div>
         <div class="large-10 columns">
             <div class="containers">
-            {% for task in story.tasks %}
+            {% for task in story.tasks|sort() %}
             <div class="task-container container" 
                  task="{{ task.id }}" 
                  update_url="{{ url_for('task.show',task_id=task.id,is_json=True) }}">
