@@ -99,23 +99,28 @@ var create_task = function(
                         }
                     };
         // Sprint Board-Specific
-        task_epic = $('<div>').addClass('epic-label')
-                    .addClass('columns')
-                    .addClass('small-2')
-                    .text(task_json.epic);
-        task_story = $('<div>').addClass('story-label')
-                    .addClass('columns')
-                    .addClass('small-6')
-                    .text(task_json.story);
-        task_schedule = $('<div>').addClass('label')
-                        .addClass('small-2')
+        if ('epic' in task_json) {
+            task_epic = $('<div>').addClass('epic-label')
                         .addClass('columns')
-                        .addClass('label');
-        new_task = $('<div>').addClass('task-container')
-        .addClass('container')
-        .attr('update_url','/task/'+task_json.id+'?is_json=true')
-        .html(
-            $('<div>').addClass('task-header')
+                        .addClass('small-2')
+                        .text(task_json.epic);
+            task_story = $('<div>').addClass('story-label')
+                        .addClass('columns')
+                        .addClass('small-6')
+                        .text(task_json.story);
+            task_schedule = $('<div>').addClass('label')
+                            .addClass('small-2')
+                            .addClass('columns')
+                            .addClass('label');
+            task_header = $('<div>').addClass('task-header')
+                .addClass('row')
+                .html(task_epic)
+                .append(task_story)
+                .append(task_name)
+                .append(task_status)
+                .append($('<br>'))
+        } else {
+            task_header = $('<div>').addClass('task-header')
             .addClass('row')
             .html(task_name)
             .append(
@@ -124,6 +129,12 @@ var create_task = function(
             ).append(
                     task_status
             ).append($('<br>'))
+        }
+        new_task = $('<div>').addClass('task-container')
+        .addClass('container')
+        .attr('update_url','/task/'+task_json.id+'?is_json=true')
+        .attr('id','task_'+task_json.id)
+        .html( task_header
         ).append(
             $('<div>').addClass('task-work')
             .addClass('row')
@@ -152,8 +163,9 @@ var create_task = function(
             while(update_url === undefined){
                 update_url = parent.attr('update_url');
                 parent = parent.parent();
-                if (parent.parent() === undefined) {
-                    throw "Update URL not found!"
+                if (parent.parent().length == 0) {
+                    $(this).removeClass('.editable');
+                    return;
                 }
             }
             current_key = $(this).attr('update_key');

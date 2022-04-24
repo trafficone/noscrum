@@ -10,6 +10,7 @@
 {% if not static %}
 <div id="Unscheduled" class="large reveal" data-reveal>
 <h4>Planned Tasks</h4>
+<div id="PlannedTaskList">
 {% for task in tasks if not tasks[task].recurring %}
     <div class="task-container container" 
         task="{{ task }}" 
@@ -33,6 +34,7 @@
         </div>
     </div> 
 {% endfor %}
+</div>
 <button class="button" id="unschedule-task" title="Unschedule Task Clicked (if any)" data-close>Unschedule Task</button>
 <button class="button float-right" id="unplanned-task" title="Create or Add Task to Sprint" data-open="UnplannedTask">Add Unplanned Task</button>
 <h5>Recurring Tasks</h5>
@@ -70,7 +72,7 @@
         <select id='newTaskEpic'>
             <option value="" selcted>No Epic</option>
             {% for epic in epics if epics[epic].epic != 'No Epic' %}
-                <option value="{{epic}}">{{epics[epic].epic}}</option>
+                <option class="epicOption" value="{{epic}}">{{epics[epic].epic}}</option>
             {% endfor %}
         </select>
     </label>
@@ -78,14 +80,14 @@
         <select id='newTaskStory'>
             <option value="" selected>No Story</option>
             {% for story in stories if stories[story].story != 'No Story' %}
-                <option class="hide" value="{{story}}" epic="{{stories[story].epic_id}}">{{stories[story].story}}</option>
+                <option class="hide storyOption" value="{{story}}" title="{{stories[story].story}}" epic="{{stories[story].epic_id}}">{{stories[story].story}}</option>
             {% endfor %}
         </select>
     </label>
     <label class="newable">Task
         <select id="newTaskTask">
             <option value="NEW" selected>New Task</option>
-            {% for task in unplanned_tasks %}
+            {% for task in unplanned_tasks if task.sprint_id != sprint_id and not task.recurring %}
             <option class="hide" value="{{task.id}}" epic="{{task.epic_id}}" story="{{task.story_id}}">{{task.task}}</option>
             {% endfor %}
         </select>
@@ -500,6 +502,15 @@
             $('#newTask').off('submit');
             $('#newTask').submit(function (){
                 var new_task_id = $('#newTaskTask').val();
+                append_planned_task = function(new_task) {
+                    // do any additional magic here as needed
+                    $('#PlannedTaskList').append(new_task);
+                    console.log("Created task "+new_task_id);
+                    new_task.click( function() {
+                        schedule(source,day,hour,new_task_id,false);
+                        $('#Unscheduled').foundation('close');
+                    });
+                }
                 if(new_task_id == 'NEW'){
                     var story_id = $('#newTaskStory').val() == '' ? 0 : $('#newTaskStory').val();
                     var epic_id = $('#newTaskEpic').val() == '' ? 0 : $('#newTaskEpic').val();
@@ -515,17 +526,22 @@
                         new_task_id = json.task.id;
                         new_story_id = json.story_id;
                         new_epic_id = json.epic_id;
-                        schedule(source,day,hour,new_task_id,false);
+                        json.task.epic = $('#newTaskEpic option:selected').text()
+                        json.task.story = $('#newTaskStory option:selected').text()
+                        create_task(json.task,append_planned_task);
                         console.log('Added Task to source',source);
-                        //FIXME: This is a naughty fix, but this page is pretty naughty to begin with
-                        setTimeout(function() {
-                            window.location.reload(true);
-                        },2000);
                     }).fail(function (xhr,status,errorThrown){
                         pretty_alert('Could not create task, does task '+task_name+' already exist?');
                     });
                 } else {
-                    schedule(source,day,hour,new_task_id,false);
+                    $.ajax({
+                        url:'/task/'+new_task_id+'?is_json=true',
+                        type: 'GET',
+                        dataType: 'json'
+                    }).done(function (json){
+                        console.log(json);
+                        create_task(json.task,append_planned_task)
+                    });
                 }
                 $('#UnplannedTask').foundation('close');
             })

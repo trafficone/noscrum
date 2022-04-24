@@ -6,8 +6,8 @@ from datetime import datetime
 from flask import Blueprint, redirect, render_template, request, url_for, abort, flash
 from flask_user import current_user, login_required
 
-from noscrum.story import get_story, get_stories
-from noscrum.epic import get_epics, get_null_epic
+from noscrum.story import get_null_story_for_epic, get_story, get_stories
+from noscrum.epic import get_epic, get_epics, get_null_epic
 from noscrum.sprint import get_current_sprint, get_sprint, get_sprints
 from noscrum.db import get_db, Task
 
@@ -214,11 +214,10 @@ def create(story_id):
         estimate = request.form.get("estimate", None)
         deadline = request.form.get("deadline", None)
         sprint_id = request.form.get("sprint_id", None)
-        if story_id == 0 or request.form.get("epic_id", None) == 0:
-            epic_id = request.form.get("epic_id", get_null_epic().id)
-            if int(epic_id) == 0:
-                epic_id = get_null_epic().id
-            # story = get_null_story_for_epic(epic_id)
+        if story_id == 0:
+            epic_id = int(request.form.get("epic_id",0))
+            print("Task thinks Null Epic ID is ",epic_id)
+            story = get_null_story_for_epic(epic_id)
             story_id = story.id
         error = None
 
@@ -332,7 +331,12 @@ def show(task_id):
         flash(error, "error")
 
     if is_json:
-        return {"Success": True, "task": task.to_dict()}
+        task_dict = task.to_dict()
+        story = get_story(task.story_id)
+        epic = get_epic(story.epic_id)
+        task_dict['epic'] = epic.epic
+        task_dict['story'] = story.story
+        return {"Success": True, "task": task_dict}
     return render_template("task/show.html", task=task)
 
 

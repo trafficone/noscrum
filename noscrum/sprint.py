@@ -431,8 +431,8 @@ def schedule(sprint_id):
         sprint_hour = request.form.get("sprint_hour", None)
         schedule_id = request.form.get("schedule_id", None)
         schedule_time = request.form.get("schedule_time", 0)
-        if schedule_time == "None":
-            schedule_time = 0
+        if schedule_time in (None,0,''):
+            return # don't schedule empties
         note = request.form.get("note")
         recurring = request.form.get("recurring", 0)
         error = None

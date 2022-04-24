@@ -91,6 +91,7 @@ def get_null_story_for_epic(epic_id):
     """
     if epic_id == 0:
         epic_id = get_null_epic().id
+    print("Story thinks null epic id is ",epic_id)
     story = (
         Story.query.filter(Story.story == "NULL")
         .filter(Story.epic_id == epic_id)
@@ -98,6 +99,7 @@ def get_null_story_for_epic(epic_id):
         .first()
     )
     if story is None:
+        print("Couldn't find null story? creating new story with epic id",epic_id)
         story = create_story(epic_id, "NULL", None, None)
     return story
 
