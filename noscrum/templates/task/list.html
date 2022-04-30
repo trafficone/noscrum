@@ -27,12 +27,12 @@
     <div id="deadline_filter_reveal" class="reveal" data-reveal>
         <h3>Deadline Filter</h3>
         <form data-abide onsubmit="return false;">
-            <label>Due Before:
-                <input id="filter_deadline_end" name="date" class="datepicker-input"  />
+            <label>Due Between:
+                <input id="filter_deadline_start" name="date" class="datepicker-input"  />
                 <!--span title="Click to Edit" contentEditable="false" id="filter_deadline_endspan" class="editable deadline">Not Set</span>-->
             </label>
-            <label>Due After:
-                <input id="filter_deadline_start" name="date" class="datepicker-input"  />
+            <label> and 
+                <input id="filter_deadline_end" name="date" class="datepicker-input"  />
                 <!--span title="Click to Edit" contentEditable="false" id="filter_deadline_startspan" class="editable deadline">Not Set</span-->
             </label>
             <input id="filter_undeadlined" type="checkbox"><label for="filter_undeadlined">Filter Tasks Without Deadline</label>
@@ -169,16 +169,13 @@
     filter_dates = function(start_date,end_date){
         $('.task-deadline').each(function() {
             var task_date = new Date($(this).text());
-            console.log(task_date);
             if (task_date == 'Invalid Date') {
-                $(this).parent().parent().parent().removeClass('hide');
-                return;
+                //$(this).parent().parent().parent().removeClass('hide');
+                //return;
             }
             if (task_date < start_date || task_date > end_date) {
-                $(this).parent().parent().parent().addClass('hide');
-            } else {
-                $(this).parent().parent().parent().removeClass('hide');
-            }
+                $(this).closest('.task-container').addClass('hide');
+            } 
         })
         $('.next_filter').off('click');
         $('#deadline_filter_reveal').off('submit');
@@ -194,11 +191,11 @@
         });
         $('#deadline_filter_reveal').foundation('open');
         $('#deadline_filter_reveal').submit(function (event) {
-            var start_date = new Date($('#filter_deadline_endspan').text())
+            var start_date = new Date($('#filter_deadline_start').val())
             if (start_date == 'Invalid Date'){
                 start_date = 0;
             }
-            var end_date = new Date($('#filter_deadline_endspan').text())
+            var end_date = new Date($('#filter_deadline_end').val())
             if (end_date == 'Invalid Date'){
                 end_date = Infinity;
             }
