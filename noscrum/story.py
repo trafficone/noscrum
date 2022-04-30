@@ -6,7 +6,7 @@ from datetime import datetime
 from flask import Blueprint, flash, redirect, render_template, request, url_for, abort
 from flask_user import current_user, login_required
 
-from noscrum.db import get_db, Story, TagStory, Tag
+from noscrum.db import get_db, Story, TagStory, Tag, Task
 from noscrum.epic import get_epic, get_epics, get_null_epic
 from noscrum.tag import get_tags_for_story
 
@@ -157,6 +157,21 @@ def update_story(story_id, story, epic_id, prioritization, deadline):
     app_db.session.commit()
     return get_story(story_id)
 
+def close_story(story_id,closure_state):
+    """
+    Set a story to closed cascades story state
+    to the tasks which aren't currently "done"
+    @param story_id story identification value
+    @param closure_state state which closed in
+    """
+    app_db = get_db()
+    story = Story.query.filter(Story.id == story_id).filter(
+        Story.user_id == current_user.id
+    ).fetchone()
+    story.tasks.filter(Task.status != 'done'
+    ).update({"status":closure_state})
+    story.update({"closure_state":closure_state})
+    app_db.session.commit()
 
 def get_tag_story(story_id, tag_id):
     """

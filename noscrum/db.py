@@ -160,6 +160,7 @@ class Story(db.Model):
     prioritization = sa.Column(sa.Integer(), server_default="1", nullable=False)
     deadline = sa.Column(sa.Date())
     user_id = sa.Column(sa.Integer(), sa.ForeignKey("user.id"), nullable=False)
+    completeness = sa.Column(sa.String(16))
     tasks = relationship("Task")
     tags = relationship("Tag", "tag_story")
 
