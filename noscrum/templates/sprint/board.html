@@ -119,7 +119,7 @@
     </form>
     <button class="close-button" data-close aria-label="Close" > <span aria-hidden="true">&times;</span></button>
 </div>
-<div id="planHours" class="reveal" data-reveal>
+<div id="planHours" class="large reveal" data-reveal>
     <h3>Plan Task</h3>
     How many hours of this task are you planning for this period?
     <div id="taskPlaceholder">
@@ -168,7 +168,7 @@
                     </div>
                     <div class="row">
                         <div class="small-2 columns">Est:{{ None if not tasks[schedule.task_id].estimate else tasks[schedule.task_id].estimate|float }} Plan:{{0 if not schedule.schedule_time else "%.2f"|format(schedule.schedule_time)}}</div>
-                        <div class="small-6 columns float-right">Worked:<span class="hours-worked">{{tasks[schedule.task_id].hours_worked|float}}</span></div>
+                        <div class="small-6 columns float-right">Worked This Day:<span class="hours-worked">{{schedule.schedule_work}}</span></div>
                         {% if static %}
                         <div class="small-8 columns note">
                             {% if schedule.note %}
@@ -566,7 +566,8 @@
                     $('#Unscheduled').foundation('close');
                 }
             };
-            $('#Unscheduled').children('.task-container').click(schedule_existing_task);
+            console.log("MADE IT");
+            $('#PlannedTaskList').children('.task-container').click(schedule_existing_task);
             $('#recurringList').children('.task-container').click(schedule_existing_task);
             $('#Unscheduled').children('#unschedule-task').click(function(event,ui){
                 if (recurring_task == 1) {
@@ -589,7 +590,7 @@
                 }
             });
             $('#Unscheduled').on('closed.zf.reveal', function(){
-                $('#Unscheduled').children('.task-container').off('click');
+                $('#PlannedTaskList').children('.task-container').off('click');
                 $('#Unscheduled').children('#unschedule-task').off('click');
             });
         }

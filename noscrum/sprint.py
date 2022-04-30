@@ -4,10 +4,11 @@ Sprint View and Database Interaction Module
 from datetime import date, timedelta, datetime
 import json
 
-from flask import Blueprint, flash, redirect, render_template, request, url_for, abort
+from flask_openapi3 import APIBlueprint as Blueprint
+from flask import flash, redirect, render_template, request, url_for, abort
 from flask_user import current_user, login_required
 from sqlalchemy import or_
-from noscrum.db import get_db, Sprint, Task, ScheduleTask
+from noscrum.db import get_db, Sprint, Task, ScheduleTask, Work
 from noscrum.epic import get_epics
 from noscrum.story import get_stories
 
@@ -28,6 +29,24 @@ def get_task(task_id):
         .first()
     )
 
+
+def get_work_for_sprint(sprint_id):
+    """
+    Get work performed for a particular sprint
+    @param sprint_id the ID of the sprint work
+    """
+    app_db = get_db()
+    return app_db.session.execute(
+            "SELECT work.task_id||work_date as id, work.task_id, "
+            + "work_date, sum(hours_worked) as hours_worked FROM work "
+            + "join schedule_task st ON work.task_id = st.task_id "
+            + "AND work.work_date = st.sprint_day "
+            + "AND work.user_id = st.user_id "
+            + "WHERE st.sprint_id = :sprint_id "
+            + "AND st.user_id = :user_id "
+            + "GROUP BY work.task_id, work_date",
+            {"sprint_id":sprint_id, "user_id": current_user.id},
+        ).fetchall()
 
 def get_sprint_number_for_user(sprint_id):
     """
@@ -333,6 +352,8 @@ def get_sprint_details(sprint_id):
         .filter(ScheduleTask.user_id == current_user.id)
     )
     recurring_sprint_day = {i:sprint_days.start_date+timedelta(i) for i in range(7)}
+    work = get_work_for_sprint(sprint_id)
+    work = {x.id:x for x in work}
     schedule_records_dict = {}
     for x in schedule_records_recurring:
         x.sprint_day = recurring_sprint_day[x.sprint_day.weekday()]
@@ -341,6 +362,10 @@ def get_sprint_details(sprint_id):
         key = f"{record_std.sprint_day}T{record_std.sprint_hour}:00"
         schedule_records_dict[key] = record_std
     schedule_records = list(schedule_records_dict.values())
+    for i,r in enumerate(schedule_records):
+        work_key = f"{r.task_id}{r.sprint_day}"
+        schedule_work = work.get(work_key,0)
+        schedule_records[i].schedule_work = schedule_work.hours_worked
 
     current_day = sprint_days.start_date
     i = 0
@@ -354,7 +379,7 @@ def get_sprint_details(sprint_id):
         schedule_list.append((i, current_day, task_hours))
         i += 1
         current_day += timedelta(1)
-    return stories, epics, tasks, schedule_list, schedule_records, unplanned_tasks
+    return stories, epics, tasks, schedule_list, schedule_records, unplanned_tasks, work
 
 
 def get_sprint_board(sprint_id, sprint, is_static=False):
@@ -371,6 +396,7 @@ def get_sprint_board(sprint_id, sprint, is_static=False):
         schedule_list,
         schedule_records,
         unplanned_tasks,
+        work
     ) = get_sprint_details(sprint_id)
     tasks = {x["id"]: dict(x) for x in tasks}
     stories = {x["id"]: dict(x) for x in stories}
@@ -412,9 +438,10 @@ def get_sprint_board(sprint_id, sprint, is_static=False):
         schedule=schedule_list,
         unplanned_tasks=unplanned_tasks,
         schedule_records=schedule_records,
+        work=work
     )
 
-
+# FIXME: All bp.route needs to be replaced with bp.get/post/delete/etc.
 @bp.route("/schedule/<int:sprint_id>", methods=("GET", "POST", "DELETE"))
 @login_required
 def schedule(sprint_id):

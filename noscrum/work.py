@@ -34,7 +34,11 @@ def create_work(work_date, hours_worked, status, task_id, new_actual, update_sta
     """
     app_db = get_db()
     new_work = Work(
-        work_date=work_date, hours_worked=hours_worked, status=status, task_id=task_id
+        work_date=work_date, 
+        hours_worked=hours_worked, 
+        status=status, 
+        task_id=task_id,
+        user_id = current_user.id
     )
     app_db.session.add(new_work)
     new_status = status if update_status else None

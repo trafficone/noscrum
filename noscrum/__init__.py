@@ -13,6 +13,8 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_user import UserManager
 from flask_foundation import Foundation
 
+from flask_openapi3 import Info, Tag
+from flask_openapi3 import OpenAPI
 
 class DatabaseSingleton:
     """
@@ -105,7 +107,9 @@ def create_app(test_config=None):
     """
     load_dotenv()
     # Create and Configure the app
-    running_app = Flask(__name__, instance_relative_config=True)
+    #running_app = Flask(__name__, instance_relative_config=True)
+    info = Info(title='NoScrum API', version='1.0.0')
+    running_app = OpenAPI(__name__, instance_relative_config=True, info=info)
     running_app.config.from_object(__name__ + ".ConfigClass")
     # Init Flask-BabelEx
     Babel(running_app)
@@ -147,17 +151,25 @@ def create_app(test_config=None):
     UserManager(running_app, app_db, User)
 
     # pylint: disable=import-outside-toplevel
-    from noscrum import epic, story, task, sprint, tag, work, user, semi_static, search
+    from noscrum.epic import bp as epicbp
+    from noscrum.story  import bp as storybp
+    from noscrum.task import bp as taskbp
+    from noscrum.sprint import bp as sprintbp
+    from noscrum.tag import bp as tagbp
+    from noscrum.work import bp as workbp
+    from noscrum.user import bp as userbp
+    from noscrum.semi_static import bp as semi_staticbp 
+    from noscrum.search import bp as searchbp
 
-    running_app.register_blueprint(epic.bp)
-    running_app.register_blueprint(story.bp)
-    running_app.register_blueprint(task.bp)
-    running_app.register_blueprint(sprint.bp)
-    running_app.register_blueprint(tag.bp)
-    running_app.register_blueprint(work.bp)
-    running_app.register_blueprint(user.bp)
-    running_app.register_blueprint(semi_static.bp)
-    running_app.register_blueprint(search.bp)
+    running_app.register_blueprint(epicbp)
+    running_app.register_blueprint(storybp)
+    running_app.register_blueprint(taskbp)
+    running_app.register_blueprint(sprintbp)
+    running_app.register_blueprint(tagbp)
+    running_app.register_blueprint(workbp)
+    running_app.register_blueprint(userbp)
+    running_app.register_blueprint(semi_staticbp)
+    running_app.register_blueprint(searchbp)
 
     return running_app
 
