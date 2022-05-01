@@ -3,8 +3,11 @@ To handle Story Model controller and views
 """
 import json
 from datetime import datetime
-from flask import Blueprint, flash, redirect, render_template, request, url_for, abort
+from flask_openapi3 import APIBlueprint as Blueprint
+from flask import flash, redirect, render_template, request, url_for, abort
 from flask_user import current_user, login_required
+
+from pydantic import BaseModel, Field
 
 from noscrum.db import get_db, Story, TagStory, Tag, Task
 from noscrum.epic import get_epic, get_epics, get_null_epic
@@ -13,7 +16,7 @@ from noscrum.tag import get_tags_for_story
 bp = Blueprint("story", __name__, url_prefix="/story")
 
 
-def get_stories(sprint_view=False, sprint_id=None):
+def get_stories(sprint_view=False, sprint_id=None, closed: bool=None):
     """
     Get story records with calculated metadata
     @sprint_view True if querying for a sprint
@@ -21,7 +24,16 @@ def get_stories(sprint_view=False, sprint_id=None):
     """
     app_db = get_db()
     if not sprint_view:
-        return Story.query.filter(Story.user_id == current_user.id).all()
+        query = Story.query.filter(Story.user_id == current_user.id)
+        if closed is None:
+            pass
+        elif not closed:
+            print(closed,'<- and also here')
+            #pylint(singleton-comparison)
+            query = query.filter(Story.closure_state == None)
+        else:
+            query = query.filter(Story.closure_state != None)
+        return query.all()
     return app_db.session.execute(
         "SELECT story.id, "
         + "CASE WHEN story = 'NULL' THEN 'No Story' ELSE story END as story, "
@@ -157,7 +169,7 @@ def update_story(story_id, story, epic_id, prioritization, deadline):
     app_db.session.commit()
     return get_story(story_id)
 
-def close_story(story_id,closure_state):
+def close_story_update(story_id,closure_state):
     """
     Set a story to closed cascades story state
     to the tasks which aren't currently "done"
@@ -167,11 +179,14 @@ def close_story(story_id,closure_state):
     app_db = get_db()
     story = Story.query.filter(Story.id == story_id).filter(
         Story.user_id == current_user.id
-    ).fetchone()
-    story.tasks.filter(Task.status != 'done'
-    ).update({"status":closure_state})
+    )
+    for task in story.one().tasks:
+        if task.status != 'Done':
+            #task.update({"status":closure_state})
+            Task.query.filter(Task.id == task.id).update({"status":closure_state})
     story.update({"closure_state":closure_state})
     app_db.session.commit()
+    return story.one()
 
 def get_tag_story(story_id, tag_id):
     """
@@ -329,7 +344,7 @@ def tag(story_id):
             {
                 "Success": True,
                 "story_id": story_id,
-                "story": dict(story),
+                "story": story.to_dict(),
                 "tags": [tag for tag in tags if tag.tag_in_story],
             }
         )
@@ -346,17 +361,18 @@ def list_all():
     stories = get_stories()
     epics = get_epics()
     if is_json:
-        return json.dumps({"Success": True, "stories": [dict(x) for x in stories]})
+        return json.dumps({"Success": True, "stories": [x.to_dict() for x in stories]})
     return render_template("story/list.html", stories=stories, epics=epics)
 
 
 @bp.route("/<int:story_id>", methods=("GET", "POST"))
 @login_required
-def show(story_id):
+def show(story_id: int):
     """
     Show details of a story with some identity
     @param story_id identity for a story value
     """
+    #story_id = path.story_id
     is_json = request.args.get("is_json", False)
     story = get_story(story_id)
     if not story:
@@ -390,12 +406,37 @@ def show(story_id):
                 story_id, story_name, epic_id, prioritization, deadline
             )
             if is_json:
-                return json.dumps({"Success": True, "story_id": story.id})
+                return json.dumps({"Success": True, "story": story.to_dict()})
             return redirect(url_for("story.show", story_id=story.id))
 
         if is_json:
             abort(500, error)
         flash(error, "error")
     if is_json:
-        return json.dumps({"Success": True, "story": dict(story)})
+        print(isinstance(story,Story))
+        print(story.id)
+        return {"Success": True, "story": story.to_dict()}
     return render_template("story/show.html", story=story)
+
+
+class StoryPath(BaseModel):
+    story_id: int = Field(..., description='story id')
+
+@bp.post('/close/<int:story_id>')
+@login_required
+def close_story(path: StoryPath):
+    """
+    Close the story
+    """
+    story_id = path.story_id
+    if story_id == 0:
+        abort(401,"Invalid: cannot close NULL story")
+    story = get_story(story_id)
+    #is_json = request.args.get("is_json",False)
+    closure_state = request.form.get("closure")
+    if closure_state not in ["Closed","Cancelled"]:
+        abort(401, "Invalid Closure")
+    if story is None:
+        abort(404,"Story not found")
+    story = close_story_update(story.id, closure_state=closure_state)
+    return {"Success": True, "story":story.to_dict()}

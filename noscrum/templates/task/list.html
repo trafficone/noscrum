@@ -1,7 +1,8 @@
 {% extends 'base.html' %}
 
 {% block header %}
-    <h2>{% block title %}Task Showcase{% endblock %}</h2>
+    <h2>{% block title %}{% if not archive %}Task{% else %}Archive{% endif %} Showcase{% endblock %}</h2>
+    {% if not archive %}
     <div>
         <button id="sprintPlan" class="button" sprint="{{current_sprint.id}}">Plan Sprint</button>
     </div>
@@ -43,6 +44,7 @@
         <button class="button next_filter" weeks="4" >Due in 4 Weeks</button>
         <button class="close-button" data-close aria-label="Close"><span aria-hidden="true">&times;</span></button>
     </div>
+    {% endif %}
 {% endblock %}
 
 {% block content %}
@@ -62,7 +64,7 @@
                 <div class="columns small-3">Tasks without Time Estimates: <span class="epic-metric unestimated">{{ epic.tasks|selectattr("estimate","none")|list|length }}</span></div>
     </div>
     {% for story in stories | sort()  if story.epic_id == epic.id %}
-    <div class="row story" update_url="{{ url_for('story.show',story_id=story.id,is_json=True) }}">
+    <div id="story_{{story.id}}" class="row story" update_url="{{ url_for('story.show',story_id=story.id,is_json=True) }}">
         <div class="float-left"><span class="badge {{ colors[story.prioritization] }}" title="Prioritization">{{ story.prioritization }}</span></div>
         &nbsp;
         {% if story.story != 'NULL' %}
@@ -72,13 +74,18 @@
         {% endif %}
 
     </div>
-    <div class="row story-summary">
+    <div id="story_summary_{{story.id}}" class="row story-summary">
         <div class="small-2 columns story-label">
             <div>Hours Estimated: <span class="story-metric estimate">{{ story.tasks|selectattr("estimate")|sum(attribute='estimate') }}</span></div>
             <div>Incomplete Tasks: <span class="story-metric incomplete">{{ story.tasks|selectattr("status","eq","To-Do")|list|length }}</span></div>
             {% if story.story != 'NULL' %}
                 <input id="story_deadline_{{story.id}}_datepicker" name="date" class="datepicker-input" type="hidden" />
                 <span  title="Click to Edit" contentEditable="false" update_url="{{ url_for('story.show',story_id=story.id,is_json=True) }}" update_key="deadline" id="story_deadline_{{story.id}}" class="story-deadline editable deadline">{{ 'No Deadline Set' if not story.deadline else story.deadline }}</span>
+                <p><button 
+                    class="button {% if archive %}open-story{% else %}close-story{% endif %}" 
+                    story_id="{{ story.id }}"
+                    story_url="{{url_for('story.show',story_id=story.id)}}?is_json=true"
+                    close_url="{{url_for('story.close_story',story_id=story.id)}}?is_json=true">{% if archive %}Reopen{% else %}Close{% endif %} Story</button></p>
             {% endif %}
             
         </div>
@@ -99,47 +106,49 @@
                     </div>
                     <div class="columns small-2"><span class='float-right'>A:{{ task.actual }}</span></div>
                     <div class="columns large-6">
-                        <input id="task_deadline_{{task.id}}_datepicker" name="date" class="datepicker-input" type="hidden" />
-                        <span  title="Click to Edit" contentEditable="false" update_key="deadline" id="task_deadline_{{task.id}}" class="task-deadline editable deadline">
-                            {% if not task.deadline and not task.recurring %}
-                            No Deadline Set
-                            {% elif not task.deadline and task.recurring %}
-                            No End Date Set
+                        {% if not archive %}
+                            <input id="task_deadline_{{task.id}}_datepicker" name="date" class="datepicker-input" type="hidden" />
+                            <span  title="Click to Edit" contentEditable="false" update_key="deadline" id="task_deadline_{{task.id}}" class="task-deadline editable deadline">
+                                {% if not task.deadline and not task.recurring %}
+                                No Deadline Set
+                                {% elif not task.deadline and task.recurring %}
+                                No End Date Set
+                                {% else %}
+                                {{task.deadline}}
+                                {% endif %}</span>
+                            {% if task.status != Done %}
+                                <button id="task_sprint_btn_{{task.id}}" class="float-right button sprintPlan hidden" style="margin:0.1rem;padding:0.2em 1em;" task="{{task.id}}" sprint="{{current_sprint.id}}">Add to Sprint</button>
+                            {% endif %}
+                            {% if task.status == 'Done' %}
+                                <span class="float-right" id="task_sprint_status_{{task.id}}">Task Complete</span>
+                            {% elif task.sprint_id == current_sprint.id %}
+                                <span class="float-right" id="task_sprint_status_{{task.id}}">In Current Sprint</span>
+                            {% elif task.sprint_id %}
+                                <span class="float-right" id="task_sprint_status_{{task.id}}">In Sprint of {{sprints[task.sprint_id].start_date}}</span>
                             {% else %}
-                            {{task.deadline}}
-                            {% endif %}</span>
-                        {% if task.status != Done %}
-                            <button id="task_sprint_btn_{{task.id}}" class="float-right button sprintPlan hidden" style="margin:0.1rem;padding:0.2em 1em;" task="{{task.id}}" sprint="{{current_sprint.id}}">Add to Sprint</button>
-                        {% endif %}
-                        {% if task.status == 'Done' %}
-                            <span class="float-right" id="task_sprint_status_{{task.id}}">Task Complete</span>
-                        {% elif task.sprint_id == current_sprint.id %}
-                            <span class="float-right" id="task_sprint_status_{{task.id}}">In Current Sprint</span>
-                        {% elif task.sprint_id %}
-                            <span class="float-right" id="task_sprint_status_{{task.id}}">In Sprint of {{sprints[task.sprint_id].start_date}}</span>
-                        {% else %}
-                            <span class="float-right" id="task_sprint_status_{{task.id}}">Task Not in Sprint</span>
+                                <span class="float-right" id="task_sprint_status_{{task.id}}">Task Not in Sprint</span>
+                            {% endif %}
                         {% endif %}
                     </div>
-                    <div title="Click to Edit" class="columns small-2 label recurring {{'recur_color' if task.recurring }}" style="margin-right:1rem;">{% if task.recurring %}Recurring{% else %}One-Time{% endif %}</div>
+                    <div {% if not archive %}title="Click to Edit"{% endif %} class="columns small-2 label recurring {{'recur_color' if task.recurring }}" style="margin-right:1rem;">{% if task.recurring %}Recurring{% else %}One-Time{% endif %}</div>
                 </div>
             </div>
             {% endfor %}
             </div>
             <div>
                 <div></div>
-                <button class="button create" value="{{ url_for('task.create',story_id=story.id,is_asc=True) }}">Create Task</button>
+                {% if not archive %}<button class="button create" value="{{ url_for('task.create',story_id=story.id,is_asc=True) }}">Create Task</button>{% endif %}
             </div>
         </div>
     </div>
     {% endfor %}
     <div class="row">
-        <button class="button create create-story" value="{{ url_for('story.create',epic_id=epic.id,is_asc=True) }}">Create Story</button><div></div>
+        {% if not archive %}<button class="button create create-story" value="{{ url_for('story.create',epic_id=epic.id,is_asc=True) }}">Create Story</button><div></div>{% endif %}
     </div>
 </div>
 {% endfor %}
 <div>
-<button class="button create create-epic" value="{{ url_for('epic.create',is_asc=True) }}">Create Epic</button><div></div>
+{% if not archive %}<button class="button create create-epic" value="{{ url_for('epic.create',is_asc=True) }}">Create Epic</button><div></div>{% endif %}
 </div>
 {% endblock %}
 <script>
@@ -228,6 +237,7 @@
         $('#sprintPlan').addClass('active');
         $('.sprintPlan').removeClass('hidden');
     });
+//{% if not archive %}
     $('.sprintPlan').click(function() {
         task_id = $(this).attr('task');
         sprint_id = $(this).attr('sprint');
@@ -291,6 +301,7 @@
             console.log("Request to update status complete!");
         })
     });
+
     $('.recurring').click(function(event) {
         current_status = $(this).text().trim();
         var changing_status = $(this);
@@ -327,7 +338,6 @@
         });
         $(this).addClass('invisible');
     });
-
     $('.task-container .task-est').click(function(){
         console.log("Clicked value "+$(this).text().trim());
     });
@@ -364,6 +374,7 @@
     $('.week-picker .ui-datepicker-calendar tr').on('mousemove', function() { $(this).find('td a').addClass('ui-state-hover'); });
     $('.week-picker .ui-datepicker-calendar tr').on('mouseleave', function() { $(this).find('td a').removeClass('ui-state-hover'); });
 
+//{% endif %}
     update_value = function(update_url,
                     submit_json,
                     current_key,
@@ -494,6 +505,44 @@
         story_incomplete.text(story_incomplete_val + 1);
         epic_incomplete.text(epic_incomplete_val + 1);
     };
+
+    $(".close-story").click( function () {
+        var has_open_tasks = false;
+        var story_id = $(this).attr('story_id');
+        var story_url = $(this).attr('story_url');
+        var close_url = $(this).attr('close_url');
+        $.ajax(
+            {url: story_url,
+            dataType: 'json'}
+        ).done(function (json) {
+            tasks = json.story.tasks;
+            for (const task in tasks){
+                status = tasks[task].status;
+                if (status != "Done"){
+                    has_open_tasks = true;
+                    break;
+                }
+            }
+            if (has_open_tasks){
+                // confirm
+                pretty_alert("A confirm was supposed to happen.");
+            }
+            $.ajax({
+                url: close_url,
+                data: {closure: "Closed"},
+                type: 'POST',
+                dataType: 'json'
+            }).done(function (json) {
+                //hide story 
+                $('#story_'+story_id).addClass('hide');
+                $('#story_summary_'+story_id).addClass('hide');
+            });
+            });
+    });
+
+    $(".open-story").click( function() {
+        alert("Not implemented yet");
+    });
 
 // {% endblock %}
 </script>

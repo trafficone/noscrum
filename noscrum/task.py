@@ -350,8 +350,12 @@ def list_all():
     Task showcase: lists epics stories & tasks
     """
     is_json = request.args.get("is_json", False)
+    get_closed = request.args.get("archive",False)
     tasks = get_tasks()
-    stories = get_stories()
+    if get_closed:
+        stories = get_stories(closed=True)
+    else:
+        stories = get_stories(closed=False)
 
     epics = get_epics()
     colors = ["primary", "secondary", "success", "alert", "warning"]
@@ -374,4 +378,5 @@ def list_all():
         epics=epics,
         stories=stories,
         colors=colors,
+        archive=get_closed,
     )

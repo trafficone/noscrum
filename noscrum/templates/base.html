@@ -14,9 +14,10 @@
     <form method="get" action="{{ url_for('search.query')}}">
     <ul class="menu">
         {% if current_user.is_authenticated %}
-        <li><a href="{{ url_for('task.list_all') }}">Task Board</a>
-        <li><a href="{{ url_for('sprint.active') }}">Active Sprint</a>
-        <li><a href="{{ url_for('sprint.list_all') }}">All Sprints</a>
+        <li><a href="{{ url_for('task.list_all') }}">Task Board</a></li>
+        <li><a href="{{ url_for('sprint.active') }}">Active Sprint</a></li>
+        <li><a href="{{ url_for('sprint.list_all') }}">All Sprints</a></li>
+            <li><a href="{{ url_for('task.list_all') }}?archive=true">Archive</a></li>
         {% else %}
         <li><a href="{{ url_for('user.register') }}">Register for Free</a></li> 
         {% endif %}

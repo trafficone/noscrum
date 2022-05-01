@@ -8,7 +8,7 @@ from flask_openapi3 import APIBlueprint as Blueprint
 from flask import flash, redirect, render_template, request, url_for, abort
 from flask_user import current_user, login_required
 from sqlalchemy import or_
-from noscrum.db import get_db, Sprint, Task, ScheduleTask, Work
+from noscrum.db import get_db, Sprint, Task, ScheduleTask
 from noscrum.epic import get_epics
 from noscrum.story import get_stories
 

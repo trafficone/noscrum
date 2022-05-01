@@ -4,6 +4,7 @@ Database Models and Controller (not much to do, thanks SQLAlchemy!)
 # pylint: disable=too-few-public-methods
 
 import asyncio
+from datetime import date
 import sqlalchemy as sa
 from flask_user import UserMixin
 from sqlalchemy.orm import relationship
@@ -119,7 +120,14 @@ class Task(db.Model):
     schedules = relationship("ScheduleTask")
 
     def to_dict(self):
-        return {c.name: getattr(self, c.name) for c in self.__table__.columns}
+        ret = {}
+        for c in self.__table__.columns:
+            k = c.name
+            v = getattr(self, c.name)
+            if isinstance(v,date):
+                v = str(v)
+            ret[k] = v
+        return ret
 
     def __lt__(self,other):
         if not isinstance(other,Task):
@@ -160,12 +168,24 @@ class Story(db.Model):
     prioritization = sa.Column(sa.Integer(), server_default="1", nullable=False)
     deadline = sa.Column(sa.Date())
     user_id = sa.Column(sa.Integer(), sa.ForeignKey("user.id"), nullable=False)
-    completeness = sa.Column(sa.String(16))
+    closure_state = sa.Column(sa.String(16)) #Valid entries are "Closed" and "Cancelled"
     tasks = relationship("Task")
     tags = relationship("Tag", "tag_story")
 
     def to_dict(self):
-        return {c.name: getattr(self, c.name) for c in self.__table__.columns}
+        """
+        Return Story object representation val
+        As a newly created dictionary object
+        """
+        ret = {}
+        for c in self.__table__.columns:
+            k = c.name
+            v = getattr(self, c.name)
+            if isinstance(v,date):
+                v = str(v)
+            ret[k] = v
+        ret['tasks'] = [x.to_dict() for x in self.tasks]
+        return ret
 
     def __lt__(self,other):
         if not isinstance(other,Story):
@@ -183,7 +203,7 @@ class Story(db.Model):
     
     def __gt__(self,other):
         return not self < other
-
+        
 
 class TagStory(db.Model):
     """

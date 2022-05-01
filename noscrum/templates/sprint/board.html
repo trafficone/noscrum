@@ -149,7 +149,7 @@
                 
             </div>
                 {% for schedule in schedule_records if schedule.sprint_day == day[1] and schedule.sprint_hour == hour %}
-                <div class="task-container container {% if not static %}scheduled{% endif %} top" 
+                <div class="task-container container {% if not static %}scheduled{% endif %} {% if tasks[schedule.task_id].recurring %}recurring_task{% endif %} top" 
                     {% if not static %} title="Click to change; Drag to reschedule" {% endif %}
                     hour="{{hour}}" day="{{day[1]}}"
                     index_day="{{day[0]}}"
@@ -173,7 +173,8 @@
                         <div class="small-8 columns note">
                             {% if schedule.note %}
                                 {{schedule.note}}
-                            {% elif tasks[schedule.task_id].recurring == 1 %}
+                            {% endif %}
+                            {% if tasks[schedule.task_id].recurring == 1 %}
                                 🔄Recurring Task
                             {% elif not tasks[schedule.task_id].single_sprint_task == 1 %}
                                 ⚠️Task in multiple sprints!
