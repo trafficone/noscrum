@@ -7,7 +7,7 @@ from datetime import date, datetime
 from flask import Blueprint, redirect, render_template, request, url_for, abort, flash
 from flask_user import current_user
 
-from noscrum.db import get_db, Work
+from noscrum.db import get_db, Work, ScheduleTask
 from noscrum.task import (
     get_task,
     update_task,
@@ -17,6 +17,7 @@ from noscrum.task import (
 )
 from noscrum.story import get_story
 from noscrum.epic import get_epic
+from noscrum.sprint import get_sprint_by_date
 
 bp = Blueprint("work", __name__, url_prefix="/work")
 
@@ -33,6 +34,17 @@ def create_work(work_date, hours_worked, status, task_id, new_actual, update_sta
     @param update_status boolean update status
     """
     app_db = get_db()
+    work_schedule = ScheduleTask.query.filter(ScheduleTask.sprint_day == work_date
+                                        ).filter(ScheduleTask.task_id == task_id
+                                        ).filter(ScheduleTask.user_id == current_user.id).first()
+    if work_schedule is None:
+        new_schedule = ScheduleTask(
+            sprint_id = get_sprint_by_date(middle_date=work_date).id,
+            task_id = task_id,
+            sprint_day = work_date,
+            user_id = current_user.id,
+            sprint_hour = -1)
+        app_db.session.add(new_schedule)
     new_work = Work(
         work_date=work_date, 
         hours_worked=hours_worked, 

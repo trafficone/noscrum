@@ -344,7 +344,8 @@ def get_sprint_details(sprint_id):
     )
     schedule_records_std = ScheduleTask.query.filter(
         ScheduleTask.sprint_id == sprint_id
-    ).filter(ScheduleTask.user_id == current_user.id)
+    ).filter(ScheduleTask.user_id == current_user.id
+    ).filter(ScheduleTask.sprint_hour >= 0)
     schedule_records_recurring = (
         ScheduleTask.query.join(Task)
         .filter(Task.recurring)
@@ -362,10 +363,14 @@ def get_sprint_details(sprint_id):
         key = f"{record_std.sprint_day}T{record_std.sprint_hour}:00"
         schedule_records_dict[key] = record_std
     schedule_records = list(schedule_records_dict.values())
+    print(work.items())
     for i,r in enumerate(schedule_records):
         work_key = f"{r.task_id}{r.sprint_day}"
         schedule_work = work.get(work_key,0)
-        schedule_records[i].schedule_work = schedule_work.hours_worked
+        if isinstance(schedule_work,int):
+            schedule_records[i].schedule_work = schedule_work
+        else:
+            schedule_records[i].schedule_work = schedule_work.hours_worked
 
     current_day = sprint_days.start_date
     i = 0
