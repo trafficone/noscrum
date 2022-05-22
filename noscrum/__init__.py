@@ -16,6 +16,7 @@ from flask_foundation import Foundation
 from flask_openapi3 import Info, Tag
 from flask_openapi3 import OpenAPI
 
+
 class DatabaseSingleton:
     """
     Database singleton, holds the app database
@@ -107,8 +108,8 @@ def create_app(test_config=None):
     """
     load_dotenv()
     # Create and Configure the app
-    #running_app = Flask(__name__, instance_relative_config=True)
-    info = Info(title='NoScrum API', version='1.0.0')
+    # running_app = Flask(__name__, instance_relative_config=True)
+    info = Info(title="NoScrum API", version="1.0.0")
     running_app = OpenAPI(__name__, instance_relative_config=True, info=info)
     running_app.config.from_object(__name__ + ".ConfigClass")
     # Init Flask-BabelEx
@@ -152,13 +153,13 @@ def create_app(test_config=None):
 
     # pylint: disable=import-outside-toplevel
     from noscrum.epic import bp as epicbp
-    from noscrum.story  import bp as storybp
+    from noscrum.story import bp as storybp
     from noscrum.task import bp as taskbp
     from noscrum.sprint import bp as sprintbp
     from noscrum.tag import bp as tagbp
     from noscrum.work import bp as workbp
     from noscrum.user import bp as userbp
-    from noscrum.semi_static import bp as semi_staticbp 
+    from noscrum.semi_static import bp as semi_staticbp
     from noscrum.search import bp as searchbp
 
     running_app.register_blueprint(epicbp)

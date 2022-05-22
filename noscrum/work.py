@@ -34,23 +34,27 @@ def create_work(work_date, hours_worked, status, task_id, new_actual, update_sta
     @param update_status boolean update status
     """
     app_db = get_db()
-    work_schedule = ScheduleTask.query.filter(ScheduleTask.sprint_day == work_date
-                                        ).filter(ScheduleTask.task_id == task_id
-                                        ).filter(ScheduleTask.user_id == current_user.id).first()
+    work_schedule = (
+        ScheduleTask.query.filter(ScheduleTask.sprint_day == work_date)
+        .filter(ScheduleTask.task_id == task_id)
+        .filter(ScheduleTask.user_id == current_user.id)
+        .first()
+    )
     if work_schedule is None:
         new_schedule = ScheduleTask(
-            sprint_id = get_sprint_by_date(middle_date=work_date).id,
-            task_id = task_id,
-            sprint_day = work_date,
-            user_id = current_user.id,
-            sprint_hour = -1)
+            sprint_id=get_sprint_by_date(middle_date=work_date).id,
+            task_id=task_id,
+            sprint_day=work_date,
+            user_id=current_user.id,
+            sprint_hour=-1,
+        )
         app_db.session.add(new_schedule)
     new_work = Work(
-        work_date=work_date, 
-        hours_worked=hours_worked, 
-        status=status, 
+        work_date=work_date,
+        hours_worked=hours_worked,
+        status=status,
         task_id=task_id,
-        user_id = current_user.id
+        user_id=current_user.id,
     )
     app_db.session.add(new_work)
     new_status = status if update_status else None

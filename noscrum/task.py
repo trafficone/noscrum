@@ -215,8 +215,8 @@ def create(story_id):
         deadline = request.form.get("deadline", None)
         sprint_id = request.form.get("sprint_id", None)
         if story_id == 0:
-            epic_id = int(request.form.get("epic_id",0))
-            print("Task thinks Null Epic ID is ",epic_id)
+            epic_id = int(request.form.get("epic_id", 0))
+            print("Task thinks Null Epic ID is ", epic_id)
             story = get_null_story_for_epic(epic_id)
             story_id = story.id
         error = None
@@ -334,8 +334,8 @@ def show(task_id):
         task_dict = task.to_dict()
         story = get_story(task.story_id)
         epic = get_epic(story.epic_id)
-        task_dict['epic'] = epic.epic
-        task_dict['story'] = story.story
+        task_dict["epic"] = epic.epic
+        task_dict["story"] = story.story
         return {"Success": True, "task": task_dict}
     return render_template("task/show.html", task=task)
 
@@ -350,7 +350,7 @@ def list_all():
     Task showcase: lists epics stories & tasks
     """
     is_json = request.args.get("is_json", False)
-    get_closed = request.args.get("archive",False)
+    get_closed = request.args.get("archive", False)
     tasks = get_tasks()
     if get_closed:
         stories = get_stories(closed=True)

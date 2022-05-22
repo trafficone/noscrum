@@ -124,13 +124,13 @@ class Task(db.Model):
         for c in self.__table__.columns:
             k = c.name
             v = getattr(self, c.name)
-            if isinstance(v,date):
+            if isinstance(v, date):
                 v = str(v)
             ret[k] = v
         return ret
 
-    def __lt__(self,other):
-        if not isinstance(other,Task):
+    def __lt__(self, other):
+        if not isinstance(other, Task):
             raise TypeError("Cannot compare Task with non-Task object")
         if self.deadline is None:
             return False
@@ -138,7 +138,7 @@ class Task(db.Model):
             return True
         return self.deadline < other.deadline
 
-    def __gt__(self,other):
+    def __gt__(self, other):
         return not self < other
 
 
@@ -168,7 +168,9 @@ class Story(db.Model):
     prioritization = sa.Column(sa.Integer(), server_default="1", nullable=False)
     deadline = sa.Column(sa.Date())
     user_id = sa.Column(sa.Integer(), sa.ForeignKey("user.id"), nullable=False)
-    closure_state = sa.Column(sa.String(16)) #Valid entries are "Closed" and "Cancelled"
+    closure_state = sa.Column(
+        sa.String(16)
+    )  # Valid entries are "Closed" and "Cancelled"
     tasks = relationship("Task")
     tags = relationship("Tag", "tag_story")
 
@@ -181,14 +183,14 @@ class Story(db.Model):
         for c in self.__table__.columns:
             k = c.name
             v = getattr(self, c.name)
-            if isinstance(v,date):
+            if isinstance(v, date):
                 v = str(v)
             ret[k] = v
-        ret['tasks'] = [x.to_dict() for x in self.tasks]
+        ret["tasks"] = [x.to_dict() for x in self.tasks]
         return ret
 
-    def __lt__(self,other):
-        if not isinstance(other,Story):
+    def __lt__(self, other):
+        if not isinstance(other, Story):
             raise TypeError("Cannot compare Story to non-Story")
         if other.prioritization > self.prioritization:
             return True
@@ -200,10 +202,10 @@ class Story(db.Model):
         if other.deadline is None:
             return True
         return self.deadline < other.deadline
-    
-    def __gt__(self,other):
+
+    def __gt__(self, other):
         return not self < other
-        
+
 
 class TagStory(db.Model):
     """

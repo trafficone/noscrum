@@ -16,7 +16,7 @@ from noscrum.tag import get_tags_for_story
 bp = Blueprint("story", __name__, url_prefix="/story")
 
 
-def get_stories(sprint_view=False, sprint_id=None, closed: bool=None):
+def get_stories(sprint_view=False, sprint_id=None, closed: bool = None):
     """
     Get story records with calculated metadata
     @sprint_view True if querying for a sprint
@@ -28,8 +28,8 @@ def get_stories(sprint_view=False, sprint_id=None, closed: bool=None):
         if closed is None:
             pass
         elif not closed:
-            print(closed,'<- and also here')
-            #pylint(singleton-comparison)
+            print(closed, "<- and also here")
+            # pylint(singleton-comparison)
             query = query.filter(Story.closure_state == None)
         else:
             query = query.filter(Story.closure_state != None)
@@ -103,7 +103,7 @@ def get_null_story_for_epic(epic_id):
     """
     if epic_id == 0:
         epic_id = get_null_epic().id
-    print("Story thinks null epic id is ",epic_id)
+    print("Story thinks null epic id is ", epic_id)
     story = (
         Story.query.filter(Story.story == "NULL")
         .filter(Story.epic_id == epic_id)
@@ -111,7 +111,7 @@ def get_null_story_for_epic(epic_id):
         .first()
     )
     if story is None:
-        print("Couldn't find null story? creating new story with epic id",epic_id)
+        print("Couldn't find null story? creating new story with epic id", epic_id)
         story = create_story(epic_id, "NULL", None, None)
     return story
 
@@ -169,7 +169,8 @@ def update_story(story_id, story, epic_id, prioritization, deadline):
     app_db.session.commit()
     return get_story(story_id)
 
-def close_story_update(story_id,closure_state):
+
+def close_story_update(story_id, closure_state):
     """
     Set a story to closed cascades story state
     to the tasks which aren't currently "done"
@@ -181,12 +182,13 @@ def close_story_update(story_id,closure_state):
         Story.user_id == current_user.id
     )
     for task in story.one().tasks:
-        if task.status != 'Done':
-            #task.update({"status":closure_state})
-            Task.query.filter(Task.id == task.id).update({"status":closure_state})
-    story.update({"closure_state":closure_state})
+        if task.status != "Done":
+            # task.update({"status":closure_state})
+            Task.query.filter(Task.id == task.id).update({"status": closure_state})
+    story.update({"closure_state": closure_state})
     app_db.session.commit()
     return story.one()
+
 
 def get_tag_story(story_id, tag_id):
     """
@@ -372,7 +374,7 @@ def show(story_id: int):
     Show details of a story with some identity
     @param story_id identity for a story value
     """
-    #story_id = path.story_id
+    # story_id = path.story_id
     is_json = request.args.get("is_json", False)
     story = get_story(story_id)
     if not story:
@@ -413,16 +415,17 @@ def show(story_id: int):
             abort(500, error)
         flash(error, "error")
     if is_json:
-        print(isinstance(story,Story))
+        print(isinstance(story, Story))
         print(story.id)
         return {"Success": True, "story": story.to_dict()}
     return render_template("story/show.html", story=story)
 
 
 class StoryPath(BaseModel):
-    story_id: int = Field(..., description='story id')
+    story_id: int = Field(..., description="story id")
 
-@bp.post('/close/<int:story_id>')
+
+@bp.post("/close/<int:story_id>")
 @login_required
 def close_story(path: StoryPath):
     """
@@ -430,13 +433,13 @@ def close_story(path: StoryPath):
     """
     story_id = path.story_id
     if story_id == 0:
-        abort(401,"Invalid: cannot close NULL story")
+        abort(401, "Invalid: cannot close NULL story")
     story = get_story(story_id)
-    #is_json = request.args.get("is_json",False)
+    # is_json = request.args.get("is_json",False)
     closure_state = request.form.get("closure")
-    if closure_state not in ["Closed","Cancelled"]:
+    if closure_state not in ["Closed", "Cancelled"]:
         abort(401, "Invalid Closure")
     if story is None:
-        abort(404,"Story not found")
+        abort(404, "Story not found")
     story = close_story_update(story.id, closure_state=closure_state)
-    return {"Success": True, "story":story.to_dict()}
+    return {"Success": True, "story": story.to_dict()}

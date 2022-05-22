@@ -9,8 +9,14 @@
 {% block content %}
 {% if not static %}
 <div id="Unscheduled" class="large reveal" data-reveal>
-<h4>Planned Tasks</h4>
-<div id="PlannedTaskList">
+<button class="button" id="unschedule-task" title="Unschedule Task Clicked (if any)" data-close>Unschedule Task</button>
+<button class="button" id="unplanned-task" title="Create or Add Task to Sprint" data-open="UnplannedTask">Add Unplanned Task</button>
+<ul class="tabs" data-tabs id="task-tabs">
+    <li class="tabs-title is-active"><a href="#PlannedTaskList" aria-selected="true">Planned Tasks</a></li>
+    <li class="tabs-title"><a data-tabs-target="RecurringTaskList" href="#RecurringTaskList">Recurring Tasks</a></li>
+</ul>
+<div class="tabs-content" data-tabs-content="task-tabs">
+<div id="PlannedTaskList" class="tabs-panel is-active">
 {% for task in tasks if not tasks[task].recurring %}
     <div class="task-container container" 
         task="{{ task }}" 
@@ -35,11 +41,7 @@
     </div> 
 {% endfor %}
 </div>
-<button class="button" id="unschedule-task" title="Unschedule Task Clicked (if any)" data-close>Unschedule Task</button>
-<button class="button float-right" id="unplanned-task" title="Create or Add Task to Sprint" data-open="UnplannedTask">Add Unplanned Task</button>
-<h5>Recurring Tasks</h5>
-<button class="button" id="showRecurring" data-toggle="recurringList">Click to Show</button>
-<div id="recurringList" class="dropdown-pane" style="width:90%;" data-dropdown >
+<div id="RecurringTaskList" class="tabs-panel">
 {% for task in tasks if tasks[task].recurring %}
     <div class="task-container container recurring" 
         task="{{ task }}" 
@@ -62,6 +64,7 @@
         </div>
     </div> 
 {% endfor %}
+</div>
 </div>
 <button class="close-button" data-close aria-label="Close" > <span aria-hidden="true">&times;</span></button>
 </div>
@@ -100,17 +103,11 @@
 </form>
 <button class="close-button" data-close aria-label="Close" > <span aria-hidden="true">&times;</span></button>
 </div>
-<div id="RecurringCheck" class="reveal" data-reveal>
-    <h3>This task is recurring, do you want to schedule it at this time every sprint?</h3>
-    <button class="button" id="recurring_yes">Yes</button>
-    <button class="button" id="recurring_no">No</button>
-    <button class="close-button" data-close aria-label="Close" > <span aria-hidden="true">&times;</span></button>
-</div>
 <div id="LogWork" class="reveal" data-reveal>
     <h3>Log Work for Task</h3>
     <form data-abide onsubmit="return false;">
         <div class="name-field">
-            <label>Hours: <input type="text" placeholder="2" class="editable" pattern="\d+\.?\d*" />
+            <label>Hours: <input type="text" placeholder="2" class="editable" pattern="\d+\.?\d*|\.\d+" />
             <small class="error">Hours worked must be a number.</small>
             </label>
         </div>
@@ -206,7 +203,7 @@
 <script>
     //{% block jquery %}
     //{% if not static %}
-    $('.task-container .scheduled').draggable({
+    $('.task-container.scheduled').draggable({
         revertDuration: 0,
         revert: true
     });
@@ -247,7 +244,7 @@
                 throw 'Task ID doesn\'t match input';
             }
             daily = row.closest('.day').find('.planned_hrs');
-            sprintly_nr = $('#totalHours');
+            sprintly = $('#totalHours');
             planned_hours = Number(planned_hours)
             daily.text(Number(daily.text())-planned_hours)
             sprintly.text(Number(sprintly.text())-planned_hours)
@@ -342,16 +339,17 @@
                 daily.text(Number(daily.text())+planned_hours);
                 sprintly.text(Number(sprintly.text())+planned_hours);
                 if (row.parent().find('.unscheduled-container').length == 0){
-                   row.parent().append($('<div>').attr('id','r_'+index_day+'_'+(hour+1))
+                   var new_hour = Number(hour) + 1;
+                   row.parent().append($('<div>').attr('id','r_'+index_day+'_'+new_hour)
                                     .addClass('row')
                                     .append( $('<div>').addClass('small-2'))
                                     .append(
                                         $('<div>')
                                         .attr('class','unscheduled-container scheduled container')
-                                        .attr('hour',hour)
+                                        .attr('hour',new_hour)
                                         .attr('day',day)
                                         .attr('index_day',index_day)
-                                        .attr('id','unsch_'+index_day+'_'+(hour+1))
+                                        .attr('id','unsch_'+index_day+'_'+new_hour)
                                         .html('<div >No Task Scheduled - click to schedule</div><div >&nbsp;</div>')
                                         .click(scheduled_click)));
                 }
@@ -373,7 +371,7 @@
         var source_hour = source.attr('hour');
         source_day = source.attr('day');
         update_url = "{{url_for('sprint.schedule',sprint_id=sprint_id)}}?is_json=True";
-        console.log('Bumping task '+task_id+'! to position of '+source_id+'(hour)'+source_hour);
+        console.log('Bumping task '+task_id+'! to position of item'+source_id+' on '+source_day+'T'+source_hour);
         if (!source.hasClass('unscheduled-container')){
             var row = source.parent();
             source_task_id = source.attr('task');
@@ -393,9 +391,9 @@
                 next_task = next_row.children('.scheduled');
                 bump(next_task,source_task_id);
             }*/
-            schedule(row,day,source_hour,task_id);
+            schedule(row,source_day,source_hour,task_id);
         } else {
-            schedule(source,day,source_hour,task_id);
+            schedule(source,source_day,source_hour,task_id);
         }
     };
 
@@ -546,49 +544,15 @@
                 $('#UnplannedTask').foundation('close');
             })
             schedule_existing_task = function(event,ui){
-                var new_recurring_task = $(this).attr('recurring');
                 var new_task_id = $(this).attr('task');
-                if (new_recurring_task == 1){
-                   $('#recurring_yes').click(function (event){
-                       schedule(source,day,hour,new_task_id,true);
-                       $('#RecurringCheck').foundation('close');
-                       $(this).off('click');
-                   });
-                   $('#recurring_no').click(function (event){
-                       
-                       schedule(source,day,hour,new_task_id,false)
-                       $('#RecurringCheck').foundation('close');
-                       $(this).off('click');
-                   });
-                   $('#Unscheduled').foundation('close');
-                   $('#RecurringCheck').foundation('open');
-                } else {
-                    schedule(source,day,hour,new_task_id,false);
-                    $('#Unscheduled').foundation('close');
-                }
+                schedule(source,day,hour,new_task_id,false);
+                $('#Unscheduled').foundation('close');
             };
-            console.log("MADE IT");
             $('#PlannedTaskList').children('.task-container').click(schedule_existing_task);
-            $('#recurringList').children('.task-container').click(schedule_existing_task);
+            $('#RecurringTaskList').children('.task-container').click(schedule_existing_task);
             $('#Unscheduled').children('#unschedule-task').click(function(event,ui){
-                if (recurring_task == 1) {
-                   $('#Unscheduled').foundation('close');
-                   $('#RecurringCheck').foundation('open');
-                   $('#recurring_yes').click(function (event){
-                       unschedule(source,true);
-                       $(this).off('click');
-                       $('#RecurringCheck').foundation('close');
-                   });
-                   $('#recurring_no').click(function (event){
-                       unschedule(source,false);
-                       $(this).off('click');
-                       $('#RecurringCheck').foundation('close');
-                   });
-
-                } else {
-                    unschedule(source,false);
-                    $('#Unscheduled').foundation('close');
-                }
+                unschedule(source,false);
+                $('#Unscheduled').foundation('close');
             });
             $('#Unscheduled').on('closed.zf.reveal', function(){
                 $('#PlannedTaskList').children('.task-container').off('click');
@@ -606,8 +570,10 @@
             hour = $(this).attr('hour');
             day = $(this).attr('day');
             parent = ui.helper.parent();
+            console.log("Schedule drop on "+index_day+" "+hour+" "+day);
             unschedule(ui.helper);
-            bump($(this),task_id);
+            var bumping = $(this);
+            bump(bumping,task_id);
         };
     //TODO: FIX THIS INTERACTION MODEL
     $('.scheduled').click(scheduled_click);
@@ -651,12 +617,12 @@
     });
     $('#showRecurring').click(function(){
         return;
-        var is_hidden = $('#recurringList').hasClass('hidden');
+        var is_hidden = $('#RecurringTaskList').hasClass('hidden');
         if(is_hidden){
-            $('#recurringList').removeClass('hidden');
+            $('#RecurringTaskList').removeClass('hidden');
             $('#showRecurring').text('Click to Hide');
         } else {
-            $('#recurringList').addClass('hidden');
+            $('#RecurringTaskList').addClass('hidden');
             $('#showRecurring').text('Click to Show');
         }
     });
