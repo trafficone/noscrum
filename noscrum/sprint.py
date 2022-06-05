@@ -196,13 +196,13 @@ def get_schedule_tasks_filtered(sprint_id, task_id, sprint_day, sprint_hour):
     @param sprint_hour the schedule time value
     """
     query = ScheduleTask.query.filter(ScheduleTask.sprint_id == sprint_id)
-    query.filter(ScheduleTask.user_id == current_user.id)
+    query = query.filter(ScheduleTask.user_id == current_user.id)
     if task_id is not None:
-        query.filter(ScheduleTask.task_id == task_id)
+        query = query.filter(ScheduleTask.task_id == task_id)
     if sprint_day is not None:
-        query.filter(ScheduleTask.sprint_day == sprint_day)
+        query = query.filter(ScheduleTask.sprint_day == sprint_day)
     if sprint_hour is not None:
-        query.filter(ScheduleTask.sprint_hour == sprint_hour)
+        query = query.filter(ScheduleTask.sprint_hour == sprint_hour)
     return query.all()
 
 

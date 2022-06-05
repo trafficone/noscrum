@@ -2,14 +2,15 @@
 Semi-static page handler (eg about index)
 """
 from datetime import date
-from flask import Blueprint, render_template
+from flask import render_template
+from flask_openapi3 import APIBlueprint as Blueprint
 from flask_user import current_user
 from noscrum.sprint import get_current_sprint, get_schedule_tasks_filtered
 
 bp = Blueprint("semi_static", __name__, url_prefix="/")
 
 
-@bp.route("/", methods=("GET",))
+@bp.get("/")
 def index():
     """
     Render the application's main landing page
