@@ -177,7 +177,7 @@
     });
     filter_dates = function(start_date,end_date){
         $('.task-deadline').each(function() {
-            var task_date = new Date($(this).text());
+            var task_date = new Date($(this).text().trim());//+"T00:00:00Z");
             if (task_date == 'Invalid Date') {
                 //$(this).parent().parent().parent().removeClass('hide');
                 //return;
