@@ -460,7 +460,8 @@ def schedule(sprint_id):
     """
     Get or set scheduling information for a given sprint.
     """
-    is_json = request.args.get("is_json", False)
+    is_json = True
+    #request.args.get("is_json", False)
     if request.method == "POST":
         sprint = get_sprint(sprint_id)
         task_id = request.form.get("task_id", None)
@@ -471,7 +472,10 @@ def schedule(sprint_id):
         schedule_id = request.form.get("schedule_id", None)
         schedule_time = request.form.get("schedule_time", 0)
         if schedule_time in (None, 0, ""):
-            return  # don't schedule empties
+            schedule_record = None if schedule_id is None else get_schedule(schedule_id)
+            if schedule_record is None:
+                return  {"Success":"False","Error":"Cannot schedule 0 time"}
+            schedule_time = schedule_record.schedule_time
         note = request.form.get("note")
         recurring = request.form.get("recurring", 0)
         error = None
@@ -516,7 +520,9 @@ def schedule(sprint_id):
                 # for key,value in schedule_task.items():
                 #    if isinstance(value,date):
                 #        schedule_task[key] = str(value)
-                return {"Success": True, "schedule_task": schedule_task.to_dict()}
+                retval =  {"Success": True, "schedule_task": schedule_task.to_dict()}
+                print(retval)
+                return retval
             return redirect(url_for("sprint.show", sprint_id=sprint_id))
         if is_json:
             abort(500, error)

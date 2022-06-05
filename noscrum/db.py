@@ -309,7 +309,7 @@ class Sprint(db.Model, DictableModel):
         return {c.name: getattr(self, c.name) for c in self.__table__.columns}
 
 
-class ScheduleTask(db.Model, DictableModel):
+class ScheduleTask(db.Model):
     """
     Scheduling model which associates Tasks with
     particular day/time in a given sprint.
