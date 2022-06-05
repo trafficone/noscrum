@@ -41,14 +41,7 @@ def create_work(work_date, hours_worked, status, task_id, new_actual, update_sta
         .first()
     )
     if work_schedule is None:
-        new_schedule = ScheduleTask(
-            sprint_id=get_sprint_by_date(middle_date=work_date).id,
-            task_id=task_id,
-            sprint_day=work_date,
-            user_id=current_user.id,
-            sprint_hour=-1,
-        )
-        app_db.session.add(new_schedule)
+        raise Exception("Cannot log work on unscheduled task")
     new_work = Work(
         work_date=work_date,
         hours_worked=hours_worked,
@@ -105,7 +98,7 @@ def get_work_for_epic(epic_id):
     """
     app_db = get_db()
     return Work(
-        *app_db.execute(
+        *app_db.session.execute(
             "SELECT work.id, task_id, work_date, hours_worked, status "
             + "FROM work JOIN task on work.task_id = task.id "
             + "JOIN story ON task.story_id = story.id "
@@ -121,15 +114,10 @@ def get_work_by_dates(start_date, end_date):
     @param start_date date request lower limit
     @param end_date date requested upper limit
     """
-    app_db = get_db()
-    return Work(
-        *app_db.execute(
-            "SELECT id, task_id, work_date, hours_worked, status FROM work "
-            + "WHERE work_date BETWEEN ? and ? order by work_date",
-            (start_date, end_date),
-        ).fetchall()
-    )
-
+    return Work.query.filter(Work.work_date >= start_date)\
+                .filter(Work.work_date <= end_date)\
+                .filter(Work.user_id == current_user.id)\
+            .all()
 
 def delete_work(work_id):
     """
@@ -207,7 +195,7 @@ def read_delete(work_id):
     if request.method == "GET":
         if is_json:
             return json.dumps(
-                {"Success": True, "work_id": work_id, "work_item": work_item}
+                {"Success": True, "work_id": work_id, "work_item": work_item.to_dict()}
             )
         return render_template("work/read_del", work_item=work_item)
     elif request.method == "DELETE":
@@ -242,7 +230,8 @@ def list_for_task(task_id):
             flash(error, "error")
             return redirect(url_for("sprint.active"))
     if is_json:
-        return json.dumps({"Sucecss": True, "work_items": work_items})
+        dict_work_items = [x.to_dict() for x in work_items]
+        return json.dumps({"Success": True, "work_items": dict_work_items})
     return render_template(
         "work/list.html", key="Task", tasks=tasks, work_items=work_items
     )
@@ -281,7 +270,8 @@ def list_for_story(story_id):
             flash(error, "error")
             return redirect(url_for("sprint.active"))
     if is_json:
-        return json.dumps({"Sucecss": True, "work_items": work_items})
+        dict_work_items = [x.to_dict() for x in work_items]
+        return json.dumps({"Success": True, "work_items": dict_work_items})
     return render_template(
         "work/list.html",
         key="Story " + story["story"],
@@ -323,7 +313,8 @@ def list_for_epic(epic_id):
             flash(error, "error")
             return redirect(url_for("sprint.active"))
     if is_json:
-        return json.dumps({"Sucecss": True, "work_items": work_items})
+        dict_work_items = [x.to_dict() for x in work_items]
+        return json.dumps({"Success": True, "work_items": dict_work_items})
     return render_template(
         "work/list.html", key="Epic " + epic["epic"], tasks=tasks, work_items=work_items
     )
@@ -347,16 +338,24 @@ def list_for_dates():
             flash(error, "error")
             return redirect(url_for("sprint.active"))
     all_tasks = get_tasks()
-    task_ids = [x["task_id"] for x in work_items]
+    task_ids = [x.task_id for x in work_items]
     tasks = []
     for task in all_tasks:
         if task["id"] in task_ids:
             tasks.append(task)
     if is_json:
-        return json.dumps({"Success": True, "work_items": work_items})
+        dict_work_items = [x.to_dict() for x in work_items]
+        return json.dumps({"Success": True, "work_items": dict_work_items})
     return render_template(
         "work/list.html",
         key=f"Dates from {start_date} to {end_date}",
         tasks=tasks,
         work_items=work_items,
     )
+
+@bp.route("/reporting", methods=("GET",))
+def display_report_page():
+    """
+    Render report page.
+    """
+    return render_template("work/report.html")

@@ -5,10 +5,12 @@ Database Models and Controller (not much to do, thanks SQLAlchemy!)
 
 import asyncio
 from datetime import date
+from collections.abc import Hashable, Iterable
 import sqlalchemy as sa
 from flask_user import UserMixin
 from sqlalchemy.orm import relationship
 from noscrum import DatabaseSingleton
+
 
 
 def get_db():
@@ -19,6 +21,30 @@ def get_db():
 
 
 db = get_db()
+
+class DictableModel():
+    def to_dict(self):
+        ret = {}
+        for c in self.__table__.columns:
+            k = c.name
+            v = getattr(self, c.name)
+            if isinstance(v,Hashable):
+                pass
+            elif isinstance(v,Iterable):
+                v = [x.to_dict() for x in v]
+            elif isinstance(v, date):
+                v = str(v)
+            elif hasattr(v,'to_dict'):
+                v = v.to_dict()
+            ret[k] = v
+        return ret
+
+    @classmethod
+    def from_dict(cls,input_dict):
+        if set(input_dict.keys()) != set([c.name for c in cls.__table__.columns]):
+            raise ValueError(f"Input dictionary not compatible with class \"{cls.__name__}\"")
+        return cls(input_dict)
+
 
 
 class Work(db.Model):
@@ -34,7 +60,26 @@ class Work(db.Model):
     task_id = sa.Column(sa.Integer(), sa.ForeignKey("task.id"))
     status = sa.Column(sa.String(12), nullable=True, default="To-Do")
     user_id = sa.Column(sa.Integer(), sa.ForeignKey("user.id"))
-    story = relationship("Story", "task")
+    # alter table work add column sprint_id; update work set sprint_id = task.sprint_id from task where task_id = task.id;
+    # update work set sprint_id = sprint.id from sprint where work_date between sprint.start_date and sprint.end_date;
+    sprint_id = sa.Column(sa.Integer, sa.ForeignKey("sprint.id"))
+
+    def to_dict(self):
+        return {'id':self.id,
+                'work_date':str(self.work_date),
+                'hours_worked':self.hours_worked,
+                'task_id':self.task_id,
+                'status':self.status,
+                'user_id':self.user_id,
+                'sprint_id':self.sprint_id}
+    
+    @classmethod
+    def from_dict(cls,input_dict):
+        if set(input_dict.keys()) != set(cls.__table__.columns.keys()):
+            raise ValueError("Invalid Input dict of type \"Work\"")
+        _ = input_dict.pop('story_id')
+        return cls(input_dict)
+        
 
 
 class User(db.Model, UserMixin):
@@ -63,6 +108,7 @@ class User(db.Model, UserMixin):
     )
     # Define the relationship to Role via UserRoles
     roles = relationship("Role", "user_roles")
+    preferences = relationship("UserPreference")
 
     def __str__(self):
         """
@@ -70,6 +116,17 @@ class User(db.Model, UserMixin):
         Only returns user ID to protect user privacy by default.
         """
         return f"User(id={self.id})"
+
+class UserPreference(db.Model, DictableModel):
+    """
+    User Preferences - generic key-value store
+    """
+    __tablename__ = "user_preference"
+    id = sa.Column(sa.Integer(), primary_key=True)
+    user_id = sa.Column(sa.Integer(), sa.ForeignKey("user.id", ondelete="CASCADE"),primary_key=True)
+    user = relationship("User")
+    preference = sa.Column(sa.String(1024),primary_key=True)
+    value = sa.Column(sa.String(5000))
 
 
 # Define the Role data-model
@@ -98,7 +155,7 @@ class UserRoles(db.Model):
     role_id = sa.Column(sa.Integer(), sa.ForeignKey("roles.id", ondelete="CASCADE"))
 
 
-class Task(db.Model):
+class Task(db.Model, DictableModel):
     """
     Task model for Task objects which contain
     Task descriptions as well as task metadata
@@ -118,16 +175,7 @@ class Task(db.Model):
     user_id = sa.Column(sa.Integer(), sa.ForeignKey("user.id"))
     work_items = relationship("Work")
     schedules = relationship("ScheduleTask")
-
-    def to_dict(self):
-        ret = {}
-        for c in self.__table__.columns:
-            k = c.name
-            v = getattr(self, c.name)
-            if isinstance(v, date):
-                v = str(v)
-            ret[k] = v
-        return ret
+    story = relationship("Story")
 
     def __lt__(self, other):
         if not isinstance(other, Task):
@@ -142,7 +190,7 @@ class Task(db.Model):
         return not self < other
 
 
-class Tag(db.Model):
+class Tag(db.Model, DictableModel):
     """
     Tag model for story tags.
     Just an additional string to group stories differently from Epic.
@@ -155,7 +203,7 @@ class Tag(db.Model):
     stories = relationship("Story", "tag_story")
 
 
-class Story(db.Model):
+class Story(db.Model, DictableModel):
     """
     Story model for the Story object.
     Project object between Epic and Task level
@@ -173,6 +221,7 @@ class Story(db.Model):
     )  # Valid entries are "Closed" and "Cancelled"
     tasks = relationship("Task")
     tags = relationship("Tag", "tag_story")
+    epic = relationship("Epic")
 
     def to_dict(self):
         """
@@ -187,6 +236,7 @@ class Story(db.Model):
                 v = str(v)
             ret[k] = v
         ret["tasks"] = [x.to_dict() for x in self.tasks]
+        ret["tags"] = [x.to_dict() for x in self.tags]
         return ret
 
     def __lt__(self, other):
@@ -218,7 +268,7 @@ class TagStory(db.Model):
     story_id = sa.Column(sa.Integer(), sa.ForeignKey("story.id"))
 
 
-class Epic(db.Model):
+class Epic(db.Model, DictableModel):
     """
     Epic model which defines the top level of project planning.
     """
@@ -238,11 +288,7 @@ class Epic(db.Model):
     )
     # tags = relationship('Tag','story')
 
-    def to_dict(self):
-        return {c.name: getattr(self, c.name) for c in self.__table__.columns}
-
-
-class Sprint(db.Model):
+class Sprint(db.Model, DictableModel):
     """
     Sprint model for the sprint object which has
     a start date, end date, and
@@ -263,7 +309,7 @@ class Sprint(db.Model):
         return {c.name: getattr(self, c.name) for c in self.__table__.columns}
 
 
-class ScheduleTask(db.Model):
+class ScheduleTask(db.Model, DictableModel):
     """
     Scheduling model which associates Tasks with
     particular day/time in a given sprint.
@@ -280,6 +326,7 @@ class ScheduleTask(db.Model):
     sprint_hour = sa.Column(sa.Integer(), nullable=False)
     schedule_time = sa.Column(sa.Numeric(), nullable=True)
     note = sa.Column(sa.String(2048), nullable=True)
+    task = relationship(Task)
 
     def to_dict(self):
         """

@@ -218,6 +218,15 @@ def get_schedule(sched_id):
         .first()
     )
 
+def get_schedules():
+    """
+    Get all ScheduleTasks for a user
+    """
+    return (
+        ScheduleTask.query.filter(ScheduleTask.user_id == current_user.id)
+        .all()
+    )
+
 
 def get_schedule_by_time(sprint_id, sprint_day, sprint_hour, schedule_id=None):
     """

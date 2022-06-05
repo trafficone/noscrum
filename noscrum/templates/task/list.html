@@ -85,7 +85,7 @@
                     class="button {% if archive %}open-story{% else %}close-story{% endif %}" 
                     story_id="{{ story.id }}"
                     story_url="{{url_for('story.show',story_id=story.id)}}?is_json=true"
-                    close_url="{{url_for('story.close_story',story_id=story.id)}}?is_json=true">{% if archive %}Reopen{% else %}Close{% endif %} Story</button></p>
+                    close_url="{{url_for('story.close_story',story_id=story.id)}}?is_json=true">{% if archive %}Reopen{% else %}Archive{% endif %} Story</button></p>
             {% endif %}
             
         </div>
@@ -525,7 +525,7 @@
             }
             if (has_open_tasks){
                 // confirm
-                pretty_alert("A confirm was supposed to happen.");
+                pretty_alert("A confirm was supposed to happen. Sorry it didn't.");
             }
             $.ajax({
                 url: close_url,
@@ -541,7 +541,19 @@
     });
 
     $(".open-story").click( function() {
-        alert("Not implemented yet");
+        var story_id = $(this).attr('story_id');
+        var story_url = $(this).attr('story_url');
+        var close_url = $(this).attr('close_url');
+        $.ajax({
+            url: close_url,
+            data: {closure: "Open"},
+            type: 'DELETE',
+            dataType: 'json'
+        }).done(function (json) {
+            //hide story 
+            $('#story_'+story_id).addClass('hide');
+            $('#story_summary_'+story_id).addClass('hide');
+        });
     });
 
 // {% endblock %}

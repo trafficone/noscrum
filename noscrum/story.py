@@ -181,10 +181,13 @@ def close_story_update(story_id, closure_state):
     story = Story.query.filter(Story.id == story_id).filter(
         Story.user_id == current_user.id
     )
+    task_closure_state = closure_state
+    if closure_state is None:
+        task_closure_state = 'To-Do'
     for task in story.one().tasks:
         if task.status != "Done":
             # task.update({"status":closure_state})
-            Task.query.filter(Task.id == task.id).update({"status": closure_state})
+            Task.query.filter(Task.id == task.id).update({"status": task_closure_state})
     story.update({"closure_state": closure_state})
     app_db.session.commit()
     return story.one()
@@ -442,4 +445,19 @@ def close_story(path: StoryPath):
     if story is None:
         abort(404, "Story not found")
     story = close_story_update(story.id, closure_state=closure_state)
+    return {"Success": True, "story": story.to_dict()}
+
+@bp.delete("/close/<int:story_id>")
+@login_required
+def reopen_story(path: StoryPath):
+    """
+    Reopen the story"
+    """
+    story_id = path.story_id
+    if story_id == 0:
+        abort(401, "Invalid, cannot close NULL story")
+    story = get_story(story_id)
+    if story is None:
+        abort(404, "Story not found")
+    story = close_story_update(story.id, closure_state=None)
     return {"Success": True, "story": story.to_dict()}

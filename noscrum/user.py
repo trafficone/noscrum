@@ -3,7 +3,7 @@ User view and database controller
 """
 from flask import Blueprint, redirect, url_for
 from flask_user import current_user
-from noscrum.db import User
+from noscrum.db import User, UserPreference
 
 bp = Blueprint("user", __name__, url_prefix="/user")
 
@@ -29,6 +29,11 @@ def get_current_user():
     """
     return User.query.filter(User.id == current_user.id).first()
 
+def get_preferences():
+    """
+    Get the preferences of the current user
+    """
+    return UserPreference.query.filter(UserPreference.user_id == current_user.id).all()
 
 def authenticate_user(username, credential):
     """
