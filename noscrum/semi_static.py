@@ -19,7 +19,10 @@ def index():
         return render_template("index.html",current_user=current_user)
     else:
         current_sprint = get_current_sprint()
-        todays_tasks = get_schedule_tasks_filtered(current_sprint.id, None, date.today(), None)
+        if current_sprint is not None:
+            todays_tasks = get_schedule_tasks_filtered(current_sprint.id, None, date.today(), None)
+        else:
+            todays_tasks = {}
         return render_template("index.html", current_user=current_user, todays_tasks = todays_tasks)
 
 
