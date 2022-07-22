@@ -1,0 +1,22 @@
+{
+  "name": "noscrum",
+  "version": "1.0.0",
+  "description": "Productivity management for the rest of us.",
+  "main": "index.js",
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/trafficone/noscrum.git"
+  },
+  "author": "Trafficone",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/trafficone/noscrum/issues"
+  },
+  "homepage": "https://github.com/trafficone/noscrum#readme"
+}

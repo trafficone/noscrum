@@ -4,7 +4,8 @@ from flask_testing import TestCase
 from flask_user.tests.utils import utils_prepare_user
 from flask import url_for
 import noscrum
-
+import logging
+logger = logging.getLogger()
 class noscrumTestCase(TestCase):
     test_user = None
 
@@ -14,12 +15,12 @@ class noscrumTestCase(TestCase):
         test_config['TESTING'] = True
         test_config['DEBUG'] = False
         test_config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:'
-        print("Creating App - Testing")
+        logger.info("Creating App - Testing")
         app = noscrum.create_app(test_config)
         return app
 
     def setUp(self):
-        print("Setting up - testing")
+        logger.info("Setting up - testing")
         db = noscrum.db.get_db()
         db.create_all()
         self.test_user = utils_prepare_user(self.app)
