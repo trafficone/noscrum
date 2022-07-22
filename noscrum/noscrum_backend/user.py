@@ -5,6 +5,7 @@ import bcrypt
 
 logger = logging.getLogger()
 
+
 def _get_user(user_id):
     """
     Return user record given an identity value
@@ -45,31 +46,37 @@ class UserClass(UserMixin):
 
     @property
     def is_authenticated(self) -> bool:
-        return self._is_authenticated    
-    
-    @property 
+        return self._is_authenticated
+
+    @property
     def username(self) -> str:
         return self.user.username
 
     def get_id(self) -> int:
         return self.id
 
-    def authenticate(self,password: str) -> bool:
-        password = bytes(password,'utf-8')
-        self._is_authenticated = bcrypt.checkpw(password,bytes(self.user.password,'utf-8'))
+    def authenticate(self, password: str) -> bool:
+        password = bytes(password, "utf-8")
+        self._is_authenticated = bcrypt.checkpw(
+            password, bytes(self.user.password, "utf-8")
+        )
         return self.is_authenticated
 
-    def set_password(self,password: str) -> None:
+    def set_password(self, password: str) -> None:
         if not self.is_authenticated:
             return
         self.user.password = bcrypt.hashpw(password, bcrypt.gensalt())
 
     @staticmethod
     def create_user(**user_properties):
-        user_specific_properties = ['username','email','first_name','last_name']
-        #preference_properties = []
-        user_values = {prop:user_properties.get(prop) for prop in user_specific_properties}
-        user_values['password'] = bcrypt.hashpw(user_properties.get('insecure_password'),bcrypt.gensalt())
+        user_specific_properties = ["username", "email", "first_name", "last_name"]
+        # preference_properties = []
+        user_values = {
+            prop: user_properties.get(prop) for prop in user_specific_properties
+        }
+        user_values["password"] = bcrypt.hashpw(
+            user_properties.get("insecure_password"), bcrypt.gensalt()
+        )
         app_db = get_db()
         new_user = User(**user_values)
         try:

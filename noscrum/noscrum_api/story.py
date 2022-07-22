@@ -8,16 +8,20 @@ from flask_login import current_user, login_required
 from pydantic import BaseModel, Field
 from noscrum.noscrum_backend.story import *
 from noscrum.noscrum_backend.epic import get_epic, get_epics
-from noscrum.noscrum_api.template_friendly import friendly_render as render_template, NoscrumBaseQuery
+from noscrum.noscrum_api.template_friendly import (
+    friendly_render as render_template,
+    NoscrumBaseQuery,
+)
 from noscrum.noscrum_api.epic import EpicPath
 import logging
-logger=logging.getLogger()
+
+logger = logging.getLogger()
 bp = Blueprint("story", __name__, url_prefix="/story")
 
 
 @bp.get("/create/<int:epic_id>")
 @login_required
-def get_create(path: EpicPath, query: NoscrumBaseQuery ):
+def get_create(path: EpicPath, query: NoscrumBaseQuery):
     epic_id = path.epic_id
     is_asc = query.is_asc
     epic = get_epic(current_user, epic_id)
@@ -56,8 +60,10 @@ def create(path: EpicPath, query: NoscrumBaseQuery):
         return {"Success": True, "story_id": story.id}
     abort(500, error)
 
+
 class StoryPath(BaseModel):
     story_id: int = Field(...)
+
 
 @bp.get("/<int:story_id>/tag")
 @login_required

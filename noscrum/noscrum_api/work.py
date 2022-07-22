@@ -92,8 +92,10 @@ def create(path: TaskPath, query: NoscrumBaseQuery):
         return {"Success": True, "task_id": task_id}
     return redirect(url_for("work.list_for_task", task_id=task_id))
 
+
 class WorkPath(BaseModel):
     work_id: int
+
 
 @bp.get("/<int:work_id>")
 @login_required

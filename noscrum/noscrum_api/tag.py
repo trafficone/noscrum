@@ -7,7 +7,10 @@ from flask import flash, redirect, request, url_for, abort
 from flask_login import current_user, login_required
 from pydantic import BaseModel, Field
 from noscrum.noscrum_backend.tag import *
-from noscrum.noscrum_api.template_friendly import friendly_render as render_template, NoscrumBaseQuery
+from noscrum.noscrum_api.template_friendly import (
+    friendly_render as render_template,
+    NoscrumBaseQuery,
+)
 
 bp = Blueprint("tag", __name__, url_prefix="/tag")
 
@@ -44,8 +47,10 @@ def create():
         abort(500, error)
     flash(error, "error")
 
+
 class TagPath(BaseModel):
     tag_id: int
+
 
 @bp.get("/<int:tag_id>")
 @login_required

@@ -10,12 +10,14 @@ import logging
 from flask_sqlalchemy import SQLAlchemy
 from flask_openapi3 import Info
 from flask_openapi3 import OpenAPI
+
 # from flask_user import UserManager
 from flask_login import LoginManager
 from flask_foundation import Foundation
 
 
 logger = logging.getLogger()
+
 
 class ConfigClass:
     """Flask application config"""
@@ -46,7 +48,9 @@ class ConfigClass:
     def __str__(self):
         return str(self.get_dict())
 
+
 app_db = None
+
 
 def create_app(test_config=None):
     """
@@ -58,12 +62,14 @@ def create_app(test_config=None):
     # Create and Configure the app
     # running_app = Flask(__name__, instance_relative_config=True)
     info = Info(title="NoScrum API", version="1.0.0")
-    running_app = OpenAPI(__name__, 
-        instance_relative_config=True, 
+    running_app = OpenAPI(
+        __name__,
+        instance_relative_config=True,
         info=info,
-        doc_prefix = "/openapi", 
+        doc_prefix="/openapi",
         template_folder="../templates",
-        static_folder="../static")
+        static_folder="../static",
+    )
     running_app.config.from_object(__name__ + ".ConfigClass")
     # Init Flask-BabelEx
     Babel(running_app)
@@ -83,11 +89,13 @@ def create_app(test_config=None):
     app_db = SQLAlchemy(running_app)
     logger.info("Populating Database")
     from noscrum.noscrum_backend.db import db
+
     db.create_all()
 
     # These need app to exist before they can be imported
     # UserManager(running_app, app_db, User)
     from noscrum.noscrum_backend.user import UserClass
+
     login_manager = LoginManager()
 
     @login_manager.user_loader
@@ -118,6 +126,7 @@ def create_app(test_config=None):
     running_app.register_api(searchbp)
 
     return running_app
+
 
 print(__name__)
 if __name__.startswith("noscrum"):

@@ -4,6 +4,7 @@ from datetime import timedelta, datetime
 from sqlalchemy import or_
 from noscrum.noscrum_backend.db import get_db, Sprint, Task, ScheduleTask
 import logging
+
 logger = logging.getLogger()
 statuses = ["To-Do", "In Progress", "Done"]
 
@@ -322,7 +323,7 @@ def get_sprint_details(current_user, sprint_id):
     @param sprint_id sprint details are wanted
     """
     app_db = get_db()
-    stories = get_stories(current_user,sprint_view=True, sprint_id=sprint_id)
+    stories = get_stories(current_user, sprint_view=True, sprint_id=sprint_id)
     epics = get_epics(current_user, sprint_view=True, sprint_id=sprint_id)
     # tasks = #get_tasks().filter(Task.sprint_id == sprint_id)
     tasks = app_db.session.execute(

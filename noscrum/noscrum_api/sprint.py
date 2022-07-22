@@ -74,6 +74,7 @@ def get_sprint_board(sprint_id, sprint, is_static=False):
         work=work,
     )
 
+
 class SprintPath(BaseModel):
     sprint_id: int = Field(...)
 

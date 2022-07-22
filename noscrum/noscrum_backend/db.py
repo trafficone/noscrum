@@ -8,6 +8,7 @@ from collections.abc import Hashable, Iterable
 import sqlalchemy as sa
 from sqlalchemy.orm import relationship
 from noscrum.noscrum_api import app_db
+
 logger = logging.getLogger()
 """
     # TODO: Unused Import is implicitly used by DB, but this prevents import cycle
@@ -28,8 +29,10 @@ logger = logging.getLogger()
 db = app_db
 
 if db is not None:
+
     def get_db():
         return db
+
     class DictableModel:
         @property
         def __table__(self):
@@ -58,7 +61,6 @@ if db is not None:
                     f'Input dictionary not compatible with class "{cls.__name__}"'
                 )
             return cls(input_dict)
-
 
     class Work(db.Model):
         """
@@ -95,7 +97,6 @@ if db is not None:
             _ = input_dict.pop("story_id")
             return cls(input_dict)
 
-
     class User(db.Model):
         """
         User model. Contains all properties for a user.
@@ -104,12 +105,16 @@ if db is not None:
         __tablename__ = "user"
         id = sa.Column(sa.Integer(), primary_key=True)
         username = sa.Column(sa.String(100), nullable=False, unique=True)
-        active = sa.Column("is_active", sa.Boolean(), nullable=False, server_default="1")
+        active = sa.Column(
+            "is_active", sa.Boolean(), nullable=False, server_default="1"
+        )
 
         # User auth information.
         # User authentication information. The collation='NOCASE' is required
         # to search case insensitively when USER_IFIND_MODE is 'nocase_collation'.
-        email = sa.Column(sa.String(255, collation="NOCASE"), nullable=True, unique=True)
+        email = sa.Column(
+            sa.String(255, collation="NOCASE"), nullable=True, unique=True
+        )
         email_confirmed_at = sa.Column(sa.DateTime())
         email_opt_in = sa.Column(sa.Boolean(), nullable=False, server_default="0")
         password = sa.Column(sa.String(255), nullable=False, server_default="")
@@ -131,7 +136,6 @@ if db is not None:
             """
             return f"User(id={self.id})"
 
-
     class UserPreference(db.Model, DictableModel):
         """
         User Preferences - generic key-value store
@@ -146,7 +150,6 @@ if db is not None:
         preference = sa.Column(sa.String(1024), primary_key=True)
         value = sa.Column(sa.String(5000))
 
-
     # Define the Role data-model
     class Role(db.Model):
         """
@@ -158,9 +161,7 @@ if db is not None:
         id = sa.Column(sa.Integer(), primary_key=True)
         name = sa.Column(sa.String(50), unique=True)
 
-
     # Define the UserRoles association table
-
 
     class UserRoles(db.Model):
         """
@@ -171,7 +172,6 @@ if db is not None:
         id = sa.Column(sa.Integer(), primary_key=True)
         user_id = sa.Column(sa.Integer(), sa.ForeignKey("user.id", ondelete="CASCADE"))
         role_id = sa.Column(sa.Integer(), sa.ForeignKey("roles.id", ondelete="CASCADE"))
-
 
     class Task(db.Model, DictableModel):
         """
@@ -207,7 +207,6 @@ if db is not None:
         def __gt__(self, other):
             return not self < other
 
-
     class Tag(db.Model, DictableModel):
         """
         Tag model for story tags.
@@ -219,7 +218,6 @@ if db is not None:
         tag = sa.Column(sa.String(255), nullable=False)
         user_id = sa.Column(sa.Integer, sa.ForeignKey("user.id"), nullable=False)
         stories = relationship("Story", "tag_story")
-
 
     class Story(db.Model, DictableModel):
         """
@@ -274,7 +272,6 @@ if db is not None:
         def __gt__(self, other):
             return not self < other
 
-
     class TagStory(db.Model):
         """
         TagStory model which joins Story to Tag.
@@ -284,7 +281,6 @@ if db is not None:
         id = sa.Column(sa.Integer(), primary_key=True)
         tag_id = sa.Column(sa.Integer(), sa.ForeignKey("tag.id"))
         story_id = sa.Column(sa.Integer(), sa.ForeignKey("story.id"))
-
 
     class Epic(db.Model, DictableModel):
         """
@@ -306,7 +302,6 @@ if db is not None:
         )
         # tags = relationship('Tag','story')
 
-
     class Sprint(db.Model, DictableModel):
         """
         Sprint model for the sprint object which has
@@ -326,7 +321,6 @@ if db is not None:
 
         def to_dict(self):
             return {c.name: getattr(self, c.name) for c in self.__table__.columns}
-
 
     class ScheduleTask(db.Model):
         """

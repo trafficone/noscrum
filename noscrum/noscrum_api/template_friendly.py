@@ -10,6 +10,7 @@ def friendly_render(filename: str, **context):
     """
     return render_template(filename, **context)
 
+
 class NoscrumBaseQuery(BaseModel):
     is_asc: bool = Field(default=False)
     is_json: bool = Field(default=False)

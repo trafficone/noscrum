@@ -2,7 +2,9 @@ from noscrum.noscrum_backend.db import get_db, Story, TagStory, Tag, Task
 from noscrum.noscrum_backend.epic import get_null_epic
 from noscrum.noscrum_backend.tag import get_tags_for_story
 import logging
+
 logger = logging.getLogger()
+
 
 def get_stories(current_user, sprint_view=False, sprint_id=None, closed: bool = None):
     """
@@ -99,7 +101,9 @@ def get_null_story_for_epic(current_user, epic_id):
         .first()
     )
     if story is None:
-        logger.info("Couldn't find null story? creating new story with epic id", epic_id)
+        logger.info(
+            "Couldn't find null story? creating new story with epic id", epic_id
+        )
         story = create_story(current_user, epic_id, "NULL", None, None)
     return story
 

@@ -55,8 +55,10 @@ def create(query: NoscrumBaseQuery):
     flash(error, "error")
     return render_template("epic/create.html", asc=is_asc)
 
+
 class EpicPath(BaseModel):
-    epic_id: int 
+    epic_id: int
+
 
 @bp.get("/<int:epic_id>")
 @login_required
@@ -81,7 +83,7 @@ def show(path: EpicPath, query: NoscrumBaseQuery):
 
 @bp.post("/<int:epic_id>")
 @login_required
-def update(path: EpicPath,query: NoscrumBaseQuery):
+def update(path: EpicPath, query: NoscrumBaseQuery):
     """
     Update an epic
     """
@@ -126,5 +128,5 @@ def list_all(query: NoscrumBaseQuery):
     is_json = query.is_json
     epics = get_epics(current_user)
     if is_json:
-        return {"Success": True, "epics": epics}#[dict(x) for x in epics]}
+        return {"Success": True, "epics": epics}  # [dict(x) for x in epics]}
     return render_template("epic/list.html", epics=epics)

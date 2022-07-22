@@ -16,9 +16,13 @@ from noscrum.noscrum_backend.story import (
 from noscrum.noscrum_backend.epic import get_epic, get_epics
 from noscrum.noscrum_backend.sprint import get_current_sprint, get_sprint, get_sprints
 from noscrum.noscrum_backend.task import *
-from noscrum.noscrum_api.template_friendly import friendly_render as render_template, NoscrumBaseQuery
+from noscrum.noscrum_api.template_friendly import (
+    friendly_render as render_template,
+    NoscrumBaseQuery,
+)
 from noscrum.noscrum_api.story import StoryPath
 import logging
+
 logger = logging.getLogger()
 bp = Blueprint("task", __name__, url_prefix="/task")
 
@@ -101,6 +105,7 @@ def create(path: StoryPath, query: NoscrumBaseQuery):
 
 class TaskPath(BaseModel):
     task_id: int = Field(...)
+
 
 @bp.get("/<int:task_id>")
 @login_required
