@@ -49,7 +49,7 @@ def create(query: NoscrumBaseQuery):
         epic = create_epic(current_user, epic, color, deadline)
         if is_json:
             return {"Success": True, "epic_id": epic.id, "epic_name": epic.epic}
-        return redirect(url_for("epic.show", epic_id=epic.id))
+        return redirect(url_for("task.list_all"))
     if is_json:
         abort(500, error)
     flash(error, "error")

@@ -7,7 +7,7 @@
 {% block content %}
 {% if current_user.is_authenticated %}
 <h4>Welcome Back {{ current_user.username }}</h4>
-Here are Today's Tasks:
+Here are Today's Tasks ({{ today }}):
 {% for task in todays_tasks %}
     <p class="epic {{task.task.story.epic.color}}">{{ task.task.story.epic.epic }} - {{ task.task.story.story }}:{{ task.task.task }} </p>
 {% endfor %}

@@ -65,6 +65,7 @@ def get_login():
 @bp.get("/logout")
 def logout():
     logout_user()
+    return flask.redirect(flask.url_for('semi_static.index'))
 
 
 @bp.post("/login")

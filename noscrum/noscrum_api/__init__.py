@@ -11,7 +11,6 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_openapi3 import Info
 from flask_openapi3 import OpenAPI
 
-# from flask_user import UserManager
 from flask_login import LoginManager
 from flask_foundation import Foundation
 

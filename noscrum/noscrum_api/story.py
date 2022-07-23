@@ -40,6 +40,7 @@ def create(path: EpicPath, query: NoscrumBaseQuery):
     POST: Create new story record for database
     @param epic_id Epic record identity number
     """
+    is_json = query.is_json
     epic_id = path.epic_id
     epic = get_epic(current_user, epic_id)
     if epic is None:
@@ -57,6 +58,8 @@ def create(path: EpicPath, query: NoscrumBaseQuery):
         error = f"Story {story} already exists"
     if error is None:
         story = create_story(current_user, epic_id, story, prioritization, deadline)
+        if not is_json:
+            return redirect(url_for('task.list_all'))
         return {"Success": True, "story_id": story.id}
     abort(500, error)
 
@@ -91,7 +94,7 @@ def get_tag(path: StoryPath, query: NoscrumBaseQuery):
 
 @bp.post("/<int:story_id>/tag")
 @login_required
-def tag(story_id):
+def tag(path: StoryPath, query: NoscrumBaseQuery):
     """
     Handle tag records for a given story value
     GET: Get tags for some particular story id
@@ -99,7 +102,8 @@ def tag(story_id):
     DELETE: Remove a tag from the story record
     @param story_id story identification value
     """
-    is_json = request.args.get("is_json", False)
+    story_id = path.story_id
+    is_json = query.is_json
     story = get_story(current_user, story_id)
     if story is None:
         error = 'Story "{story_id}" not found, unable to tag'
@@ -133,8 +137,9 @@ def tag(story_id):
 
 @bp.delete("<int:story_id>/tag")
 @login_required
-def delete_tag(story_id):
-    is_json = request.args.get("is_json", False)
+def delete_tag(path: StoryPath, query: NoscrumBaseQuery):
+    story_id = path.story_id
+    is_json = query.is_json
     story = get_story(current_user, story_id)
     if story is None:
         error = 'Story "{story_id}" not found, unable to tag'
@@ -178,10 +183,11 @@ def list_all():
     return render_template("story/list.html", stories=stories, epics=epics)
 
 
-@bp.get("/int:story_id")
+@bp.get("/<int:story_id>")
 @login_required
-def show(story_id: int):
-    is_json = request.args.get("is_json", False)
+def show(path: StoryPath, query: NoscrumBaseQuery):
+    is_json = query.is_json
+    story_id = path.story_id
     story = get_story(current_user, story_id)
     if not story:
         error = "Story ID does not exist."
@@ -199,11 +205,12 @@ def show(story_id: int):
 
 @bp.post("/<int:story_id>")
 @login_required
-def update(story_id: int):
+def update(path: StoryPath, query: NoscrumBaseQuery):
     """
     Show details of a story with some identity
     @param story_id identity for a story value
     """
+    story_id = path.story_id
     story = get_story(current_user, story_id)
     if not story:
         error = "Story ID does not exist."
