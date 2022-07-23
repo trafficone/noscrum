@@ -5,7 +5,7 @@
 {% endblock %}
 
 {% block content %}
-<div class="tag" edit_url="{{ url_for('tag.show',tag_id=tag.id) }}">
+<div class="tag" edit_url="{{ url_for('tag.update',tag_id=tag.id) }}">
     {{ tag.tag }}
 </div>
 {% endblock %}

@@ -1,0 +1,17 @@
+{
+  "name": "noscrum",
+  "description": "Productivity management for the rest of us.",
+  "main": "index.js",
+  "authors": [
+    "Trafficone"
+  ],
+  "license": "MIT",
+  "homepage": "https://github.com/trafficone/noscrum",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ]
+}

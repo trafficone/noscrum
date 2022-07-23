@@ -57,14 +57,14 @@
 {% for epic in epics %}
 <div class="epic {{ epic.color }}">
     <div class="row">
-        <h3 class="editable" update_key="epic" update_url="{{url_for('epic.show',epic_id=epic.id,is_json=True)}}">{{ epic.epic if epic.epic != 'NULL' else 'Unscheduled Stories' }}</h3>
+        <h3 class="editable" update_key="epic" update_url="{{url_for('epic.update',epic_id=epic.id,is_json=True)}}">{{ epic.epic if epic.epic != 'NULL' else 'Unscheduled Stories' }}</h3>
                 <div class="columns small-3">Hours Estimated: <span class="epic-metric estimate">{{ epic.tasks|selectattr("estimate")|sum(attribute='estimate')}}</span></div>
                 <div class="columns small-3">Total Tasks: <span class="epic-metric tasks">{{ epic.tasks|length }}</span></div>
                 <div class="columns small-3">Incomplete Tasks: <span class="epic-metric incomplete">{{ epic.tasks|selectattr("status","eq","To-Do")|list|length }}</span></div>
                 <div class="columns small-3">Tasks without Time Estimates: <span class="epic-metric unestimated">{{ epic.tasks|selectattr("estimate","none")|list|length }}</span></div>
     </div>
     {% for story in stories | sort()  if story.epic_id == epic.id %}
-    <div id="story_{{story.id}}" class="row story" update_url="{{ url_for('story.show',story_id=story.id,is_json=True) }}">
+    <div id="story_{{story.id}}" class="row story" update_url="{{ url_for('story.update',story_id=story.id,is_json=True) }}">
         <div class="float-left"><span class="badge {{ colors[story.prioritization] }}" title="Prioritization">{{ story.prioritization }}</span></div>
         &nbsp;
         {% if story.story != 'NULL' %}
@@ -94,7 +94,7 @@
             {% for task in story.tasks|sort() %}
             <div class="task-container container" 
                  task="{{ task.id }}" 
-                 update_url="{{ url_for('task.show',task_id=task.id,is_json=True) }}">
+                 update_url="{{ url_for('task.update',task_id=task.id,is_json=True) }}">
                  <div class="row task-header">
                     <div class="columns large-6 task-name" ><span class="editable" title="Click to edit Task" id="task_name_{{task.id}}" update_key="task">{{ task.task }}</span></div>
                     <div class="columns small-4"></div>
@@ -148,7 +148,7 @@
 </div>
 {% endfor %}
 <div>
-{% if not archive %}<button class="button create create-epic" value="{{ url_for('epic.create',is_asc=True) }}">Create Epic</button><div></div>{% endif %}
+{% if not archive %}<button class="button create create-epic" value="{{ url_for('epic.get_create',is_asc=True) }}">Create Epic</button><div></div>{% endif %}
 </div>
 {% endblock %}
 <script>

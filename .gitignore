@@ -4,6 +4,7 @@ noscrum/static/examples/
 venv/
 msvenv/
 *.sqlite
+*.bak
 
 *.pyc
 __pycache__/
@@ -20,3 +21,7 @@ build/
 .vscode
 .env
 .env.*
+.vscode/
+
+node_modules/
+bower_components/
