@@ -23,7 +23,7 @@
         estimate="{{tasks[task].estimate}}"
         story="{{ tasks[task].story_id }}" 
         id="{{ 'task_%d'%task }}" 
-        update_url="{{ url_for('task.show',task_id=task,is_json=True) }}"
+        update_url="{{ url_for('task.update',task_id=task,is_json=True) }}"
         recurring="{{tasks[task].recurring}}"
         unestimated_time="{{ 2 if not tasks[task].estimate else tasks[task].estimate - tasks[task].sum_sched }}">
         <div class="row task-header">
@@ -156,7 +156,7 @@
                     schedule_id="{{ schedule.id }}"
                     recurring="{{ schedule.recurring_schedule }}"
                     planned="{{schedule.schedule_time}}"
-                    update_url="{{ url_for('task.show',task_id=schedule.task_id,is_json=True) }}">
+                    update_url="{{ url_for('task.update',task_id=schedule.task_id,is_json=True) }}">
                     <div class="row">
                         <div class="small-2 columns epic-label {{epics[tasks[schedule.task_id].epic_id].color }} ">{{ epics[tasks[schedule.task_id].epic_id].epic }}</div>
                         <div class="small-6 columns story-label">{{ stories[tasks[schedule.task_id].story_id].story }}</div>

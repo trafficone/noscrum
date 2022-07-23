@@ -21,3 +21,7 @@ build/
 .vscode
 .env
 .env.*
+.vscode/
+
+node_modules/
+bower_components/
