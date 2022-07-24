@@ -57,8 +57,11 @@ class UserClass(UserMixin):
 
     def authenticate(self, password: str) -> bool:
         password = bytes(password, "utf-8")
+        user_password = self.user.password
+        if not isinstance(user_password,bytes):
+            user_password = bytes(user_password, 'utf-8')
         self._is_authenticated = bcrypt.checkpw(
-            password, bytes(self.user.password, "utf-8")
+            password, user_password
         )
         return self.is_authenticated
 
@@ -74,8 +77,11 @@ class UserClass(UserMixin):
         user_values = {
             prop: user_properties.get(prop) for prop in user_specific_properties
         }
+        insecure_password = user_properties.get("insecure_password")
+        if not isinstance(insecure_password,bytes):
+            insecure_password = bytes(insecure_password, 'utf-8')
         user_values["password"] = bcrypt.hashpw(
-            user_properties.get("insecure_password"), bcrypt.gensalt()
+            insecure_password, bcrypt.gensalt()
         )
         app_db = get_db()
         new_user = User(**user_values)

@@ -14,7 +14,6 @@ Flask-Foundation==2.1
 Flask-Login==0.5.0
 Flask-Mail==0.9.1
 Flask-SQLAlchemy==2.5.1
-Flask-User==1.0.2.2
 Flask-Testing
 Flask-WTF==1.0.0
 idna==3.3
@@ -34,3 +33,8 @@ WTForms==3.0.1
 flask-openapi3
 bs4
 pytest
+pytest-playwright
+coverage==5.0.3
+openapi3-fuzzer
+adal==1.2.2
+schemathesis
