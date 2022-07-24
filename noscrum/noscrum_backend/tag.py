@@ -1,3 +1,6 @@
+"""
+Handle backend components to Noscrum Tag API
+"""
 from noscrum.noscrum_backend.db import get_db, Tag
 
 
@@ -52,8 +55,8 @@ def create_tag(current_user, tag):
     """
     app_db = get_db()
     newtag = Tag(tag=tag, user_id=current_user.id)
-    app_db.session.add(newtag)
-    app_db.session.commit()
+    app_db.session.add(newtag)  # pylint: disable=no-member
+    app_db.session.commit()  # pylint: disable=no-member
     return get_tag_from_name(current_user, tag)
 
 
@@ -67,7 +70,7 @@ def update_tag(current_user, tag_id, tag):
     Tag.query.filter(Tag.id == tag_id).filter(Tag.user_id == current_user.id).update(
         {tag: tag}, synchronize_session="fetch"
     )
-    app_db.session.commit()
+    app_db.session.commit()  # pylint: disable=no-member
     return get_tag(current_user, tag_id)
 
 
@@ -78,4 +81,4 @@ def delete_tag(current_user, tag_id):
     """
     app_db = get_db()
     Tag.query.filter(Tag.id == tag_id).filter(Tag.user_id == current_user.id).delete()
-    app_db.session.commit()
+    app_db.session.commit()  # pylint: disable=no-member

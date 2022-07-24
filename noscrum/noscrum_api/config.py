@@ -1,3 +1,6 @@
+"""
+Configuration object for FastAPI
+"""
 from starlette.config import Config
 from starlette.datastructures import Secret
 

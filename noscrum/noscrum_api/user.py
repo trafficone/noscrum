@@ -4,8 +4,7 @@ User view controller
 from flask_openapi3 import APIBlueprint as Blueprint
 import flask
 from flask_login import current_user, login_required, login_user, logout_user, UserMixin
-from noscrum.noscrum_api.template_friendly import friendly_render as render_template
-import noscrum.noscrum_backend.user as user
+import noscrum.noscrum_backend.user as backend
 
 bp = Blueprint("user", __name__, url_prefix="/user")
 
@@ -26,12 +25,18 @@ def profile():
 
 @bp.get("/create")
 def get_create():
+    """
+    Return user creation form
+    """
     return flask.render_template("user/create.html")
 
 
 @bp.post("/create")
 def create():
-    # HOLY INVALIDATED INPUT, BATMAN
+    """
+    Create a new user
+    """
+    # FIXME: Validate input somewhat
     form = flask.request.form
     user_properties = {
         "username": form.get("username"),
@@ -41,9 +46,9 @@ def create():
         "last_name": form.get("lastname"),
     }
     try:
-        new_user = user.UserClass.create_user(**user_properties)
-    except ValueError as e:
-        flask.flash(f"Could not create user {e}")
+        new_user = backend.UserClass.create_user(**user_properties)
+    except ValueError as error_message:
+        flask.flash("Could not create user %s", error_message)
         return flask.redirect(flask.url_for("user.get_create"))
     login_user(new_user)
     return flask.redirect(flask.url_for("semi_static.index"))
@@ -52,11 +57,17 @@ def create():
 @bp.post("/")
 @login_required
 def update():
-    pass
+    """
+    Update user (not yet implemented)
+    """
+    # TODO: update user
 
 
 @bp.get("/login")
 def get_login():
+    """
+    Return login form for user
+    """
     if current_user is not None and isinstance(current_user, UserMixin):
         return flask.redirect(flask.url_for("user.profile"))
     return flask.render_template("user/login.html")
@@ -64,20 +75,26 @@ def get_login():
 
 @bp.get("/logout")
 def logout():
+    """
+    Handle logout action for user
+    """
     logout_user()
-    return flask.redirect(flask.url_for('semi_static.index'))
+    return flask.redirect(flask.url_for("semi_static.index"))
 
 
 @bp.post("/login")
 def login():
+    """
+    Handle login request for user
+    """
     username = flask.request.form.get("username")
     password = flask.request.form.get("password")
-    user_db_instance = user.get_user_by_username(username)
+    user_db_instance = backend.get_user_by_username(username)
     if user_db_instance is None or password is None:
         flask.flash("Username or Password is Incorrect")
         return flask.render_template("user/login.html")
 
-    user_instance = user.UserClass(user_db_instance.id)
+    user_instance = backend.UserClass(user_db_instance.id)
     if not user_instance.authenticate(password):
         flask.flash("Username or Password is Incorrect")
         return flask.render_template("user/login.html")

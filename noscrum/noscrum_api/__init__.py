@@ -4,9 +4,9 @@ See README.md for full details.
 """
 import os
 
+import logging
 from dotenv import load_dotenv
 from flask_babelex import Babel
-import logging
 from flask_sqlalchemy import SQLAlchemy
 from flask_openapi3 import Info
 from flask_openapi3 import OpenAPI
@@ -48,23 +48,22 @@ class ConfigClass:
         return str(self.get_dict())
 
 
-app_db = None
+APP_DB = None
 
 
 def create_app(test_config=None):
     """
     Creates the Flask application for NoScrum.
     """
-    global app_db
+    global APP_DB
     logger.info("Creating App!!!!!!!!")
     load_dotenv()
     # Create and Configure the app
     # running_app = Flask(__name__, instance_relative_config=True)
-    info = Info(title="NoScrum API", version="1.0.0")
     running_app = OpenAPI(
         __name__,
         instance_relative_config=True,
-        info=info,
+        info=Info(title="NoScrum API", version="1.0.0"),
         doc_prefix="/openapi",
         template_folder="../templates",
         static_folder="../static",
@@ -85,14 +84,14 @@ def create_app(test_config=None):
 
     logger.info("Creating Database")
     # Init SQLAlchemy
-    app_db = SQLAlchemy(running_app)
+    APP_DB = SQLAlchemy(running_app)
     logger.info("Populating Database")
     from noscrum.noscrum_backend.db import db
 
     db.create_all()
 
     # These need app to exist before they can be imported
-    # UserManager(running_app, app_db, User)
+    # UserManager(running_app, APP_DB, User)
     from noscrum.noscrum_backend.user import UserClass
 
     login_manager = LoginManager()

@@ -1,3 +1,6 @@
+"""
+Backend component of Task API
+"""
 from noscrum.noscrum_backend.db import get_db, Task
 
 
@@ -6,7 +9,7 @@ def get_tasks(current_user):
     Get every task record for the current user
     """
     app_db = get_db()
-    return app_db.session.execute(
+    return app_db.session.execute(  # pylint: disable=no-member
         "SELECT task.id, task, estimate, status, story_id, "
         + "epic_id, actual, task.deadline, task.recurring, "
         + "coalesce(hours_worked,0) hours_worked, "
@@ -25,7 +28,7 @@ def get_tasks(current_user):
         + "WHERE task.user_id = :user_id "
         + "ORDER BY task.status, coalesce(task.deadline,'2222-12-22') ASC ",
         {"user_id": current_user.id},
-    )
+    )  # pylint: disable=no-member
 
 
 def get_task(current_user, task_id):
@@ -60,13 +63,16 @@ def get_story_summary(current_user):
     return (
         app_db.session.query(
             Task.story_id,
-            app_db.func.sum(Task.estimate).label("est"),
-            app_db.func.count(Task.id).filter(Task.estimate is None).label("unest"),
+            app_db.func.sum(Task.estimate).label("est"),  # pylint: disable=no-member
             app_db.func.count(Task.id)
+            .filter(Task.estimate is None)
+            .label("unest"),  # pylint: disable=no-member
+            app_db.func.count(Task.id)  # pylint: disable=no-member
             .filter(Task.status != "Done")
             .label("incomplete"),
-            app_db.func.count().label("task_count"),
+            app_db.func.count().label("task_count"),  # pylint: disable=no-member
         )
+        .filter(Task.user_id == current_user.id)
         .group_by(Task.story_id)
         .all()
     )
@@ -116,8 +122,8 @@ def create_task(current_user, task, story_id, estimate, deadline, sprint_id):
         sprint_id=sprint_id,
         user_id=current_user.id,
     )
-    app_db.session.add(newtask)
-    app_db.session.commit()
+    app_db.session.add(newtask)  # pylint: disable=no-member
+    app_db.session.commit()  # pylint: disable=no-member
     return get_task_by_name(current_user, task, story_id)
 
 

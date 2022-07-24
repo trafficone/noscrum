@@ -7,7 +7,7 @@ from datetime import date
 from collections.abc import Hashable, Iterable
 import sqlalchemy as sa
 from sqlalchemy.orm import relationship
-from noscrum.noscrum_api import app_db
+from noscrum.noscrum_api import APP_DB
 
 logger = logging.getLogger()
 """
@@ -26,37 +26,51 @@ logger = logging.getLogger()
         ScheduleTask,  # pylint: disable=unused-import
     )
 """
-db = app_db
+db = APP_DB
 
 if db is not None:
 
     def get_db():
+        """
+        Return DB instance of app
+        """
         return db
 
     class DictableModel:
+        """
+        Interface class - any DB Model which can be converted
+        to a dict by implementing to_dict()
+        """
+
         @property
         def __table__(self):
             return NotImplemented
 
         def to_dict(self):
+            """
+            Default transformation of table to dict object
+            """
             ret = {}
-            for c in self.__table__.columns:
-                k = c.name
-                v = getattr(self, c.name)
-                if isinstance(v, Hashable):
+            for column in self.__table__.columns:  # pylint: disable=no-member
+                key = column.name
+                value = getattr(self, column.name)
+                if isinstance(value, Hashable):
                     pass
-                elif isinstance(v, Iterable):
-                    v = [x.to_dict() for x in v]
-                elif isinstance(v, date):
-                    v = str(v)
-                elif hasattr(v, "to_dict"):
-                    v = v.to_dict()
-                ret[k] = v
+                elif isinstance(value, Iterable):
+                    value = [x.to_dict() for x in value]
+                elif isinstance(value, date):
+                    value = str(value)
+                elif hasattr(value, "to_dict"):
+                    value = value.to_dict()
+                ret[key] = value
             return ret
 
         @classmethod
         def from_dict(cls, input_dict):
-            if set(input_dict.keys()) != set([c.name for c in cls.__table__.columns]):
+            """
+            Coerce dict object into table.
+            """
+            if set(input_dict.keys()) != {c.name for c in cls.__table__.columns}:
                 raise ValueError(
                     f'Input dictionary not compatible with class "{cls.__name__}"'
                 )
@@ -75,11 +89,16 @@ if db is not None:
         task_id = sa.Column(sa.Integer(), sa.ForeignKey("task.id"))
         status = sa.Column(sa.String(12), nullable=True, default="To-Do")
         user_id = sa.Column(sa.Integer(), sa.ForeignKey("user.id"))
-        # alter table work add column sprint_id; update work set sprint_id = task.sprint_id from task where task_id = task.id;
-        # update work set sprint_id = sprint.id from sprint where work_date between sprint.start_date and sprint.end_date;
+        # alter table work add column sprint_id;
+        # update work set sprint_id = task.sprint_id from task where task_id = task.id;
+        # update work set sprint_id = sprint.id from sprint
+        #   where work_date between sprint.start_date and sprint.end_date;
         sprint_id = sa.Column(sa.Integer, sa.ForeignKey("sprint.id"))
 
         def to_dict(self):
+            """
+            Mapping of Work class to dict() representation
+            """
             return {
                 "id": self.id,
                 "work_date": str(self.work_date),
@@ -92,6 +111,9 @@ if db is not None:
 
         @classmethod
         def from_dict(cls, input_dict):
+            """
+            Coerce dict object to Work type
+            """
             if set(input_dict.keys()) != set(cls.__table__.columns.keys()):
                 raise ValueError('Invalid Input dict of type "Work"')
             _ = input_dict.pop("story_id")
@@ -245,12 +267,12 @@ if db is not None:
             As a newly created dictionary object
             """
             ret = {}
-            for c in self.__table__.columns:
-                k = c.name
-                v = getattr(self, c.name)
-                if isinstance(v, date):
-                    v = str(v)
-                ret[k] = v
+            for column in self.__table__.columns:  # pylint: disable=no-member
+                key = column.name
+                value = getattr(self, column.name)
+                if isinstance(value, date):
+                    value = str(value)
+                ret[key] = value
             ret["tasks"] = [x.to_dict() for x in self.tasks]
             ret["tags"] = [x.to_dict() for x in self.tags]
             return ret
@@ -320,7 +342,10 @@ if db is not None:
         schedule = relationship("ScheduleTask")
 
         def to_dict(self):
-            return {c.name: getattr(self, c.name) for c in self.__table__.columns}
+            return {
+                c.name: getattr(self, c.name)
+                for c in self.__table__.columns  # pylint: disable=no-member
+            }  # pylint: disable=no-member
 
     class ScheduleTask(db.Model):
         """

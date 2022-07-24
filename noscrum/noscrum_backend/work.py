@@ -1,3 +1,6 @@
+"""
+Backend components to Noscrum Work API
+"""
 from noscrum.noscrum_backend.db import get_db, Work, ScheduleTask
 from noscrum.noscrum_backend.task import update_task
 
@@ -30,7 +33,7 @@ def create_work(
         task_id=task_id,
         user_id=current_user.id,
     )
-    app_db.session.add(new_work)
+    app_db.session.add(new_work)  # pylint: disable=no-member
     new_status = status if update_status else None
     update_task(
         current_user,
@@ -44,7 +47,15 @@ def create_work(
         None,
         None,
     )
-    app_db.session.commit()
+    app_db.session.commit()  # pylint: disable=no-member
+
+
+def get_all_work(current_user):
+    """
+    Get work record from identification number
+    @param work_id work record identity number
+    """
+    return Work.query.filter(Work.user_id == current_user.id).first()
 
 
 def get_work(current_user, work_id):
@@ -90,7 +101,7 @@ def get_work_for_epic(current_user, epic_id):
     """
     app_db = get_db()
     return Work(
-        *app_db.session.execute(
+        *app_db.session.execute(  # pylint: disable=no-member
             "SELECT work.id, task_id, work_date, hours_worked, status "
             + "FROM work JOIN task on work.task_id = task.id "
             + "JOIN story ON task.story_id = story.id "
@@ -125,5 +136,5 @@ def delete_work(current_user, work_id):
     Work.query.filter(Work.id == work_id).filter(
         Work.user_id == current_user.id
     ).delete()
-    app_db.session.commit()
+    app_db.session.commit()  # pylint: disable=no-member
     return work.id

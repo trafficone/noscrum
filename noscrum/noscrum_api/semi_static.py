@@ -20,15 +20,17 @@ def index():
     """
     if not current_user.is_authenticated:
         return render_template("index.html", current_user=current_user)
-    else:
-        current_sprint = get_current_sprint(current_user)
-        print(date.today())
-        if current_sprint is not None:
-            todays_tasks = get_schedule_tasks_filtered(
-                current_user, current_sprint.id, None, date.today(), None
-            )
-        else:
-            todays_tasks = {}
-        return render_template(
-            "index.html", current_user=current_user, todays_tasks=todays_tasks, today=date.today()
+    current_sprint = get_current_sprint(current_user)
+    print(date.today())
+    if current_sprint is not None:
+        todays_tasks = get_schedule_tasks_filtered(
+            current_user, current_sprint.id, None, date.today(), None
         )
+    else:
+        todays_tasks = {}
+    return render_template(
+        "index.html",
+        current_user=current_user,
+        todays_tasks=todays_tasks,
+        today=date.today(),
+    )

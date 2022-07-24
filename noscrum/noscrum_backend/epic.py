@@ -1,3 +1,6 @@
+"""
+Handler for backend of Epic API for Noscrum
+"""
 from noscrum.noscrum_backend.db import get_db, Epic
 
 
@@ -9,7 +12,7 @@ def get_epics(current_user, sprint_view=False, sprint_id=None):
     if not sprint_view:
         return Epic.query.filter(Epic.user_id == current_user.id).all()
 
-    return app_db.session.execute(
+    return app_db.session.execute(  # pylint: disable=no-member
         "SELECT epic.id, "
         + "CASE WHEN epic.epic == 'NULL' THEN 'No Epic' ELSE epic.epic END as epic, "
         + "color, epic.deadline, "
@@ -79,8 +82,8 @@ def create_epic(current_user, epic, color, deadline):
     """
     app_db = get_db()
     new_epic = Epic(epic=epic, color=color, deadline=deadline, user_id=current_user.id)
-    app_db.session.add(new_epic)
-    app_db.session.commit()
+    app_db.session.add(new_epic)  # pylint: disable=no-member
+    app_db.session.commit()  # pylint: disable=no-member
     return get_epic_by_name(current_user, epic)
 
 
@@ -96,5 +99,5 @@ def update_epic(current_user, epic_id, epic, color, deadline):
         {"epic": epic, "color": color, "deadline": deadline},
         synchronize_session="fetch",
     )
-    app_db.session.commit()
+    app_db.session.commit()  # pylint: disable=no-member
     return get_epic(current_user, epic_id)

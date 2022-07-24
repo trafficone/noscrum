@@ -1,26 +1,15 @@
+"""
+Noscrum API Handler for Sprint (and sprint schedule) components
+"""
+from datetime import timedelta, datetime
+import logging
+from sqlalchemy import or_
 from noscrum.noscrum_backend.epic import get_epics
 from noscrum.noscrum_backend.story import get_stories
-from datetime import timedelta, datetime
-from sqlalchemy import or_
 from noscrum.noscrum_backend.db import get_db, Sprint, Task, ScheduleTask
-import logging
 
 logger = logging.getLogger()
 statuses = ["To-Do", "In Progress", "Done"]
-
-
-def get_task(current_user, task_id):
-    # pylint: disable=duplicate-code
-    # FIXME: This function exists to prevent a cyclical import that breaks everything
-    """
-    Task record for user for identifier number
-    @task_id task record identification number
-    """
-    return (
-        Task.query.filter(Task.id == task_id)
-        .filter(Task.user_id == current_user.id)
-        .first()
-    )
 
 
 def get_work_for_sprint(current_user, sprint_id):
@@ -29,7 +18,7 @@ def get_work_for_sprint(current_user, sprint_id):
     @param sprint_id the ID of the sprint work
     """
     app_db = get_db()
-    return app_db.session.execute(
+    return app_db.session.execute(  # pylint: disable=no-member
         "SELECT work.task_id||work_date as id, work.task_id, "
         + "work_date, sum(hours_worked) as hours_worked FROM work "
         + "join schedule_task st ON work.task_id = st.task_id "
@@ -51,7 +40,7 @@ def get_sprint_number_for_user(current_user, sprint_id):
     sprint_numbers = (
         app_db.session.query(
             Sprint.id,
-            app_db.func.row_number()
+            app_db.func.row_number()  # pylint: disable=no-member
             .over(partition_by=Sprint.user_id, order_by=Sprint.id)
             .label("sprint_number"),
         )
@@ -148,8 +137,8 @@ def create_sprint(current_user, start_date, end_date):
         start_date=start_date, end_date=end_date, user_id=current_user.id
     )
 
-    app_db.session.add(new_sprint)
-    app_db.session.commit()
+    app_db.session.add(new_sprint)  # pylint: disable=no-member
+    app_db.session.commit()  # pylint: disable=no-member
     return get_sprint_by_date(current_user, start_date=start_date, end_date=end_date)
 
 
@@ -161,7 +150,7 @@ def update_sprint(current_user, sprint_id, start_date, end_date):
     Sprint.query.filter(Sprint.id == sprint_id).filter(
         Sprint.user_id == current_user.id
     ).update({start_date: start_date, end_date: end_date}, synchronize_session="fetch")
-    app_db.session.commit()
+    app_db.session.commit()  # pylint: disable=no-member
     return get_sprint(current_user, sprint_id)
 
 
@@ -173,7 +162,7 @@ def delete_sprint(current_user, sprint_id):
     Sprint.query.filter(Sprint.id == sprint_id).filter(
         Sprint.user_id == current_user.id
     ).delete()
-    app_db.session.commit()
+    app_db.session.commit()  # pylint: disable=no-member
     return sprint_id
 
 
@@ -182,7 +171,11 @@ def get_schedules_for_sprint(current_user, sprint_id):
     Get ScheduleTasks having a sprint_id value
     @param sprint_id the queried sprint ID val
     """
-    return ScheduleTask.query.filter(ScheduleTask.sprint_id == sprint_id).all()
+    return (
+        ScheduleTask.query.filter(ScheduleTask.sprint_id == sprint_id)
+        .filter(ScheduleTask.user_id == current_user.id)
+        .all()
+    )
 
 
 def get_schedule_tasks_filtered(
@@ -273,8 +266,8 @@ def create_schedule(
         schedule_time=schedule_time,
         user_id=current_user.id,
     )
-    app_db.session.add(new_schedule)
-    app_db.session.commit()
+    app_db.session.add(new_schedule)  # pylint: disable=no-member
+    app_db.session.commit()  # pylint: disable=no-member
     return get_schedule_by_time(current_user, sprint_id, sprint_day, sprint_hour)
 
 
@@ -314,7 +307,7 @@ def delete_schedule(current_user, sched_id):
     ScheduleTask.query.filter(ScheduleTask.id == sched_id).filter(
         ScheduleTask.user_id == current_user.id
     ).delete()
-    app_db.session.commit()
+    app_db.session.commit()  # pylint: disable=no-member
 
 
 def get_sprint_details(current_user, sprint_id):
@@ -325,8 +318,7 @@ def get_sprint_details(current_user, sprint_id):
     app_db = get_db()
     stories = get_stories(current_user, sprint_view=True, sprint_id=sprint_id)
     epics = get_epics(current_user, sprint_view=True, sprint_id=sprint_id)
-    # tasks = #get_tasks().filter(Task.sprint_id == sprint_id)
-    tasks = app_db.session.execute(
+    tasks = app_db.session.execute(  # pylint: disable=no-member
         "SELECT task.id, task, estimate, status, story_id, "
         + "epic_id, actual, task.deadline, task.recurring, coalesce(hours_worked,0) hours_worked, "
         + "coalesce(sum_sched,0) sum_sched, "
@@ -349,8 +341,10 @@ def get_sprint_details(current_user, sprint_id):
         # This weird comparison is used because of how SQLAlchemy works (I think?)
         Task.query.filter(Task.user_id == current_user.id)
         .filter(
-            or_(Task.sprint_id == None, Task.sprint_id != sprint_id)
-        )  # pylint: disable:singleton-comparison
+            or_(
+                Task.sprint_id == None, Task.sprint_id != sprint_id
+            )  # pylint: disable:singleton-comparison
+        )
         .all()
     )
     sprint_days = (
@@ -371,8 +365,8 @@ def get_sprint_details(current_user, sprint_id):
         schedule_records_dict[key] = record_std
     schedule_records = list(schedule_records_dict.values())
     logger.info(work.items())
-    for i, r in enumerate(schedule_records):
-        work_key = f"{r.task_id}{r.sprint_day}"
+    for i, record in enumerate(schedule_records):
+        work_key = f"{record.task_id}{record.sprint_day}"
         schedule_work = work.get(work_key, 0)
         if isinstance(schedule_work, int):
             schedule_records[i].schedule_work = schedule_work

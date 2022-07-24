@@ -1,7 +1,9 @@
+"""
+Backend components for Noscrum Story Model
+"""
+import logging
 from noscrum.noscrum_backend.db import get_db, Story, TagStory, Tag, Task
 from noscrum.noscrum_backend.epic import get_null_epic
-from noscrum.noscrum_backend.tag import get_tags_for_story
-import logging
 
 logger = logging.getLogger()
 
@@ -24,7 +26,7 @@ def get_stories(current_user, sprint_view=False, sprint_id=None, closed: bool = 
         else:
             query = query.filter(Story.closure_state != None)
         return query.all()
-    return app_db.session.execute(
+    return app_db.session.execute(  # pylint: disable=no-member
         "SELECT story.id, "
         + "CASE WHEN story = 'NULL' THEN 'No Story' ELSE story END as story, "
         + "epic_id, prioritization, story.deadline, "
@@ -93,7 +95,7 @@ def get_null_story_for_epic(current_user, epic_id):
     """
     if epic_id == 0:
         epic_id = get_null_epic(current_user).id
-    logger.info("Story thinks null epic id is ", epic_id)
+    logger.info("Story thinks null epic id is %s", epic_id)
     story = (
         Story.query.filter(Story.story == "NULL")
         .filter(Story.epic_id == epic_id)
@@ -102,7 +104,7 @@ def get_null_story_for_epic(current_user, epic_id):
     )
     if story is None:
         logger.info(
-            "Couldn't find null story? creating new story with epic id", epic_id
+            "Couldn't find null story? creating new story with epic id %s", epic_id
         )
         story = create_story(current_user, epic_id, "NULL", None, None)
     return story
@@ -131,8 +133,8 @@ def create_story(current_user, epic_id, story, prioritization, deadline):
             deadline=deadline,
             user_id=current_user.id,
         )
-    app_db.session.add(new_story)
-    app_db.session.commit()
+    app_db.session.add(new_story)  # pylint: disable=no-member
+    app_db.session.commit()  # pylint: disable=no-member
     story = get_story_by_name(current_user, story, epic_id)
     return story
 
@@ -158,7 +160,7 @@ def update_story(current_user, story_id, story, epic_id, prioritization, deadlin
         },
         synchronize_session="fetch",
     )
-    app_db.session.commit()
+    app_db.session.commit()  # pylint: disable=no-member
     return get_story(current_user, story_id)
 
 
@@ -181,7 +183,7 @@ def close_story_update(current_user, story_id, closure_state):
             # task.update({"status":closure_state})
             Task.query.filter(Task.id == task.id).update({"status": task_closure_state})
     story.update({"closure_state": closure_state})
-    app_db.session.commit()
+    app_db.session.commit()  # pylint: disable=no-member
     return story.one()
 
 
@@ -208,8 +210,8 @@ def insert_tag_story(current_user, story_id, tag_id):
     """
     app_db = get_db()
     tag_story_record = TagStory(story_id=story_id, tag_id=tag_id)
-    app_db.session.add(tag_story_record)
-    app_db.session.commit()
+    app_db.session.add(tag_story_record)  # pylint: disable=no-member
+    app_db.session.commit()  # pylint: disable=no-member
     return get_tag_story(current_user, story_id, tag_id)
 
 
@@ -223,4 +225,4 @@ def delete_tag_story(current_user, story_id, tag_id):
     TagStory.query.filter(TagStory.story_id == story_id).filter(
         TagStory.tag_id == tag_id
     ).filter(TagStory.user_id == current_user.id).delete()
-    app_db.session.commit()
+    app_db.session.commit()  # pylint: disable=no-member

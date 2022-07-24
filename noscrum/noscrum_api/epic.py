@@ -9,10 +9,10 @@ from flask import flash, redirect, request, url_for, abort
 from flask_login import current_user, login_required
 from pydantic import BaseModel
 from noscrum.noscrum_api.template_friendly import friendly_render as render_template
+import noscrum.noscrum_backend.epic as backend
+from noscrum.noscrum_api.template_friendly import NoscrumBaseQuery
 
 bp = Blueprint("epic", __name__, url_prefix="/epic")
-from noscrum.noscrum_backend.epic import *
-from noscrum.noscrum_api.template_friendly import NoscrumBaseQuery
 
 
 @bp.get("/create")
@@ -42,11 +42,11 @@ def create(query: NoscrumBaseQuery):
 
     if not epic:
         error = "Epic Name is Required"
-    elif get_epic_by_name(current_user, epic) is not None:
+    elif backend.get_epic_by_name(current_user, epic) is not None:
         error = f'Epic named "{epic}" already exists'
 
     if error is None:
-        epic = create_epic(current_user, epic, color, deadline)
+        epic = backend.create_epic(current_user, epic, color, deadline)
         if is_json:
             return {"Success": True, "epic_id": epic.id, "epic_name": epic.epic}
         return redirect(url_for("task.list_all"))
@@ -57,6 +57,10 @@ def create(query: NoscrumBaseQuery):
 
 
 class EpicPath(BaseModel):
+    """
+    Path Model for Epic API Requests
+    """
+
     epic_id: int
 
 
@@ -69,7 +73,7 @@ def show(path: EpicPath, query: NoscrumBaseQuery):
     """
     epic_id = path.epic_id
     is_json = query.is_json
-    epic = get_epic(current_user, epic_id)
+    epic = backend.get_epic(current_user, epic_id)
     if epic is None:
         if is_json or request.method == "POST":
             abort(404, "Epic ID not found in Database")
@@ -89,7 +93,7 @@ def update(path: EpicPath, query: NoscrumBaseQuery):
     """
     epic_id = path.epic_id
     is_json = query.is_json
-    epic = get_epic(current_user, epic_id)
+    epic = backend.get_epic(current_user, epic_id)
     if epic is None:
         if is_json or request.method == "POST":
             abort(404, "Epic ID not found in Database")
@@ -100,7 +104,7 @@ def update(path: EpicPath, query: NoscrumBaseQuery):
     epic_name = request.form.get("epic", epic.epic)
     color = request.form.get("color", epic.color)
     deadline = request.form.get("deadline", epic.deadline)
-    other_epic = get_epic_by_name(current_user, epic_name)
+    other_epic = backend.get_epic_by_name(current_user, epic_name)
 
     if not epic_id:
         error = "Could not find ID for Epic being edited."
@@ -108,7 +112,7 @@ def update(path: EpicPath, query: NoscrumBaseQuery):
         error = f'A different Epic named "{epic.epic}" already exists'
 
     if error is None:
-        update_epic(current_user, epic_id, epic_name, color, deadline)
+        backend.update_epic(current_user, epic_id, epic_name, color, deadline)
         if is_json:
             return {"Success": True, "epic": epic.to_dict()}
         return redirect(url_for("epic.show", epic_id=epic_id))
@@ -126,7 +130,7 @@ def list_all(query: NoscrumBaseQuery):
     List all of the epics made by current user
     """
     is_json = query.is_json
-    epics = get_epics(current_user)
+    epics = backend.get_epics(current_user)
     if is_json:
         return {"Success": True, "epics": epics}  # [dict(x) for x in epics]}
     return render_template("epic/list.html", epics=epics)

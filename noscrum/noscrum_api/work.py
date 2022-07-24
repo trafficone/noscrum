@@ -2,12 +2,17 @@
 Data handler for work view and controller
 """
 from datetime import date, datetime
-
+import logging
 from flask_openapi3 import APIBlueprint as Blueprint
 from flask import redirect, request, url_for, abort, flash
 from flask_login import current_user, login_required
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 from noscrum.noscrum_api.template_friendly import friendly_render as render_template
+from noscrum.noscrum_api.task import TaskPath
+from noscrum.noscrum_api.story import StoryPath
+from noscrum.noscrum_api.epic import EpicPath
+from noscrum.noscrum_api.template_friendly import NoscrumBaseQuery
+import noscrum.noscrum_backend.work as backend
 from noscrum.noscrum_backend.task import (
     get_task,
     get_tasks_for_story,
@@ -16,11 +21,8 @@ from noscrum.noscrum_backend.task import (
 )
 from noscrum.noscrum_backend.story import get_story
 from noscrum.noscrum_backend.epic import get_epic
-from noscrum.noscrum_backend.work import *
-from noscrum.noscrum_api.task import TaskPath
-from noscrum.noscrum_api.story import StoryPath
-from noscrum.noscrum_api.epic import EpicPath
-from noscrum.noscrum_api.template_friendly import NoscrumBaseQuery
+
+logger = logging.getLogger()
 
 bp = Blueprint("work", __name__, url_prefix="/work")
 
@@ -28,6 +30,9 @@ bp = Blueprint("work", __name__, url_prefix="/work")
 @bp.get("/create/<int:task_id>")
 @login_required
 def get_create(path: TaskPath, query: NoscrumBaseQuery):
+    """
+    Get form to create Work object
+    """
     is_json = query.is_json
     task_id = path.task_id
     task = get_task(current_user, task_id)
@@ -74,12 +79,12 @@ def create(path: TaskPath, query: NoscrumBaseQuery):
         return redirect(url_for("work.list_for_task", task_id=task_id))
     status = request.form.get("status", task.status)
     update_status = request.form.get("update_status", False)
-    update_status = True if update_status or update_status == "on" else False
+    update_status = bool(update_status or update_status == "on")
     true_actual = sum(
-        [x.hours_worked for x in get_work_for_task(current_user, task_id)]
+        [x.hours_worked for x in backend.get_work_for_task(current_user, task_id)]
     )
     new_actual = hours_worked if true_actual is None else true_actual + hours_worked
-    create_work(
+    backend.create_work(
         current_user,
         work_date,
         hours_worked,
@@ -94,15 +99,22 @@ def create(path: TaskPath, query: NoscrumBaseQuery):
 
 
 class WorkPath(BaseModel):
+    """
+    Path model for Work API
+    """
+
     work_id: int
 
 
 @bp.get("/<int:work_id>")
 @login_required
 def show(path: WorkPath, query: NoscrumBaseQuery):
+    """
+    Display Work with a given WorkID
+    """
     is_json = query.is_json
     work_id = path.work_id
-    work_item = get_work(current_user, work_id)
+    work_item = backend.get_work(current_user, work_id)
     if work_item is None:
         error = f"Work Item {work_id} Not Found"
         if is_json:
@@ -126,7 +138,7 @@ def delete(path: WorkPath, query: NoscrumBaseQuery):
     """
     is_json = query.is_json
     work_id = path.work_id
-    work_item = get_work(current_user, work_id)
+    work_item = backend.get_work(current_user, work_id)
     if work_item is None:
         error = f"Work Item {work_id} Not Found"
         if is_json:
@@ -134,7 +146,7 @@ def delete(path: WorkPath, query: NoscrumBaseQuery):
         else:
             flash(error, "error")
             return redirect(url_for("sprint.active"))
-    deleted_work_id = delete_work(current_user, work_id)
+    deleted_work_id = backend.delete_work(current_user, work_id)
     if is_json:
         return {"Success": True, "work_id": deleted_work_id}
     return redirect(url_for("work.list_for_task", task_id=work_item.task_id))
@@ -158,7 +170,7 @@ def list_for_task(path: TaskPath, query: NoscrumBaseQuery):
         else:
             flash(error, "error")
             return redirect(url_for("sprint.active"))
-    work_items = get_work_for_task(current_user, task_id)
+    work_items = backend.get_work_for_task(current_user, task_id)
     if work_items is None:
         error = f"No Work Items found for Task {task_id}"
         if is_json:
@@ -200,7 +212,7 @@ def list_for_story(path: StoryPath, query: NoscrumBaseQuery):
         else:
             flash(error, "error")
             return redirect(url_for("sprint.active"))
-    work_items = get_work_for_story(current_user, story_id)
+    work_items = backend.get_work_for_story(current_user, story_id)
     if work_items is None:
         error = f"No Work Items found for Story {story.id}"
         if is_json:
@@ -245,7 +257,7 @@ def list_for_epic(path: EpicPath, query: NoscrumBaseQuery):
         else:
             flash(error, "error")
             return redirect(url_for("sprint.active"))
-    work_items = get_work_for_epic(current_user, epic_id)
+    work_items = backend.get_work_for_epic(current_user, epic_id)
     if work_items is None:
         error = f"No Work Items found for Epic {epic.id}"
         if is_json:
@@ -271,7 +283,7 @@ def list_for_dates():
     is_json = request.args.get("is_json", False)
     start_date = request.args.get("start_date", date(2020, 1, 1))
     end_date = request.args.get("end_date", date.today())
-    work_items = get_work_by_dates(current_user, start_date, end_date)
+    work_items = backend.get_work_by_dates(current_user, start_date, end_date)
     if work_items is None:
         error = "No work items found between dates_provided"
         if is_json:
