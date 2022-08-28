@@ -26,3 +26,4 @@ build/
 node_modules/
 bower_components/
 .hypothesis/
+browserify-cache.json

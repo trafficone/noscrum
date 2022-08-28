@@ -4,7 +4,7 @@ NoScrum is not scrum, there are no scrums, you are one person and you need to ge
 
 ## Purpose
 
-NoScrum came out of a need for personal project management tooling that was rich and 
+NoScrum came out of a need for personal project management tooling that was rich and
 versatile enough to meet my needs, without the overhead of managing all my projects via Excel.
 
 ## Installation
@@ -81,7 +81,7 @@ a week or two, and the tasks assigned at the start of each sprint **should** be 
 ### Process
 
 Once you've added some of your epics, stories, and tasks to your backlog, you're ready to start your
-first sprint. 
+first sprint.
 
 Each sprint involves four steps.
 
@@ -99,7 +99,7 @@ before it's even started.
 
 Think you bit off too much? Take it off the schedule and remember your capacity for next sprint.
 Think you could do a bit more? You can add work mid-sprint if need be.
-Did something you didn't plan on? You can add tasks without epics during the sprint. 
+Did something you didn't plan on? You can add tasks without epics during the sprint.
 
 Don't sweat the process **during** the working phase. Just jot down what's happening, and get back
 to it at the retrospective.

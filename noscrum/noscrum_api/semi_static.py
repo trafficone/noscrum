@@ -4,11 +4,11 @@ Semi-static page handler (eg about index)
 from datetime import date
 from flask_openapi3 import APIBlueprint as Blueprint
 from flask_login import current_user
-from noscrum.noscrum_backend.sprint import (
+from noscrum_backend.sprint import (
     get_current_sprint,
     get_schedule_tasks_filtered,
 )
-from noscrum.noscrum_api.template_friendly import friendly_render as render_template
+from noscrum_api.template_friendly import friendly_render as render_template
 
 bp = Blueprint("semi_static", __name__, url_prefix="/")
 

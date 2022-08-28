@@ -1,0 +1,289 @@
+{% extends 'base.html' %}
+
+{% block header %}
+    <h2>{% block title %}{% if not archive %}Task{% else %}Archive{% endif %} Showcase{% endblock %}</h2>
+    {% if not archive %}
+    <div>
+        <button id="sprintPlan" class="button" sprint="{{current_sprint.id}}">Plan Sprint</button>
+    </div>
+    <div>Filter:
+        <button class="button" id="status_filter_button">Status</button>
+        <button class="button" id="deadline_filter_button">Deadline</button>
+        <button class="button" id="clear_filter_button">Clear Filters</button>
+    </div>
+    <div id="status_filter_reveal" class="reveal" data-reveal>
+        <h3>Status Filter</h3>
+        <form data-abide onsubmit="return false;">
+            <fieldset class="cell medium-6">
+                <legend>Supported Filters</legend>
+                <input class="status-filter" id="filter_todo" type="checkbox" name="to-do" checked><label for="filter_todo">To-Do</label>
+                <input class="status-filter" id="filter_in_progress" type="checkbox" name="in-progress" checked><label for="filter_in_progress">In Progress</label>
+                <input class="status-filter" id="filter_done" type="checkbox" name="done" checked><label for="filter_done">Done</label>
+            </fieldset>
+            <button type="submit" class="button" id="status_filter_submit">Filter</button>
+            <button class="button" data-close>Cancel</button>
+        </form>
+    <button class="close-button" data-close aria-label="Close"><span aria-hidden="true">&times;</span></button>
+    </div>
+    <div id="deadline_filter_reveal" class="reveal" data-reveal>
+        <h3>Deadline Filter</h3>
+        <form data-abide onsubmit="return false;">
+            <label>Due Between:
+                <input id="filter_deadline_start" name="date" class="datepicker-input"  />
+                <!--span title="Click to Edit" contentEditable="false" id="filter_deadline_endspan" class="editable deadline">Not Set</span>-->
+            </label>
+            <label> and
+                <input id="filter_deadline_end" name="date" class="datepicker-input"  />
+                <!--span title="Click to Edit" contentEditable="false" id="filter_deadline_startspan" class="editable deadline">Not Set</span-->
+            </label>
+            <input id="filter_undeadlined" type="checkbox"><label for="filter_undeadlined">Filter Tasks Without Deadline</label>
+            <button type="submit" class="button" id="deadline_filter_submit">Filter</button>
+        </form>
+        <button class="button next_filter" weeks="1" >Due in 1 Weeks</button>
+        <button class="button next_filter" weeks="2" >Due in 2 Weeks</button>
+        <button class="button next_filter" weeks="4" >Due in 4 Weeks</button>
+        <button class="close-button" data-close aria-label="Close"><span aria-hidden="true">&times;</span></button>
+    </div>
+    {% endif %}
+{% endblock %}
+
+{% block content %}
+<div id="SprintPicker" class="reveal" data-reveal>
+    <h3>Select Sprint</h3>
+    <h4>Week of Sprint: <span id="SprintPickerDay">Unselected</span>-<span id="SprintPickerEndDay"></span></h4>
+    <div class="week-picker"></div>
+    <button class="button" id="SprintPlanActivate" data-close>Plan Sprint</button>
+</div>
+<div id="reactComponents">
+</div>
+{% endblock %}
+<script>
+// {% block jquery %}
+    const app = require('app');
+    $.ajax({
+        url:'{{url_for("task.list_all")}}?is_json=true',
+        method:'GET'
+    }).done(function (json) {
+        const initialEpicsResp = json;
+        console.dir(initialEpicsResp.epics)
+        app.renderTaskShowcase('reactComponents',initialEpicsResp.epics);
+    });
+    $('#clear_filter_button').click(function(){
+        $('.task-container').removeClass('hide');
+    });
+    $('#status_filter_button').click(function(){
+        $('#status_filter_reveal').foundation('open');
+        $('#status_filter_reveal').submit(function(event) {
+            $('.task-container').each(function (){
+                $(this).addClass('hide');
+            })
+            $('.status-filter:checked').each(function (){
+                var status = $(this).attr('name');
+                console.log($(this).attr('name')+' Checked');
+                $('.status.'+status).each(function() {
+                    $(this).parent().parent().removeClass('hide');
+                });
+            });
+
+            $('#status_filter_reveal').off('submit');
+            $('#status_filter_reveal').foundation('close');
+
+        });
+    });
+    filter_dates = function(start_date,end_date){
+        $('.task-deadline').each(function() {
+            var task_date = new Date($(this).text().trim());//+"T00:00:00Z");
+            if (task_date == 'Invalid Date') {
+                //$(this).parent().parent().parent().removeClass('hide');
+                //return;
+            }
+            if (task_date < start_date || task_date > end_date) {
+                $(this).closest('.task-container').addClass('hide');
+            }
+        })
+        $('.next_filter').off('click');
+        $('#deadline_filter_reveal').off('submit');
+        $('#deadline_filter_reveal').foundation('close');
+    };
+    $('#deadline_filter_button').click(function() {
+        var today = new Date();
+        $('.next_filter').click(function (){
+            var weeks = Number($(this).attr('weeks'));
+            start_date = today;
+            var end_date = new Date(today.getFullYear(),today.getMonth(),today.getDate() + 7 * weeks);
+            filter_dates(start_date,end_date);
+        });
+        $('#deadline_filter_reveal').foundation('open');
+        $('#deadline_filter_reveal').submit(function (event) {
+            var start_date = new Date($('#filter_deadline_start').val())
+            if (start_date == 'Invalid Date'){
+                start_date = 0;
+            }
+            var end_date = new Date($('#filter_deadline_end').val())
+            if (end_date == 'Invalid Date'){
+                end_date = Infinity;
+            }
+            filter_dates(start_date,end_date);
+        });
+    })
+    $('#sprintPlan').click(function(){
+        if( ! $(this).hasClass('active') ){
+            $('#SprintPicker').foundation('open')
+        } else {
+            $(this).removeClass('active');
+            $(this).text("Plan Sprint");
+            $('.sprintPlan').addClass('hidden');
+        }
+    });
+    $('#SprintPlanActivate').click(function(){
+        var sprint_id;
+        $.ajax({
+            url: "{{url_for('sprint.create')}}?is_json=True",
+            type: "POST",
+            data: {
+                start_date:$.datepicker.formatDate("yy-mm-dd",startDate),
+                end_date:$.datepicker.formatDate("yy-mm-dd",endDate)},
+            dataType: "json"
+        }).done( function(json_resp){
+            sprint_id = json_resp.sprint_id;
+            $('.sprintPlan').attr('sprint',sprint_id);
+        })
+        $('#sprintPlan').html('Exit Sprint Planning');
+        $('#sprintPlan').addClass('active');
+        $('.sprintPlan').removeClass('hidden');
+    });
+//{% if not archive %}
+    $('.sprintPlan').click(function() {
+        task_id = $(this).attr('task');
+        sprint_id = $(this).attr('sprint');
+        var parent = $(this).parent()
+        while (parent.attr('update_url') === undefined){
+            parent = parent.parent();
+            if (parent === undefined) {
+                throw "Update URL could not be found";
+            }
+        }
+        $.ajax({
+            url: parent.attr('update_url'),
+            data: {sprint_id:sprint_id},
+            type: 'POST',
+            dataType: 'json'
+        }).done(function () {
+            $("#task_sprint_btn_"+task_id).addClass('invisible');
+            $("#task_sprint_btn_"+task_id).remove();
+            if (sprint_id == '{{ current_sprint.id }}'){
+                $("#task_sprint_status_"+task_id).html("In Current Sprint");
+            } else {
+                $("#task_sprint_status_"+task_id).html("In Sprint");
+                $("#task_sprint_status_"+task_id).attr('title','Refresh to See Sprint');
+            }
+            task_status = $('#task_status_'+task_id);
+            if(task_status.html().endsWith('To-Do')){
+                task_status.click();
+            }
+        }).fail(function(xhr, status, errorThrown) {
+            PrettyAlert("Could not add task to sprint: error was thrown.")
+            console.log("Error: " + errorThrown);
+            console.log( "Status: " + status);
+            console.dir(xhr);
+        })
+    });
+
+    $('.create').click(function(){
+        var get_url = $(this).val()
+        //FIXME: This looks like an XSS attack waiting to happen
+        $(this).siblings('div').load(get_url,function(){
+            console.log('Loaded '+get_url);
+        });
+        $(this).addClass('invisible');
+    });
+
+    var startDate = Date();
+    var endDate = startDate + 7;
+    $('.week-picker').datepicker( {
+        showOtherMonths: true,
+        selectOtherMonths: true,
+        firstDay: 1,
+        dateFormat: 'yy-mm-dd',
+        onSelect: function(dateText, inst) {
+            var date = $(this).datepicker('getDate');
+            startDate = new Date(date.getFullYear(), date.getMonth(), date.getDate() - date.getDay()+1);
+            endDate = new Date(date.getFullYear(), date.getMonth(), date.getDate() - date.getDay() + 7);
+            var dateFormat = inst.settings.dateFormat || $.datepicker._defaults.dateFormat;
+            //$('#startDate').text($.datepicker.formatDate( dateFormat, startDate, inst.settings ));
+            //$('#endDate').text($.datepicker.formatDate( dateFormat, endDate, inst.settings ));
+            $('#SprintPickerDay').text($.datepicker.formatDate(dateFormat,startDate,inst.settings));
+            $('#SprintPickerEndDay').text($.datepicker.formatDate(dateFormat,endDate,inst.settings));
+
+            selectCurrentWeek();
+        },
+        beforeShowDay: function(date) {
+            var cssClass = '';
+            if(date >= startDate && date <= endDate)
+                cssClass = 'ui-datepicker-current-day';
+            return [true, cssClass];
+        },
+        onChangeMonthYear: function(year, month, inst) {
+            selectCurrentWeek();
+        }
+    });
+
+    $('.week-picker .ui-datepicker-calendar tr').on('mousemove', function() { $(this).find('td a').addClass('ui-state-hover'); });
+    $('.week-picker .ui-datepicker-calendar tr').on('mouseleave', function() { $(this).find('td a').removeClass('ui-state-hover'); });
+
+//{% endif %}
+
+    $(".close-story").click( function () {
+        var has_open_tasks = false;
+        var story_id = $(this).attr('story_id');
+        var story_url = $(this).attr('story_url');
+        var close_url = $(this).attr('close_url');
+        $.ajax(
+            {url: story_url,
+            dataType: 'json'}
+        ).done(function (json) {
+            tasks = json.story.tasks;
+            for (const task in tasks){
+                status = tasks[task].status;
+                if (status != "Done"){
+                    has_open_tasks = true;
+                    break;
+                }
+            }
+            if (has_open_tasks){
+                // confirm
+                PrettyAlert("A confirm was supposed to happen. Sorry it didn't.");
+            }
+            $.ajax({
+                url: close_url,
+                data: {closure: "Closed"},
+                type: 'POST',
+                dataType: 'json'
+            }).done(function (json) {
+                //hide story
+                $('#story_'+story_id).addClass('hide');
+                $('#story_summary_'+story_id).addClass('hide');
+            });
+            });
+    });
+
+    $(".open-story").click( function() {
+        var story_id = $(this).attr('story_id');
+        var story_url = $(this).attr('story_url');
+        var close_url = $(this).attr('close_url');
+        $.ajax({
+            url: close_url,
+            data: {closure: "Open"},
+            type: 'DELETE',
+            dataType: 'json'
+        }).done(function (json) {
+            //hide story
+            $('#story_'+story_id).addClass('hide');
+            $('#story_summary_'+story_id).addClass('hide');
+        });
+    });
+
+
+
+// {% endblock %}
+</script>

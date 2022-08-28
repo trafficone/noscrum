@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+
+{% block header %}
+    <h1>{% block title %}Story {{ story['id'] }}{% endblock %}</h1>
+{% endblock %}
+
+{% block content %}
+<div class="story">
+    <div class="{{ story['color'] }}">
+        <h2>{{ story['epic'] }}</h2>
+            <ul>
+                <li>
+                    <a href="{{ url_for('story.show', story_id = story['id']) }}">
+                        {{ story['prioritization'] }} - {{ story['story'] }}
+                    </a>
+                    &nbsp;
+                    <a href="{{ url_for('task.create', story_id = story['id']) }}">
+                        create task
+                    </a>
+                </li>
+            </ul>
+    </div>
+</div>
+<a href="{{url_for('task.list_all')}}" class="button">Return to Task Showcase</a>
+{% endblock %}

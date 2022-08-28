@@ -7,20 +7,20 @@ from flask_openapi3 import APIBlueprint as Blueprint
 from flask import redirect, request, url_for, abort, flash
 from flask_login import current_user, login_required
 from pydantic import BaseModel
-from noscrum.noscrum_api.template_friendly import friendly_render as render_template
-from noscrum.noscrum_api.task import TaskPath
-from noscrum.noscrum_api.story import StoryPath
-from noscrum.noscrum_api.epic import EpicPath
-from noscrum.noscrum_api.template_friendly import NoscrumBaseQuery
-import noscrum.noscrum_backend.work as backend
-from noscrum.noscrum_backend.task import (
+from noscrum_api.template_friendly import friendly_render as render_template
+from noscrum_api.task import TaskPath
+from noscrum_api.story import StoryPath
+from noscrum_api.epic import EpicPath
+from noscrum_api.template_friendly import NoscrumBaseQuery
+import noscrum_backend.work as backend
+from noscrum_backend.task import (
     get_task,
     get_tasks_for_story,
     get_tasks_for_epic,
     get_tasks,
 )
-from noscrum.noscrum_backend.story import get_story
-from noscrum.noscrum_backend.epic import get_epic
+from noscrum_backend.story import get_story
+from noscrum_backend.epic import get_epic
 
 logger = logging.getLogger()
 
@@ -81,7 +81,7 @@ def create(path: TaskPath, query: NoscrumBaseQuery):
     update_status = request.form.get("update_status", False)
     update_status = bool(update_status or update_status == "on")
     true_actual = sum(
-        [x.hours_worked for x in backend.get_work_for_task(current_user, task_id)]
+        x.hours_worked for x in backend.get_work_for_task(current_user, task_id)
     )
     new_actual = hours_worked if true_actual is None else true_actual + hours_worked
     backend.create_work(

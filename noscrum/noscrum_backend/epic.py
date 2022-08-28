@@ -1,7 +1,7 @@
 """
 Handler for backend of Epic API for Noscrum
 """
-from noscrum.noscrum_backend.db import get_db, Epic
+from noscrum_backend.db import get_db, Epic
 
 
 def get_epics(current_user, sprint_view=False, sprint_id=None):

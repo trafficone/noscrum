@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+
+{% block header %}
+<h1>{% block title %}Search Results{% endblock %}</h1>
+{% endblock %}
+
+{% block content %}
+Search functionality still incomplete, here are the items which match your query:
+<p>Item Type - Item Name</p>
+<ul>
+{% for result in results %}
+    <li>{{result.label}} - {{result.value}}</li>
+{% endfor %}
+</ul>
+{% endblock %}

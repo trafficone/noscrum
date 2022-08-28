@@ -3,9 +3,11 @@ User view controller
 """
 from flask_openapi3 import APIBlueprint as Blueprint
 import flask
+import logging
 from flask_login import current_user, login_required, login_user, logout_user, UserMixin
-import noscrum.noscrum_backend.user as backend
+import noscrum_backend.user as backend
 
+logger = logging.getLogger()
 bp = Blueprint("user", __name__, url_prefix="/user")
 
 
@@ -48,7 +50,8 @@ def create():
     try:
         new_user = backend.UserClass.create_user(**user_properties)
     except ValueError as error_message:
-        flask.flash("Could not create user %s", error_message)
+        logger.error(error_message)
+        flask.flash("Could not create user: %s" % str(error_message))
         return flask.redirect(flask.url_for("user.get_create"))
     login_user(new_user)
     return flask.redirect(flask.url_for("semi_static.index"))

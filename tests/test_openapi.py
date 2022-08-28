@@ -7,7 +7,9 @@ import schemathesis
 import noscrum.noscrum_api as noscrum
 from flask_login import FlaskLoginClient
 import logging
+
 logger = logging.getLogger()
+
 
 @pytest.fixture()
 def app():
@@ -15,18 +17,19 @@ def app():
     Create Test NoScrum Flask Application
     """
     test_config = dict()
-    test_config['SECRET_KEY'] = 'TESTING_KEY'
-    test_config['TESTING'] = True
-    test_config['DEBUG'] = False
-    test_config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:'
-    test_config['APPLICATION_ROOT'] = '/'
-    test_config['SERVER_NAME'] = 'localhost.localdomain'
+    test_config["SECRET_KEY"] = "TESTING_KEY"
+    test_config["TESTING"] = True
+    test_config["DEBUG"] = False
+    test_config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///:memory:"
+    test_config["APPLICATION_ROOT"] = "/"
+    test_config["SERVER_NAME"] = "localhost.localdomain"
     logger.info("Creating App - Testing")
     app = noscrum.create_app(test_config)
     app.test_client_class = FlaskLoginClient
     # other setup goes here
     yield app
     # cleanup goes here
+
 
 @pytest.fixture()
 def client(app):
@@ -35,22 +38,27 @@ def client(app):
     """
     return app.test_client()
 
+
 OPENAPI_PATH = "openapi/openapi.json"
 
+
 @pytest.fixture()
-def openapi_filepath(client,app):
+def openapi_filepath(client, app):
     with app.app_context():
         response = client.get(OPENAPI_PATH)
-    f = tempfile.NamedTemporaryFile(mode='w+t', delete=False)
-    f.write(str(response.data,'utf-8'))
+    f = tempfile.NamedTemporaryFile(mode="w+t", delete=False)
+    f.write(str(response.data, "utf-8"))
     filename = f.name
     f.close()
     return filename
 
+
 @pytest.fixture()
 def bearer_token(app):
-    #TODO: I have no idea how to implement this
+    # TODO: I have no idea how to implement this
     return None
+
+
 """
 @pytest.fixture(name='schema')
 def schema_fixture(openapi_filepath):
@@ -65,13 +73,16 @@ def test_api_wrapper(schema):
 def test_api(test_api_wrapper):
     test_api_wrapper()
 """
-schema = schemathesis.from_uri('http://localhost:5000/'+OPENAPI_PATH)
+schema = schemathesis.from_uri("http://localhost:5000/" + OPENAPI_PATH)
+
+
 @schema.parametrize()
-def test_api(case,bearer_token):
+def test_api(case, bearer_token):
     case.call_and_validate(headers={"Authorization": "Bearer <MY-TOKEN>"})
 
-def test_api_fuzzing(openapi_filepath,bearer_token):
+
+def test_api_fuzzing(openapi_filepath, bearer_token):
     class TestAPIFuzz(TestCase):
         def test_fuzzing(self):
             pass
-            #FuzzIt(openapi_filepath,berer_token,self)
+            # FuzzIt(openapi_filepath,berer_token,self)

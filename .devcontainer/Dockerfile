@@ -16,13 +16,13 @@ RUN if [ "${NODE_VERSION}" != "none" ]; then su vscode -c "umask 0002 && . /usr/
 RUN curl --output /usr/share/keyrings/nginx-keyring.gpg  \
       https://unit.nginx.org/keys/nginx-keyring.gpg \
     && echo deb [signed-by=/usr/share/keyrings/nginx-keyring.gpg] https://packages.nginx.org/unit/debian/ bullseye unit \
-     deb-src [signed-by=/usr/share/keyrings/nginx-keyring.gpg] https://packages.nginx.org/unit/debian/ bullseye unit > /etc/apt/sources.list.d/unit.list 
+     deb-src [signed-by=/usr/share/keyrings/nginx-keyring.gpg] https://packages.nginx.org/unit/debian/ bullseye unit > /etc/apt/sources.list.d/unit.list
 
 # [Optional] Uncomment this section to install additional OS packages.
  RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
      && apt-get -y install --no-install-recommends \
         unit \
-     && apt-get -y install --no-install-recommends \ 
+     && apt-get -y install --no-install-recommends \
         unit-dev \
         unit-jsc11 \
         unit-python3.9

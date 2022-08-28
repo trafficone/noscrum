@@ -7,12 +7,12 @@ import os
 import logging
 from dotenv import load_dotenv
 from flask_babelex import Babel
-from flask_sqlalchemy import SQLAlchemy
 from flask_openapi3 import Info
 from flask_openapi3 import OpenAPI
 
 from flask_login import LoginManager
 from flask_foundation import Foundation
+from noscrum_backend.db_instance import get_db_instance
 
 
 logger = logging.getLogger()
@@ -22,7 +22,7 @@ class ConfigClass:
     """Flask application config"""
 
     SECRET_KEY = os.environ.get("FLASK_SECRET_KEY")
-    SQLALCHEMY_DATABASE_URI = "sqlite:///noscrum.sqlite"
+    SQLALCHEMY_DATABASE_URI = "sqlite:///../../instance/noscrum.sqlite"
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
     USER_APP_NAME = "NoScrum"
@@ -65,8 +65,8 @@ def create_app(test_config=None):
         instance_relative_config=True,
         info=Info(title="NoScrum API", version="1.0.0"),
         doc_prefix="/openapi",
-        template_folder="../templates",
-        static_folder="../static",
+        template_folder="../../templates",
+        static_folder="../../static",
     )
     running_app.config.from_object(__name__ + ".ConfigClass")
     # Init Flask-BabelEx
@@ -84,15 +84,16 @@ def create_app(test_config=None):
 
     logger.info("Creating Database")
     # Init SQLAlchemy
-    APP_DB = SQLAlchemy(running_app)
-    logger.info("Populating Database")
-    from noscrum.noscrum_backend.db import db
+    APP_DB = get_db_instance(running_app)
+    from noscrum_backend.db import get_db
 
-    db.create_all()
+    logger.info("Populating Database")
+
+    APP_DB.create_all()
 
     # These need app to exist before they can be imported
     # UserManager(running_app, APP_DB, User)
-    from noscrum.noscrum_backend.user import UserClass
+    from noscrum_backend.user import UserClass
 
     login_manager = LoginManager()
 
@@ -103,15 +104,15 @@ def create_app(test_config=None):
     login_manager.init_app(running_app)
 
     # pylint: disable=import-outside-toplevel
-    from noscrum.noscrum_api.epic import bp as epicbp
-    from noscrum.noscrum_api.story import bp as storybp
-    from noscrum.noscrum_api.task import bp as taskbp
-    from noscrum.noscrum_api.sprint import bp as sprintbp
-    from noscrum.noscrum_api.tag import bp as tagbp
-    from noscrum.noscrum_api.work import bp as workbp
-    from noscrum.noscrum_api.user import bp as userbp
-    from noscrum.noscrum_api.semi_static import bp as semi_staticbp
-    from noscrum.noscrum_api.search import bp as searchbp
+    from noscrum_api.epic import bp as epicbp
+    from noscrum_api.story import bp as storybp
+    from noscrum_api.task import bp as taskbp
+    from noscrum_api.sprint import bp as sprintbp
+    from noscrum_api.tag import bp as tagbp
+    from noscrum_api.work import bp as workbp
+    from noscrum_api.user import bp as userbp
+    from noscrum_api.semi_static import bp as semi_staticbp
+    from noscrum_api.search import bp as searchbp
 
     running_app.register_api(epicbp)
     running_app.register_api(storybp)
@@ -126,6 +127,5 @@ def create_app(test_config=None):
     return running_app
 
 
-print(__name__)
 if __name__.startswith("noscrum"):
     app = create_app()

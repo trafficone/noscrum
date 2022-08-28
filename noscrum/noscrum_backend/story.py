@@ -2,8 +2,8 @@
 Backend components for Noscrum Story Model
 """
 import logging
-from noscrum.noscrum_backend.db import get_db, Story, TagStory, Tag, Task
-from noscrum.noscrum_backend.epic import get_null_epic
+from noscrum_backend.db import get_db, Story, TagStory, Tag, Task
+from noscrum_backend.epic import get_null_epic
 
 logger = logging.getLogger()
 

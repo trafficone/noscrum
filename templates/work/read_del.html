@@ -1,0 +1,16 @@
+{% if not asc %}
+{% extends 'base.html' %}
+
+{% block header %}
+    <h1>{% block title %}Work Item {{ work.id }} for Task {{ task.task }}{% endblock %}</h1>
+{% endblock %}
+{% endif %}
+
+{% block content %}
+Hours Worked: {{ work.hours_worked }}<br>
+Work Date: {{ work.work_date }}<br>
+Status: {{ work.status }}<br>
+<form method="delete" actuon="{{ url_for('work.delete',work_id=work.id) }}">
+    <button class="button" type="submit" value="Delete" value="delete-work">Delete</button>
+</form>
+{% endblock %}

@@ -1,0 +1,109 @@
+<!doctype html>
+<title>{% block title %}{% endblock %} - NoScrum</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/foundation-float.css') }}">
+<link rel="stylesheet" href="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/themes/smoothness/jquery-ui.css">
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+<!--script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script-->
+<script src="{{ url_for('static', filename='js/vendor/what-input.js') }}"></script>
+<script src="{{ url_for('static', filename='js/vendor/foundation.js') }}"></script>
+<script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.13.1/jquery-ui.min.js"></script>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-XX4VYT6PPS"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-XX4VYT6PPS');
+</script>
+<div class="top-bar">
+    <div class="top-bar-left"><h1><a href="{{ url_for('semi_static.index') }}">NoScrum</a></h1></div>
+    <div class="top-bar-right">
+    <form method="get" action="{{ url_for('search.query')}}">
+    <ul class="menu">
+        {% if current_user.is_authenticated %}
+        <li><a href="{{ url_for('task.list_all') }}">Task Board</a></li>
+        <li><a href="{{ url_for('sprint.active') }}">Active Sprint</a></li>
+        <li><a href="{{ url_for('sprint.list_all') }}">All Sprints</a></li>
+            <li><a href="{{ url_for('task.list_all') }}?archive=true">Archive</a></li>
+        {% else %}
+        <li><a href="{{ url_for('user.get_create') }}">Register for Free</a></li>
+        {% endif %}
+        <li><input type="search" name="s" placeholder="Search"></li>
+        <li><button  class="button" type="submit">Search</button></li>
+    </ul>
+    </form>
+        <div class="float-right">
+            {% if current_user.is_authenticated %}
+                <a href="{{ url_for('user.profile') }}">{{ current_user.user.first_name or current_user.user.username or current_user.user.email }}</a>
+                &nbsp; | &nbsp;
+                <a href="{{ url_for('user.logout') }}">Sign out</a>
+            {% else %}
+                <a href="{{ url_for('user.get_login') }}">Sign in</a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+<section class="content">
+    <header>
+        {% block header %}{% endblock %}
+    </header>
+    {% for message in get_flashed_messages() %}
+        <div class="callout flash" data-closable>
+            <button class="close-button" aria-label="Close Alert" type="button" data-close>
+                <span aria-hidden="true">&times;</span>
+            </button>
+            {{ message }}
+        </div>
+    {% endfor %}
+    {% block content %}{% endblock %}
+    {% if config.DEBUG  %}
+<div>
+    <h1>DEBUG SITEMAP</h1>
+    <h3>Epic</h3>
+    <ul>
+        <li><a href="{{ url_for('epic.get_create') }}">Epic Create</a></li>
+        <li><a href="{{ url_for('epic.list_all') }}">Epic List</a></li>
+        <li>Epic Show requires Epic ID, see Epic List</li>
+    </ul>
+    <h3>Story</h3>
+    <ul>
+        <li>Story Create requires Epic ID See Epic List</li>
+        <li><a href="{{ url_for('story.list_all') }}">Story List</a></li>
+        <li>Story Show requires Story ID See Story List</li>
+        <li>Tag Story requires Story ID, See Story List</li>
+    </ul>
+    <h3>Task</h3>
+    <ul>
+        <li>Task Create Requires Story ID, See Story List</li>
+        <li><a href="{{ url_for('task.list_all')}}">Task List</a></li>
+        <li>Task Show Requires Task ID, See Task List</li>
+    </ul>
+    <h3>Sprint</h3>
+    <ul>
+        <li><a href="{{ url_for('sprint.create') }}">Sprint Create</a></li>
+        <li><a href="{{ url_for('sprint.list_all') }}">Sprint List</a></li>
+        <li>Sprint Show requires Sprint ID, See Sprint List</li>
+        <li><a href="{{ url_for('sprint.active') }}">Active Sprint</a></li>
+    </ul>
+    <h3>Tag</h3>
+    <ul>
+        <li><a href="{{ url_for('tag.get_create') }}">Tag Create</a></li>
+        <li><a href="{{ url_for('tag.list_all') }}">Tag List</a></li>
+        <li>Tag Show requires Tag ID, See Tag List</li>
+    </ul>
+</div>
+{% endif %}
+</section>
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+<script>
+    $(document).ready(function(){
+        console.log("JQuery Running");
+        $(document).foundation();
+        console.log("Foundation Running")
+    //{% block jquery %}
+    //{% endblock %}
+    });
+</script>

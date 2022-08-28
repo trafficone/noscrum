@@ -9,9 +9,11 @@ from flask import url_for
 from playwright.sync_api import Page, expect
 import noscrum.noscrum_api as noscrum
 import noscrum.noscrum_backend.user as backend_user
+
 logger = logging.getLogger()
 
-TEST_PASSWORD = 'test_password'
+TEST_PASSWORD = "test_password"
+
 
 @pytest.fixture()
 def app():
@@ -19,18 +21,19 @@ def app():
     Create Test NoScrum Flask Application
     """
     test_config = dict()
-    test_config['SECRET_KEY'] = 'TESTING_KEY'
-    test_config['TESTING'] = True
-    test_config['DEBUG'] = False
-    test_config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:'
-    test_config['APPLICATION_ROOT'] = '/'
-    test_config['SERVER_NAME'] = 'localhost.localdomain'
+    test_config["SECRET_KEY"] = "TESTING_KEY"
+    test_config["TESTING"] = True
+    test_config["DEBUG"] = False
+    test_config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///:memory:"
+    test_config["APPLICATION_ROOT"] = "/"
+    test_config["SERVER_NAME"] = "localhost.localdomain"
     logger.info("Creating App - Testing")
     app = noscrum.create_app(test_config)
     app.test_client_class = FlaskLoginClient
     # other setup goes here
     yield app
     # cleanup goes here
+
 
 @pytest.fixture()
 def client(app):
@@ -39,6 +42,7 @@ def client(app):
     """
     return app.test_client()
 
+
 @pytest.fixture()
 def runner(app):
     """
@@ -46,47 +50,55 @@ def runner(app):
     """
     return app.test_cli_runner()
 
+
 @pytest.fixture()
 def test_user():
     """
-    Return the UserClass of a test user. 
+    Return the UserClass of a test user.
     Creates user if doesn't exist.
     """
-    user_record = backend_user.get_user_by_username('TEST_USER')
+    user_record = backend_user.get_user_by_username("TEST_USER")
     if user_record is None:
-        user = backend_user.UserClass.create_user(**{
-            'username':'TEST_USER',
-            'insecure_password':TEST_PASSWORD,
-            'first_name':'Testerson'
-        })
+        user = backend_user.UserClass.create_user(
+            **{
+                "username": "TEST_USER",
+                "insecure_password": TEST_PASSWORD,
+                "first_name": "Testerson",
+            }
+        )
     else:
         user = backend_user.UserClass(user_record.id)
     return user
 
+
 @pytest.fixture()
-def logged_in_client(app,test_user):
+def logged_in_client(app, test_user):
     """
     Return a client which has a logged in test user.
     """
     return app.test_client(user=test_user)
 
+
 @pytest.fixture()
 def task_shocs_url(app):
     with app.app_context():
-        url = url_for('task.list_all')
+        url = url_for("task.list_all")
     return url
+
 
 @pytest.fixture()
 def all_sprints_url(app):
     with app.app_context():
-        url = url_for('sprints.list_all')
+        url = url_for("sprints.list_all")
     return url
+
 
 @pytest.fixture(scope="function", autouse=True)
 def before_each_after_each(page: Page, logged_in_client):
     with app.app_context():
         # verify user has been created and can log in
-        response = logged_in_client.get(url_for('semi_static.index'))
+        response = logged_in_client.get(url_for("semi_static.index"))
+
 
 def test_task_shocs_create_epic(page: Page, task_shocs_url):
     page.goto(task_shocs_url)
@@ -95,48 +107,62 @@ def test_task_shocs_create_epic(page: Page, task_shocs_url):
 def test_task_shocs_epic_rename():
     pass
 
+
 def test_task_shocs_epic_change_color():
     # FIXME: NOT IMPLEMENTED
     pass
 
+
 def test_task_shocs_story_create():
     pass
+
 
 def test_task_shocs_story_rename():
     pass
 
+
 def test_task_shocs_story_set_deadline():
     pass
+
 
 def test_task_shocs_archive_story():
     # Create separate story for this test
     pass
 
+
 def test_task_shocs_task_create():
     pass
+
 
 def test_task_shocs_task_deadline_set():
     pass
 
+
 def test_task_shocs_task_deadline_update():
     pass
+
 
 def test_task_shocs_task_name_update():
     pass
 
+
 def test_task_shocs_task_est_update():
     pass
+
 
 def test_task_shocs_task_status_update():
     pass
 
+
 def test_task_shocs_task_make_recurring():
     pass
+
 
 def test_task_shocs_filter_status():
     # Create 3 tasks, one of each status
     # Then test filter functionality
     pass
+
 
 def test_task_shocs_filter_date_user():
     # Set deadline on 3 tasks to 3 consecutive days,
@@ -145,57 +171,73 @@ def test_task_shocs_filter_date_user():
     # then combine both
     pass
 
+
 def test_task_shocs_filter_date_defaults():
     # update deadlines to 1,2, & 4 weeks out
     # test each filter
     pass
 
+
 def test_task_shocs_sprint_plan():
     pass
+
 
 def test_task_shocs_sprint_add_to():
     pass
 
+
 def test_all_sprints_static():
     pass
+
 
 def test_all_sprints_non_static():
     pass
 
+
 def test_sprint_showcase_schedule_on_blank():
     pass
+
 
 def test_sprint_showcase_schedule_recurring():
     pass
 
+
 def test_sprint_showcase_schedlue_on_slot():
     pass
 
+
 def test_sprint_showcase_set_note():
     pass
+
 
 def test_sprint_showcase_do_not_schedule():
     # Back out of scheduling a task
     # Verify task was not scheduled
     pass
 
+
 def test_sprint_showcase_stable():
     # Sprint showcase should be the same before+after reload
     pass
 
+
 def test_sprint_showcase_reschedule_to_blank():
     pass
+
 
 def test_sprint_showcase_reschedule_to_slot():
     pass
 
+
 def test_sprint_showcase_unschedule():
     pass
+
 
 def test_sprint_showcase_work_hours():
     pass
 
-#CODEGEN
+
+# CODEGEN
 """
 from playwright.sync_api import Playwright, sync_playwright, expect
 
@@ -341,10 +383,10 @@ def run(playwright: Playwright) -> None:
     # Fill [placeholder="Task Name"]
     page.locator("[placeholder=\"Task Name\"]").fill("PW_FIRST_TASK")
 
-    # Click [placeholder="\33 \.5"]
+    # Click [placeholder="\33 \\.5"]
     page.locator("[placeholder=\"\\33 \\.5\"]").click()
 
-    # Fill [placeholder="\33 \.5"]
+    # Fill [placeholder="\33 \\.5"]
     page.locator("[placeholder=\"\\33 \\.5\"]").fill("1")
 
     # Click #story_summary_23 form button:has-text("Create")
@@ -362,7 +404,7 @@ def run(playwright: Playwright) -> None:
     # Press Tab
     page.locator("[placeholder=\"Task Name\"]").press("Tab")
 
-    # Fill [placeholder="\33 \.5"]
+    # Fill [placeholder="\33 \\.5"]
     page.locator("[placeholder=\"\\33 \\.5\"]").fill("2")
 
     # Press Enter
@@ -377,10 +419,10 @@ def run(playwright: Playwright) -> None:
     # Fill [placeholder="Task Name"]
     page.locator("[placeholder=\"Task Name\"]").fill("PW_ThirdTask")
 
-    # Click [placeholder="\33 \.5"]
+    # Click [placeholder="\33 \\.5"]
     page.locator("[placeholder=\"\\33 \\.5\"]").click()
 
-    # Fill [placeholder="\33 \.5"]
+    # Fill [placeholder="\33 \\.5"]
     page.locator("[placeholder=\"\\33 \\.5\"]").fill("3")
 
     # Press Tab
@@ -398,10 +440,10 @@ def run(playwright: Playwright) -> None:
     # Fill [placeholder="Task Name"]
     page.locator("[placeholder=\"Task Name\"]").fill("PW_RECURRING_TASK")
 
-    # Click [placeholder="\33 \.5"]
+    # Click [placeholder="\33 \\.5"]
     page.locator("[placeholder=\"\\33 \\.5\"]").click()
 
-    # Fill [placeholder="\33 \.5"]
+    # Fill [placeholder="\33 \\.5"]
     page.locator("[placeholder=\"\\33 \\.5\"]").fill("24")
 
     # Click #story_summary_23 form button:has-text("Create")
@@ -715,10 +757,10 @@ def run(playwright: Playwright) -> None:
     # Fill [placeholder="Task Name"]
     page.locator("[placeholder=\"Task Name\"]").fill("PW_FIRST_TASK")
 
-    # Click [placeholder="\33 \.5"]
+    # Click [placeholder="\33 \\.5"]
     page.locator("[placeholder=\"\\33 \\.5\"]").click()
 
-    # Fill [placeholder="\33 \.5"]
+    # Fill [placeholder="\33 \\.5"]
     page.locator("[placeholder=\"\\33 \\.5\"]").fill("1")
 
     # Click #story_summary_23 form button:has-text("Create")
@@ -736,7 +778,7 @@ def run(playwright: Playwright) -> None:
     # Press Tab
     page.locator("[placeholder=\"Task Name\"]").press("Tab")
 
-    # Fill [placeholder="\33 \.5"]
+    # Fill [placeholder="\33 \\.5"]
     page.locator("[placeholder=\"\\33 \\.5\"]").fill("2")
 
     # Press Enter
@@ -751,10 +793,10 @@ def run(playwright: Playwright) -> None:
     # Fill [placeholder="Task Name"]
     page.locator("[placeholder=\"Task Name\"]").fill("PW_ThirdTask")
 
-    # Click [placeholder="\33 \.5"]
+    # Click [placeholder="\33 \\.5"]
     page.locator("[placeholder=\"\\33 \\.5\"]").click()
 
-    # Fill [placeholder="\33 \.5"]
+    # Fill [placeholder="\33 \\.5"]
     page.locator("[placeholder=\"\\33 \\.5\"]").fill("3")
 
     # Press Tab
@@ -772,10 +814,10 @@ def run(playwright: Playwright) -> None:
     # Fill [placeholder="Task Name"]
     page.locator("[placeholder=\"Task Name\"]").fill("PW_RECURRING_TASK")
 
-    # Click [placeholder="\33 \.5"]
+    # Click [placeholder="\33 \\.5"]
     page.locator("[placeholder=\"\\33 \\.5\"]").click()
 
-    # Fill [placeholder="\33 \.5"]
+    # Fill [placeholder="\33 \\.5"]
     page.locator("[placeholder=\"\\33 \\.5\"]").fill("24")
 
     # Click #story_summary_23 form button:has-text("Create")

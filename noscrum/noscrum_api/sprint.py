@@ -7,9 +7,9 @@ from flask_openapi3 import APIBlueprint as Blueprint
 from flask import flash, redirect, request, url_for, abort
 from flask_login import current_user, login_required
 from pydantic import BaseModel, Field
-from noscrum.noscrum_api.template_friendly import friendly_render as render_template
-import noscrum.noscrum_backend.sprint as backend
-from noscrum.noscrum_backend.task import get_task
+from noscrum_api.template_friendly import friendly_render as render_template
+import noscrum_backend.sprint as backend
+from noscrum_backend.task import get_task
 
 logger = logging.getLogger()
 

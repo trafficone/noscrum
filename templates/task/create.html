@@ -1,0 +1,84 @@
+{% if not asc %}
+{% extends 'base.html' %}
+
+{% block header %}
+    <h1>{% block title %}Task For {{ story.story }}{% endblock %}</h1>
+{% endblock %}
+{% endif %}
+
+{% block content %}
+{% if asc %}
+<form class="create_task" onsubmit="return false;" data-abide novalidate>
+{% else %}
+<form method="post" action="{{ url_for('task.create',story_id=story.id) }}" data-abide novalidate>
+{% endif %}
+    <div data-abide-error class="alert callout" style="display: none;">
+        <p><i class="fi-alert"></i> There are some errors in your form.</p>
+    </div>
+    <label>Task:<input type="text" name="task" id="task{{story.id}}" placeholder="Task Name" aria-describedby="exampleHelpTask" required>
+    </label>
+    <p class="help-text" id="exampleHelpTask">This is the Task Name for a task in the story {{ story.story }}</p>
+    <label for="estimate">
+        Estimate:
+        <input type="text" name="estimate" pattern="\d+\.?\d*" id="estimate{{story.id}}" placeholder="3.5" aria-describedby="exampleHelpEstimate">
+        <span class="form-error">
+            Expecting a number. Use partial hours to estimate minutes.<br>
+            30m = .5, 15m=.25, etc.
+        </span>
+    </label>
+    <p class="help-text" id="exampleHelpEstimate">This is the estimate of number of hours of work</p>
+    <input type="hidden" name="story_id" value="{{ story.id }}">
+    <div>
+        <button class="button float-left" type="submit" value="Create" value="create-task">Create</button>
+        {% if asc %}
+            <button type="button" story="{{story.id}}" class="button float-right cancel" onclick="">Cancel</button>
+        {% endif %}
+    </div>
+</form>
+{% if asc %}
+<script>
+remove_self = function(target) {
+    var create_task_button = target.parent().parent().parent().siblings('button');
+    create_task_button.removeClass('invisible');
+    target.parent().parent().parent().children('script').remove();
+    target.parent().parent().parent().children('form').remove();
+};
+$('.cancel').click(function(){remove_self($(this))});
+$('.create_task').off('submit');
+$('.create_task').submit(function(){
+    var story_id = $(this).children('input:hidden').val();
+    var new_task_name = $('#task'+story_id).val();
+    var new_task_estimate = $('#estimate'+story_id).val();
+    var new_task_json = {
+        task:new_task_name,
+        estimate:new_task_estimate
+    }
+    var caller = $(this);
+    var append_and_clear = function(new_property){
+        var estimate = new_property.find('.estimate').text();
+        estimate = isNaN(Number(estimate)) ? undefined : Number(estimate);
+        caller.parent().parent().parent().children('.containers').append(new_property);
+        caller.find('.cancel').trigger('click');
+        update_task_metrics(new_property,estimate);
+    };
+    $.ajax({
+        url:'/task/create/'+story_id+'?is_json=true',//FIXME: Hard coded URLS? *tsk tsk*
+        type: 'PUT',
+        data: new_task_json,
+        dataType: 'json'
+    }).done(function(json) {
+        if (json.Success === true){
+            console.log(json.task);
+            create_task(json.task,append_and_clear);//caller.parent().append);
+        } else {
+            PrettyAlert("Task creation failed in new and interesting ways!");
+        }
+    }).fail(function(xhr, status, errorThrown){
+        PrettyAlert("Failed to create task");
+    }).always(function() {
+        console.log("Task Creation AJAX complete");
+    })
+});
+</script>
+{% endif %}
+{% endblock %}

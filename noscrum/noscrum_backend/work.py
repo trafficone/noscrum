@@ -1,8 +1,8 @@
 """
 Backend components to Noscrum Work API
 """
-from noscrum.noscrum_backend.db import get_db, Work, ScheduleTask
-from noscrum.noscrum_backend.task import update_task
+from noscrum_backend.db import get_db, Work, ScheduleTask
+from noscrum_backend.task import update_task
 
 # pylint: disable-next=too-many-arguments
 def create_work(

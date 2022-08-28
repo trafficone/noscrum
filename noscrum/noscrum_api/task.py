@@ -1,27 +1,21 @@
 """
 Task View and Database Interaction Module
 """
-from datetime import datetime
 import logging
+import json
+from datetime import datetime
 
-from flask_openapi3 import APIBlueprint as Blueprint
-from flask import redirect, request, url_for, abort, flash
-from flask_login import current_user, login_required
 from pydantic import BaseModel, Field
-
-import noscrum.noscrum_backend.task as backend
-from noscrum.noscrum_backend.story import (
-    get_null_story_for_epic,
-    get_story,
-    get_stories,
-)
-from noscrum.noscrum_backend.epic import get_epic, get_epics
-from noscrum.noscrum_backend.sprint import get_current_sprint, get_sprint, get_sprints
-from noscrum.noscrum_api.template_friendly import (
-    friendly_render as render_template,
-    NoscrumBaseQuery,
-)
-from noscrum.noscrum_api.story import StoryPath
+from flask import abort, flash, redirect, request, url_for
+from flask_login import current_user, login_required
+from flask_openapi3 import APIBlueprint as Blueprint
+import noscrum_backend.task as backend
+from noscrum_api.story import StoryPath
+from noscrum_api.template_friendly import NoscrumBaseQuery
+from noscrum_api.template_friendly import friendly_render as render_template
+from noscrum_backend.epic import get_epic, get_epics
+from noscrum_backend.sprint import get_current_sprint, get_sprint, get_sprints
+from noscrum_backend.story import get_null_story_for_epic, get_stories, get_story
 
 logger = logging.getLogger()
 bp = Blueprint("task", __name__, url_prefix="/task")
@@ -211,22 +205,23 @@ def list_all(query: NoscrumBaseQuery):
     epics = get_epics(current_user)
     colors = ["primary", "secondary", "success", "alert", "warning"]
     current_sprint = get_current_sprint(current_user)
+    current_sprint_id = "NA" if current_sprint is None else current_sprint.id
     user_sprints = get_sprints(current_user)
     if is_json:
         return {
             "Success": True,
-            "tasks": rowproxy_to_dict(tasks),
             "epics": [x.to_dict() for x in epics],
-            "stories": [x.to_dict() for x in stories],
-            "current_sprint": current_sprint.id,
+            "current_sprint": current_sprint_id,
         }
     sprints = {x.id: x for x in user_sprints}
+    epics_array = [x.to_dict() for x in epics]
     return render_template(
         "task/list.html",
         current_sprint=current_sprint,
         sprints=sprints,
         tasks=tasks,
         epics=epics,
+        epics_json=json.dumps(epics_array),
         stories=stories,
         colors=colors,
         archive=get_closed,

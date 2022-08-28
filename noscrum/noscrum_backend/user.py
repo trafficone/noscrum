@@ -12,7 +12,7 @@ import jwt
 # from fastapi import Depends
 # from fastapi.security import OAuth2PasswordBearer
 # from typing import Optional, Dict
-from noscrum.noscrum_api.config import (
+from noscrum_backend.config import (
     SECRET,
     JWT_ALGORITHM,
     JWT_AUDIENCE,
@@ -20,7 +20,7 @@ from noscrum.noscrum_api.config import (
 )
 
 # oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/users/login/token")
-from noscrum.noscrum_backend.db import User, UserPreference, get_db
+from noscrum_backend.db import User, UserPreference, get_db
 
 logger = logging.getLogger()
 
@@ -62,8 +62,8 @@ class UserClass(UserMixin):
 
     def __init__(self, user_id: str):
         super().__init__()
-        self._is_authenticated = super().is_authenticated
         self.user = _get_user(user_id)
+        self._is_authenticated = super().is_authenticated
         if self.user is None:
             self._is_authenticated = False
             self.id = None
@@ -73,11 +73,10 @@ class UserClass(UserMixin):
     @property
     def is_active(self) -> bool:
         """
-        is_active property, which is from database is_active && is_authenticated
+        is_active property, which is from database is_active
         is used to determine spaces where blocked users may not go
         """
-        is_auth = self.is_authenticated
-        return is_auth and self.user.active
+        return self.user.active
 
     @property
     def is_authenticated(self) -> bool:
@@ -85,6 +84,7 @@ class UserClass(UserMixin):
         property used to determine if a user is currently
         authenticated or not. Defaults to False, is set to True by logging in
         """
+        print(self)
         return self._is_authenticated
 
     @property
@@ -139,13 +139,18 @@ class UserClass(UserMixin):
             insecure_password = bytes(insecure_password, "utf-8")
         user_values["password"] = bcrypt.hashpw(insecure_password, bcrypt.gensalt())
         app_db = get_db()
-        new_user = User(**user_values)
+        if get_user_by_username(user_properties.get("username")) is not None:
+            raise ValueError("Username already registered")
+        if user_properties.get("email") == "":
+            user_properties["email"] = None
+
         try:
+            new_user = User(**user_values)
             app_db.session.add(new_user)  # pylint: disable=no-member
+            app_db.session.commit()  # pylint: disable=no-member
         except Exception as database_error:
             logger.error(database_error)
-            raise ValueError("Could Not Create User with the parameters given")
-        app_db.session.commit()  # pylint: disable=no-member
+            raise ValueError("Could not create user with the parameters given")
         return UserClass(new_user.id)
 
     @staticmethod

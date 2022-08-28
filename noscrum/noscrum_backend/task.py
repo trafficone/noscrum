@@ -1,7 +1,7 @@
 """
 Backend component of Task API
 """
-from noscrum.noscrum_backend.db import get_db, Task
+from noscrum_backend.db import get_db, Task
 
 
 def get_tasks(current_user):

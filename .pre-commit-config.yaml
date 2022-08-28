@@ -1,0 +1,32 @@
+# See https://pre-commit.com for more information
+# See https://pre-commit.com/hooks.html for more hooks
+repos:
+-   repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v3.2.0
+    hooks:
+    -   id: trailing-whitespace
+    -   id: end-of-file-fixer
+    -   id: check-yaml
+    -   id: check-added-large-files
+    -   id: check-json
+    -   id: debug-statements
+-   repo: https://github.com/asottile/pyupgrade
+    rev: v2.37.3
+    hooks:
+    -   id: pyupgrade
+-   repo: https://github.com/psf/black
+    rev: 22.3.0
+    hooks:
+    -   id: black
+-   repo: https://github.com/pre-commit/mirrors-eslint
+    rev: 'ebda88b618146bdb70e27c314959b1a837fc21a5'  # Use the sha / tag you want to point at
+    hooks:
+    -   id: eslint
+        files: \.[jt]sx?$
+        types: [file]
+        additional_dependencies:
+        -   eslint@8.21.0
+        -   eslint-config-standard@17.0.0
+        -   eslint-plugin-react@7.30.1
+        -   babel-preset-es2021@1.0.0
+        -   babel-eslint@10.1.0
