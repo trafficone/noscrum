@@ -33,9 +33,12 @@ def create(query: NoscrumBaseQuery):
     """
     is_asc = query.is_asc
     is_json = query.is_json
-    epic = request.form.get("epic", None)
-    color = request.form.get("color", None)
-    deadline = request.form.get("deadline", None)
+    req = request.form
+    if request.get_json() is not None:
+        req = request.get_json()
+    epic = req.get("epic", None)
+    color = req.get("color", None)
+    deadline = req.get("deadline", None)
     if isinstance(deadline, str):
         deadline = datetime.strptime(deadline, "%Y-%m-%d").date()
     error = None
@@ -46,11 +49,12 @@ def create(query: NoscrumBaseQuery):
         error = f'Epic named "{epic}" already exists'
 
     if error is None:
-        epic = backend.create_epic(current_user, epic, color, deadline)
+        newEpic = backend.create_epic(current_user, epic, color, deadline)
         if is_json:
-            return {"Success": True, "epic_id": epic.id, "epic_name": epic.epic}
+            return {"Success": True, "epic": newEpic.to_dict()}
         return redirect(url_for("task.list_all"))
     if is_json:
+        print("OH NO! I ERRORED: " + str(error))
         abort(500, error)
     flash(error, "error")
     return render_template("epic/create.html", asc=is_asc)
@@ -81,7 +85,7 @@ def show(path: EpicPath, query: NoscrumBaseQuery):
             flash(f'Epid ID "{epic_id}" not found.', "error")
             return redirect(url_for("epic.list_all"))
     if is_json:
-        return {"Success": True, "epic": dict(epic), "stories": {}}
+        return {"Success": True, "epic": epic.to_dict(), "stories": {}}
     return render_template("epic/show.html", epic=epic, stories={})
 
 

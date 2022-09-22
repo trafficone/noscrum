@@ -76,6 +76,8 @@ class UserClass(UserMixin):
         is_active property, which is from database is_active
         is used to determine spaces where blocked users may not go
         """
+        if self.user is None:
+            return False
         return self.user.active
 
     @property

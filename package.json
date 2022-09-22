@@ -10,9 +10,25 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "lint:js": "eslint --ext jsx,js jsx/*.jsx",
     "bosslint:js": "eslint --ext jsx,js,html --fix jsx/*.jsx templates/**/*",
-    "build-dev": "browserifyinc -v -t babelify -r ./jsx/*.jsx -r ./jsx/index.js:app -o static/js/app.js",
-    "build": "browserify -t babelify -r ./jsx/index.js:app -o static/js/app.js"
+    "build-dev": "watchify -v -r ./jsx/*.jsx -r ./jsx/index.jsx:app -o static/js/app.js",
+    "build": "cross-env NODE_ENV=production browserify -r ./jsx/index.jsx:app -o static/js/app.js -p [ parcelify -o static/bundle.css ]"
   },
+  "browserify": {
+    "transform": [
+      [
+        "babelify",
+        {
+          "presets": [
+            "@babel/preset-env",
+            "@babel/preset-react"
+          ]
+        }
+      ]
+    ]
+  },
+  "style": [
+    "./node_modules/react-datepicker/dist/react-datepicker-cssmodules.css"
+  ],
   "repository": {
     "type": "git",
     "url": "git+https://github.com/trafficone/noscrum.git"
@@ -26,30 +42,35 @@
   "devDependencies": {
     "@babel/preset-env": "^7.18.10",
     "@babel/preset-react": "^7.18.6",
+    "@babel/register": "^7.18.9",
     "@types/react": "^18.0.15",
     "@types/react-dom": "^18.0.6",
     "axios": "^0.27.2",
     "babel-eslint": "^10.1.0",
-    "babel-preset-es2015": "^6.24.1",
-    "babel-preset-es2021": "^1.0.0",
     "babel-preset-react": "^6.24.1",
     "babelify": "^10.0.0",
     "browserify": "^17.0.0",
     "browserify-incremental": "^3.1.1",
+    "canvas-confetti": "^1.5.1",
+    "cross-env": "^7.0.3",
     "eslint": "^8.21.0",
     "eslint-config-standard": "^17.0.0",
-    "eslint-plugin-import": "^2.26.0",
-    "eslint-plugin-n": "^15.2.4",
-    "eslint-plugin-promise": "^6.0.0",
     "eslint-plugin-react": "^7.30.1",
     "foundation-sites": "^6.7.5",
+    "gulp": "^4.0.2",
+    "gulp-cli": "^2.3.0",
+    "gulp-concat": "^2.6.1",
     "jquery": "^3.6.0",
     "jquery-ui": "^1.13.2",
     "npm-run-all": "^4.1.5",
+    "parcelify": "^2.2.1",
     "react": "^18.2.0",
     "react-datepicker": "^4.8.0",
     "react-dom": "^18.2.0",
-    "react-foundation": "^0.9.7",
+    "react-loading-skeleton": "^3.1.0",
+    "react-modal": "^3.15.1",
+    "tinyify": "^3.1.0",
+    "vinyl-source-stream": "^2.0.0",
     "watchify": "^4.0.0"
   },
   "dependencies": {

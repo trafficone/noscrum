@@ -2,12 +2,120 @@
 import { PropTypes } from 'prop-types'
 import React from 'react'
 import app from './app.jsx'
-import StoryContainerTShowcase from './story.jsx'
+import { StoryContainerTShowcase, CreateStoryButton } from './story.jsx'
+import axios from 'axios'
 
 const AjaxUpdateProperty = app.AjaxUpdateProperty
 const GetUpdateURL = app.GetUpdateURL
 const EditableHandleClick = app.EditableHandleClick
-const CreateElementClick = app.CreateElementClick
+
+class CreateEpic extends React.Component {
+  static propTypes = {
+    addEpic: PropTypes.func,
+    notOpen: PropTypes.func
+  }
+
+  constructor (props) {
+    super(props)
+    this.state = {
+      epic: '',
+      color: ''
+    }
+  }
+
+  setEpic (epic) {
+    const newState = this.state
+    newState.epic = epic.target.value
+    this.setState(newState)
+  }
+
+  setColor (color) {
+    const newState = this.state
+    newState.color = color.target.value
+    this.setState(newState)
+  }
+
+  async createEpic () {
+    console.log('Creating Epic ' + this.state.epic)
+    if (this.state.epic === undefined) {
+      app.PrettyAlert('Cannot Crate Unnamed Epic')
+      return
+    }
+    await axios.post('/epic/create?is_json=true', this.state).then((response) => {
+      const epic = response.data.epic
+      this.props.addEpic(epic)
+      this.props.notOpen()
+    })
+  }
+
+  render () {
+    return (
+      <div className="cell">
+          <label>Epic Name
+              <input type="text"
+                placeholder="Thesis"
+                aria-describedby="exampleHelpEpic"
+                name="epic"
+                id="epic"
+                onChange={(v) => this.setEpic(v)}
+                value={this.state.epic}
+                required />
+          </label>
+          <p className="help-text" id="exampleHelpEpic">This is the Epic Name</p>
+          <div className="cell medium-6">
+              <label>Color
+                  <select id="select" name="color" onChange={(v) => this.setColor(v)} required>
+                  <option value="green">Green</option>
+                  <option value="red">Red</option>
+                  <option value="blue">Blue</option>
+                  <option value="orange">Orange</option>
+                  <option value="purple">Purple</option>
+              </select>
+              </label>
+          </div>
+          <div>
+              <button className="button" onClick={() => this.createEpic()}>Create</button>
+              <button onClick={() => this.props.notOpen() } className="button cancel float-right" type="button" >Cancel</button>
+          </div>
+      </div>
+    )
+  }
+}
+
+class CreateEpicButton extends React.Component {
+  static propTypes = {
+    addEpic: PropTypes.func
+  }
+
+  constructor (props) {
+    super(props)
+    this.state = {
+      open: false
+    }
+  }
+
+  notOpen () {
+    this.setState({ open: false })
+  }
+
+  render () {
+    let content = (
+      <button
+        className="button create create-epic"
+        onClick={() => { this.setState({ open: true }) }}
+      >
+        Create Epic
+      </button>)
+    if (this.state.open) {
+      content = (<CreateEpic addEpic={(v) => this.props.addEpic(v)} notOpen={() => this.notOpen()}></CreateEpic>)
+    }
+    return (
+      <div>
+        {content}
+      </div>
+    )
+  }
+}
 
 class EpicNameLabel extends React.Component {
   static propTypes = {
@@ -24,7 +132,7 @@ class EpicNameLabel extends React.Component {
 
 function EpicEstimateLabel (props) {
   return (
-    <div className="columns small-3">
+    <div className=" cell small-3">
       {props.label}:&nbsp;<span className="epic-metric">{props.value}</span>
     </div>
   )
@@ -33,7 +141,9 @@ EpicEstimateLabel.propTypes = { value: PropTypes.number.isRequired, label: PropT
 
 class EpicEstimatesWidget extends React.Component {
   static propTypes = {
-    tasks: PropTypes.array
+    tasks: PropTypes.array,
+    isActive: PropTypes.bool,
+    onClick: PropTypes.func
   }
 
   render () {
@@ -52,10 +162,13 @@ class EpicEstimatesWidget extends React.Component {
       , 0)
     }
     const estimateLabels = Object.entries(estimates).map((k, v) => {
-      return <EpicEstimateLabel label={k[0]} key={v} value={k[1]} />
-    }
+      return (<EpicEstimateLabel label={k[0]} key={v} value={k[1]} />)
+    })
+    return (
+      <div className="cell auto estimates-widget" title="Click to Show Stories" onClick={() => this.props.onClick()}>
+        {estimateLabels}
+      </div>
     )
-    return <div>{estimateLabels}</div>
   }
 }
 
@@ -63,11 +176,24 @@ class EpicStoriesContainer extends React.Component {
   static propTypes = {
     updateTask: PropTypes.func,
     updateStory: PropTypes.func,
-    stories: PropTypes.array
+    stories: PropTypes.array,
+    filterObject: PropTypes.object,
+    isActive: PropTypes.bool,
+    planningSprint: PropTypes.string
   }
 
   render () {
     const stories = this.props.stories
+    const storyVerb = stories.length !== 1 ? 'are' : 'is'
+    const storyNoun = stories.length !== 1 ? 'stories' : 'story'
+    if (!this.props.isActive) {
+      return (
+        <div className="grid-x">
+          <div className="cell auto"></div>
+          <div className="cell shrink"><small>There {storyVerb} {stories.length} {storyNoun} in this epic.</small></div>
+        </div>
+      )
+    }
     const storyContainers = stories.map((story) => {
       return (
         <StoryContainerTShowcase
@@ -79,6 +205,8 @@ class EpicStoriesContainer extends React.Component {
           tasks={story.tasks}
           update={(s, v, c) => this.props.updateStory(story.id, s, v, c)}
           updateTask={(t, s, v, c) => this.props.updateTask(story.id, t, s, v, c)}
+          filterObject={this.props.filterObject}
+          planningSprint={this.props.planningSprint}
         />
       )
     })
@@ -89,46 +217,14 @@ class EpicStoriesContainer extends React.Component {
     )
   }
 }
-class EpicCreateStoryButton extends React.Component {
-  static propTypes = {
-    create_url: PropTypes.string
-  }
-
-  render () {
-    return (
-      <button
-        className="button create create-story"
-        onClick={(t) => CreateElementClick(t, this.props.create_url)}
-      >
-        Create Story
-      </button>
-    )
-  }
-}
-
-class CreateEpicButton extends React.Component {
-  static propTypes = {
-    create_url: PropTypes.string
-  }
-
-  render () {
-    return (
-      <button
-        className="button create create-epic"
-        onClick={(t) => CreateElementClick(t, this.props.create_url)}
-      >
-        Create Epic
-      </button>
-    )
-  }
-}
 
 class EpicContainer extends React.Component {
   static propTypes = {
     id: PropTypes.number.isRequired,
     oEpic: PropTypes.string.isRequired,
     oColor: PropTypes.string,
-    oStories: PropTypes.array
+    oStories: PropTypes.array,
+    filterObject: PropTypes.object
   }
 
   constructor (props) {
@@ -137,31 +233,62 @@ class EpicContainer extends React.Component {
     this.state = {
       epic: props.oEpic,
       color: origColor,
-      story: props.oStories
+      story: props.oStories,
+      hasError: false,
+      isActive: false
     }
   }
 
+  // eslint-disable-next-line n/handle-callback-err
+  static getDerivedStateFromError (error) {
+    return { hasError: true }
+  }
+
   render () {
+    if (this.state.hasError) {
+      return (
+        <div className='epic '>
+          <span><i className="fi-alert"></i>An error occurred in this component. Please refresh page.</span>
+        </div>
+      )
+    }
     const stories = this.state.story
     const tasksAgg = stories.reduce((agg, story) => {
       return agg.concat(story.tasks)
     }, [])
     return (
       <div className={'epic ' + this.state.color}>
-        <div className="row">
+        <div className="grid-x">
           <EpicNameLabel
             epic={this.state.epic}
             update={(c, v) => this.handleClick('epic', c, v)}
           />
-          <EpicEstimatesWidget tasks={tasksAgg} />
+          <EpicEstimatesWidget tasks={tasksAgg}
+            isActive={this.state.isActive}
+            onClick={() => this.accordionStories()}/>
+          <div className="cell shrink h1" onClick={() => this.accordionStories()}>
+            { this.state.isActive ? 'v' : '>' }
+          </div>
         </div>
         <EpicStoriesContainer
           stories={stories}
           updateStory={(st, s, v, c) => this.handleStoryClick(st, s, v, c)}
-          updateTask={(st, t, s, v, c) => this.handleTaskClick(st, t, s, v, c)}/>
-        <EpicCreateStoryButton create_url={'/story/create/' + this.props.id + '?is_asc=true'} />
+          updateTask={(st, t, s, v, c) => this.handleTaskClick(st, t, s, v, c)}
+          filterObject={this.props.filterObject}
+          isActive={this.state.isActive}/>
+        <CreateStoryButton addStory={(s) => this.addStory(s)} epic={this.props.id}/>
       </div>
     )
+  }
+
+  accordionStories () {
+    this.setState({ ...this.state, isActive: !this.state.isActive })
+  }
+
+  addStory (story) {
+    const newState = this.state
+    newState.story.push(story)
+    this.setState(newState)
   }
 
   handleClick (statusItem, value, callback) {
@@ -202,7 +329,8 @@ class EpicContainer extends React.Component {
   }
 }
 
-export default {
+export {
   CreateEpicButton,
-  EpicContainer
+  EpicContainer,
+  CreateEpic
 }

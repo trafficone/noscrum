@@ -132,77 +132,14 @@
     <button class="close-button" data-close aria-label="Close" > <span aria-hidden="true">&times;</span></button>
 </div>
 {% endif %}
-<h4>Total Hours Scheduled for Sprint: <span id="totalHours" class="planned_hrs">{{0 if not totals.sprint else totals.sprint|float}}</span></h4>
-{% for day in schedule %}
-    {% if day[0] % 2 == 0 %}
-        <div class="day yellow">
-    {% else %}
-        <div class="day green">
-    {% endif %}
-        {{day[1]}} {{day[1].strftime('%A')}} <em>Hours Scheduled for Day: <span class="planned_hrs">{{0 if not totals['d'+day[1].strftime('%yyyy-%mm-%dd')] else totals['d'+day[1].strftime('%yyyy-%mm-%dd')] | float }}</span></em>
-            {% for hour in day[2] %}
-            <div style="display:flex;flex-direction:row;" id="r_{{day[0]}}_{{hour}}">
-            <div class="small-2" >
-
-            </div>
-                {% for schedule in schedule_records if schedule.sprint_day == day[1] and schedule.sprint_hour == hour %}
-                <div class="task-container container {% if not static %}scheduled{% endif %} {% if tasks[schedule.task_id].recurring %}recurring_task{% endif %} top"
-                    {% if not static %} title="Click to change; Drag to reschedule" {% endif %}
-                    hour="{{hour}}" day="{{day[1]}}"
-                    index_day="{{day[0]}}"
-                    task="{{ schedule.task_id }}"
-                    story="{{ tasks[schedule.task_id].story_id }}"
-                    id="{{ 'task_%d_%d'%(schedule.task_id,schedule.id) }}"
-                    schedule_id="{{ schedule.id }}"
-                    recurring="{{ schedule.recurring_schedule }}"
-                    planned="{{schedule.schedule_time}}"
-                    update_url="{{ url_for('task.update',task_id=schedule.task_id,is_json=True) }}">
-                    <div class="row">
-                        <div class="small-2 columns epic-label {{epics[tasks[schedule.task_id].epic_id].color }} ">{{ epics[tasks[schedule.task_id].epic_id].epic }}</div>
-                        <div class="small-6 columns story-label">{{ stories[tasks[schedule.task_id].story_id].story }}</div>
-                        <div class="small-8 columns">{{ tasks[schedule.task_id].task }}</div>
-                        <div {% if not static %}title="Click to update status"{% endif %} class="small-2 columns label float-right status {{ tasks[schedule.task_id]['status'].lower().replace(' ','-') }} " task="{{ tasks[schedule.task_id].task }}">{{ tasks[schedule.task_id].status }}</div>
-                    </div>
-                    <div class="row">
-                        <div class="small-2 columns">Est:{{ None if not tasks[schedule.task_id].estimate else tasks[schedule.task_id].estimate|float }} Plan:{{0 if not schedule.schedule_time else "%.2f"|format(schedule.schedule_time)}}</div>
-                        <div class="small-6 columns float-right">Worked This Day:<span class="hours-worked">{{schedule.schedule_work}}</span></div>
-                        {% if static %}
-                        <div class="small-8 columns note">
-                            {% if schedule.note %}
-                                {{schedule.note}}
-                            {% endif %}
-                            {% if tasks[schedule.task_id].recurring == 1 %}
-                                🔄Recurring Task
-                            {% elif not tasks[schedule.task_id].single_sprint_task == 1 %}
-                                ⚠️Task in multiple sprints!
-                            {% endif %}</div>
-                        <div class="small-2 columns"></div>
-                        {% else %}
-                        <div title="Click to edit note" class="small-8 columns"><input class="note" type="text" placeholder="Schedule-specific Note"
-                            {% if schedule.note %} value="{{ schedule.note }}" {% endif %} /></div>
-                        <div title="Click to Log Work" class="small-2 columns label float-right log-work" >Log Work</div>
-                        {% endif %}
-                    </div>
-                </div>
-                {% else %}
-                <div class="unscheduled-container container {% if not static %}scheduled{% endif %}"
-                    hour="{{hour}}"
-                    day="{{day[1]}}"
-                    index_day="{{day[0]}}"
-                    id="unsch_{{day[0]}}_{{hour}}" ">
-                    <div >No Task Scheduled{% if not static %} - click to schedule{% endif %}</div>
-                    <div >&nbsp;</div>
-                </div>
-                {% endfor %}
-            </div>
-        {% endfor %}
-    </div>
-{% endfor %}
-
+<div id="reactComponents">
+</div>
 {% endblock %}
 <script>
     //{% block jquery %}
     //{% if not static %}
+    const app = require('app');
+    app.renderSprintShowcase('reactComponents','{{sprint.id}}');
     $('.task-container.scheduled').draggable({
         revertDuration: 0,
         revert: true

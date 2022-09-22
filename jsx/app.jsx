@@ -2,15 +2,19 @@
 import React from 'react'
 import { string, func, bool } from 'prop-types'
 import $ from 'jquery'
-import DatePicker from 'react-datepicker'
+import axios from 'axios'
 import 'foundation-sites'
 
 function GetUpdateURL (objectType, locatorId) {
   return `/${objectType}/${locatorId}?is_json=true`
 }
-
-function EditableHandleClick (t, origin) {
+// FIXME: React-ify these JQuery functions
+function EditableHandleClick (t, origin, isNumeric) {
+  if (isNumeric === undefined) {
+    isNumeric = false
+  }
   const taskNameObj = origin
+  const oldValue = $(t.target).text()
   function callbackFunc () {
     $(t.target).attr('contentEditable', 'false')
     $(t.target).off('keydown')
@@ -24,60 +28,20 @@ function EditableHandleClick (t, origin) {
     }
   })
   $(t.target).on('blur', function (e) {
-    const newValue = $(t.target).text().trim()
+    let newValue = $(t.target).text().trim()
+    if (isNumeric) {
+      if (!isNaN(Number(newValue))) {
+        newValue = Number(newValue)
+      } else {
+        $(t.target).text(oldValue)
+        callbackFunc()
+        return
+      }
+    }
     taskNameObj.props.update(newValue, callbackFunc)
   })
 }
 
-function AjaxUpdateProperty (updateUrl, newValue, callback) {
-  $.ajax({
-    url: updateUrl,
-    data: newValue,
-    type: 'POST',
-    dataType: 'json'
-  }).done(function (json) {
-    callback(json)
-  }).fail(function (xhr, status, errorThrown) {
-    PrettyAlert('Sorry, there was a problem!')
-    console.log('Error: ' + errorThrown)
-    console.log('Status: ' + status)
-    console.dir(xhr)
-  }).always(function (xhr, status) {
-    console.log('Request to update status complete!')
-  })
-}
-
-class DeadlineLabel extends React.Component {
-  // FIXME - React-specific DatePicker element instead
-  static propTypes = {
-    update: func,
-    deadline: string,
-    recurring: bool
-  }
-
-  render () {
-    return (
-        <DatePicker
-          title="Click To Edit"
-          className={'deadline ' + this.props.update ? 'editable' : ''}
-          onChange={this.props.update ? (d) => this.handleChange(d) : () => {}}
-          // customInput={this.getDeadlineMessage()}
-        />
-    )
-  }
-
-  handleClick (newDate) {
-    this.props.update(newDate, () => {})
-  }
-
-  getDeadlineMessage () {
-    if (this.props.deadline === null) {
-      const message = this.props.recurring ? 'No End Date Set' : 'No Deadline Set'
-      return (<input type="text" value={message} />)
-    }
-    return (<input type="text" value={this.props.deadline} />)
-  }
-}
 function PrettyAlert (message) {
   $('header').after(
     $('<div>')
@@ -95,18 +59,61 @@ function PrettyAlert (message) {
   )
 }
 
-function CreateElementClick (t, getUrl) {
-  $(t.target)
-    .siblings('div')
-    .load(getUrl, () => {
-      console.log('Loaded ' + getUrl)
+function AjaxUpdateProperty (updateUrl, newValue, callback) {
+  axios.post(updateUrl, newValue)
+    .then(function (json) {
+      callback(json)
+    }).catch(function (errorThrown) {
+      PrettyAlert('Sorry, there was a problem!')
+      console.log('Error: ' + errorThrown)
+    }).then(function (xhr, status) {
+      console.log('Request to update status complete!')
     })
-  $(t.target).addClass('invisible')
+}
+
+class DeadlineLabel extends React.Component {
+  // FIXME - React-specific DatePicker element instead
+  static propTypes = {
+    update: func,
+    deadline: string,
+    recurring: bool
+  }
+
+  render () {
+    return (
+        /* <DatePicker
+          title="Click To Edit"
+          className={'deadline ' + this.props.update ? 'editable' : ''}
+          onChange={this.props.update ? (d) => this.handleChange(d) : () => {}}
+          // customInput={this.getDeadlineMessage()}
+        /> */
+        <div>
+        <label>Deadline
+        <input type="date"
+          value={this.props.deadline ? this.props.deadline : ''}
+          onInput={this.props.update ? (d) => this.handleChange(d) : () => {}}
+          onChange={() => {}}
+          className={'deadline ' + this.props.update ? 'editable' : ''} />
+        </label>
+        </div>
+    )
+  }
+
+  handleChange (newDate) {
+    this.props.update(newDate.target.value, () => {})
+  }
+
+  getDeadlineMessage () {
+    if (this.props.deadline === null) {
+      const message = this.props.recurring ? 'No End Date Set' : 'No Deadline Set'
+      return (<input type="text" value={message} />)
+    }
+    return (<input type="text" value={this.props.deadline} />)
+  }
 }
 
 export default {
   EditableHandleClick,
-  CreateElementClick,
   AjaxUpdateProperty,
   GetUpdateURL,
   DeadlineLabel,

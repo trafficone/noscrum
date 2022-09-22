@@ -1,179 +1,11 @@
 'use strict'
 import React from 'react'
 import PropTypes from 'prop-types'
-import { $ } from 'jquery'
-import { EditableHandleClick, AjaxUpdateProperty, TaskNameLabel, TaskStatusButton, TaskEstimateLabel, GetUpdateURL } from './app.jsx'
+import app from './app.jsx'
+import { TaskContainerSprint } from './task.jsx'
 
-function TaskWorkLabel (props) {
-  return (
-    <div className="small-6 columns float-right">
-      Worked This Day:
-      <span className="hours-worked">
-        {props.scheduleWork ? props.scheduleWork : 0}
-      </span>
-    </div>
-  )
-}
-TaskWorkLabel.propTypes = {
-  scheduleWork: PropTypes.number
-}
-
-class TaskEpicLabel extends React.Component {
-  static propTypes = {
-    color: PropTypes.string.isRequired,
-    epic: PropTypes.string.isRequired
-  }
-
-  render () {
-    return (
-      <div className={'columns small-2 epic-label ' + this.props.color}>
-        {this.props.epic}
-      </div>
-    )
-  }
-}
-
-class TaskStoryLabel extends React.Component {
-  static propTypes = {
-    story: PropTypes.string.isRequired
-  }
-
-  render () {
-    return (
-      <div className="columns small-2 story-label">{this.props.story}</div>
-    )
-  }
-}
-
-class TaskWorkButton extends React.Component {
-  static propTypes = {
-    scheduleWork: PropTypes.number,
-    update: PropTypes.func.isRequired
-  }
-
-  render () {
-    return (
-      <div
-        title="Click to Log Work"
-        className="columns small-2 label float-right log-work"
-        onClick={(t) => this.handleClick(t)}
-      >
-        Log Work
-      </div>
-    )
-  }
-
-  handleClick (t) {
-    // TODO: Handle Work Logging Modal
-    console.log('Work Log for T:' + t)
-    const newWorkVal = this.props.scheduleWork
-      ? this.props.scheduleWork + 2
-      : 2
-    this.props.update(newWorkVal, () => {
-      console.log('You worked 2 hours & closed modal')
-    })
-  }
-}
-
-class TaskScheduleNote extends React.Component {
-  static propTypes = {
-    scheduleNote: PropTypes.string,
-    update: PropTypes.func
-  }
-
-  render () {
-    return (
-      <div title="Click to Edit Note" className="small-8 columns">
-        <span
-          className="note"
-          title="Schedule-specific Note"
-          onClick={this.props.update ? (t) => this.handleClick(t) : () => {}}
-        >
-          {this.props.scheduleNote
-            ? this.props.scheduleNote
-            : 'Schedule-Specific Note'}
-        </span>
-      </div>
-    )
-  }
-
-  handleClick (t) {
-    if ($(t.target).text() === 'Schedule-Specific Note') {
-      $(t.target).text('')
-    }
-    EditableHandleClick(t, this)
-  }
-}
-class TaskScheduleHours extends React.Component {
-  static propTypes = {
-    scheduleHours: PropTypes.number
-  }
-
-  render () {
-    return (
-      <span>
-        Scheduled: {this.props.scheduleHours}
-      </span>
-    )
-  }
-}
-
-class TaskContainerSprint extends React.Component {
-  static propTypes = {
-    status: PropTypes.string,
-    scheduleWork: PropTypes.number,
-    scheduleNote: PropTypes.string,
-    scheduleHours: PropTypes.number,
-    epic: PropTypes.string,
-    story: PropTypes.string,
-    color: PropTypes.string,
-    task: PropTypes.string,
-    estimate: PropTypes.number,
-    update: PropTypes.func
-  }
-
-  constructor (props) {
-    super(props)
-    this.state = {
-      status: props.status,
-      scheduleWork: props.scheduleWork,
-      scheduleNote: props.scheduleNote
-    }
-  }
-
-  render () {
-    return (
-      <div className="task-container container">
-        <div className="row">
-          <TaskEpicLabel epic={this.props.epic} color={this.props.color} />
-          <TaskStoryLabel story={this.props.story} />
-          <TaskNameLabel task={this.props.task} />
-          <TaskStatusButton
-            status={this.state.status}
-            update={(v, c) => this.handleClick('status', v, c)}
-          />
-        </div>
-        <div className="row">
-          <TaskEstimateLabel estimate={this.props.estimate} />
-          <TaskScheduleHours scheduleHours={this.props.scheduleHours} />
-          <TaskWorkLabel scheduleWork={this.state.scheduleWork} />
-          <TaskScheduleNote
-            scheduleNote={this.state.scheduleNote}
-            update={(v, c) => this.handleClick('status_note', v, c)}
-          />
-          <TaskWorkButton
-            scheduleWork={this.state.scheduleWork}
-            update={(v, c) => this.handleClick('schedule_work', v, c)}
-          />
-        </div>
-      </div>
-    )
-  }
-
-  handleClick (target, newValue, callback) {
-    this.props.update(target, newValue, callback)
-  }
-}
+const GetUpdateURL = app.GetUpdateURL
+const AjaxUpdateProperty = app.AjaxUpdateProperty
 
 class SprintDayLabel extends React.Component {
   static propTypes = {
@@ -268,7 +100,7 @@ class SprintShowcase extends React.Component {
     super(props)
     this.state = {
       tasks: props.oTasks,
-      schedule: props.oSchedule
+      schedule: props.oSchedule ? props.oSchedule : []
     }
   }
 

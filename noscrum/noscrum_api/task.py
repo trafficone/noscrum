@@ -56,18 +56,25 @@ def create(path: StoryPath, query: NoscrumBaseQuery):
             return abort(404, error)
         flash(error, "error")
         return redirect(url_for("task.list_all"))
-    task = request.form.get("task", None)
-    estimate = request.form.get("estimate", None)
-    deadline = request.form.get("deadline", None)
-    sprint_id = request.form.get("sprint_id", None)
+    req = request.form
+    if request.get_json() is not None:
+        req = request.get_json()
+    task = req.get("task", None)
+    estimate = req.get("estimate", None)
+    deadline = req.get("deadline", None)
+    sprint_id = req.get("sprint_id", None)
     if story_id == 0:
-        epic_id = int(request.form.get("epic_id", 0))
+        epic_id = int(req.get("epic_id", 0))
         logger.info("Task thinks Null Epic ID is %s", epic_id)
         story = get_null_story_for_epic(current_user, epic_id)
         story_id = story.id
     error = None
     estimate = estimate if estimate not in [0, ""] else None
-    if estimate is not None and not estimate.strip("-").split(".")[0].isdigit():
+    if (
+        estimate is not None
+        and isinstance(estimate, str)
+        and not estimate.strip("-").split(".")[0].isdigit()
+    ):
         error = "Cannot set a non-number estimate"
     if task is None:
         error = "Task Name is Required"
@@ -149,16 +156,19 @@ def update(path: TaskPath, query: NoscrumBaseQuery):
             flash(error, "error")
             redirect(url_for("task.list_all"))
 
-    task_name = request.form.get("task", task.task)
-    estimate = request.form.get("estimate", task.estimate)
-    actual = request.form.get("actual", task.actual)
-    story_id = request.form.get("story_id", task.story_id)
-    status = request.form.get("status", task.status)
-    deadline = request.form.get("deadline", task.deadline)
+    req = request.form
+    if request.get_json() is not None:
+        req = request.get_json()
+    task_name = req.get("task", task.task)
+    estimate = req.get("estimate", task.estimate)
+    actual = req.get("actual", task.actual)
+    story_id = req.get("story_id", task.story_id)
+    status = req.get("status", task.status)
+    deadline = req.get("deadline", task.deadline)
     if isinstance(deadline, str):
         deadline = datetime.strptime(deadline, "%Y-%m-%d")
-    sprint_id = request.form.get("sprint_id", task.sprint_id)
-    recurring = request.form.get("recurring", task.recurring)
+    sprint_id = req.get("sprint_id", task.sprint_id)
+    recurring = req.get("recurring", task.recurring)
     if status not in ["To-Do", "In Progress", "Done"]:
         error = "Status is invalid. Valid statuses are ['To-Do','In Progress','Done']"
     if get_story(current_user, story_id) is None:

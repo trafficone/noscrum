@@ -112,7 +112,7 @@ def get_sprint_schedule(path: SprintPath):
             )
         )
         schedule_tasks_out.append(task_dict)
-    return {"Success": True, "schedule_tasks": schedule_tasks_out}
+    return {"Success": True, "y": schedule_tasks_out}
 
 
 @bp.post("/schedule/<int:sprint_id>")
@@ -335,13 +335,14 @@ def list_all():
     )
 
 
-@bp.route("/<int:sprint_id>", methods=("GET", "POST", "DELETE"))
+@bp.get("/<int:sprint_id>")
 @login_required
-def show(sprint_id):
+def show(path: SprintPath):
     """
     Show Board for Sprint with sprint identity
     @param sprint_id identity for sprint board
     """
+    sprint_id = path.sprint_id
     is_json = request.args.get("is_json", False)
     is_static = request.args.get("static", "True")
     if is_static.lower() == "false":
@@ -349,38 +350,74 @@ def show(sprint_id):
     sprint = backend.get_sprint(current_user, sprint_id)
     if not sprint:
         abort(404, f"Sprint with ID {sprint_id} was not found.")
-    if request.method == "POST":
-        start_date = request.form.get("start_date", None)
-        end_date = request.form.get("end_date", None)
-        error = None
-        start_sprint = backend.get_sprint_by_date(current_user, start_date=start_date)
-        end_sprint = backend.get_sprint_by_date(current_user, end_date=end_date)
-        if not start_date:
-            error = "Sprint Requires Start date"
-        elif not end_date:
-            error = "Sprint Requires End Date"
-        elif start_sprint is not None:
-            error = f"New start date is shared by sprint {start_sprint.id}"
-        elif end_sprint is not None:
-            error = f"New end date is shared by sprint {end_sprint.id}"
-        if error is None:
-            sprint = backend.update_sprint(current_user, id, start_date, end_date)
-            if is_json:
-                return {"Success": True, "sprint_id": sprint_id}
-            return redirect(url_for("sprint.list_all", sprint_id=sprint_id))
-        if is_json:
-            abort(500, error)
-        flash(error, "error")
-    if request.method == "DELETE":
-        # Not even pretending there's a non-JSON way to reach this
-        if len(sprint.tasks) > 0:
-            abort(500, "Cannot delete sprint with tasks in it")
-        else:
-            backend.delete_sprint(current_user, sprint.id)
-            return {"Success": True, "sprint_id": sprint_id}
     if is_json:
-        return {"Success": True, "sprint_id": sprint_id, "sprint": dict(sprint)}
+        return {
+            "Success": True,
+            "sprint_id": sprint_id,
+            "sprint": sprint.to_dict(),
+            "tasks": [x.to_dict() for x in sprint.tasks],
+        }
     return get_sprint_board(sprint_id, sprint, is_static=is_static)
+
+
+@bp.post("/<int:sprint_id>")
+@login_required
+def update_sprint(path: SprintPath):
+    """
+    Update a sprint board (dates only)
+    @param sprint_id identity for sprint board
+    """
+    sprint_id = path.sprint_id
+    is_json = request.args.get("is_json", False)
+    is_static = request.args.get("static", "True")
+    if is_static.lower() == "false":
+        is_static = False
+    sprint = backend.get_sprint(current_user, sprint_id)
+    if not sprint:
+        abort(404, f"Sprint with ID {sprint_id} was not found.")
+    start_date = request.form.get("start_date", None)
+    end_date = request.form.get("end_date", None)
+    error = None
+    start_sprint = backend.get_sprint_by_date(current_user, start_date=start_date)
+    end_sprint = backend.get_sprint_by_date(current_user, end_date=end_date)
+    if not start_date:
+        error = "Sprint Requires Start date"
+    elif not end_date:
+        error = "Sprint Requires End Date"
+    elif start_sprint is not None:
+        error = f"New start date is shared by sprint {start_sprint.id}"
+    elif end_sprint is not None:
+        error = f"New end date is shared by sprint {end_sprint.id}"
+    if error is None:
+        sprint = backend.update_sprint(current_user, id, start_date, end_date)
+        if is_json:
+            return {"Success": True, "sprint_id": sprint.to_dict()}
+        return redirect(url_for("sprint.list_all", sprint_id=sprint_id))
+    if is_json:
+        abort(500, error)
+    flash(error, "error")
+
+
+@bp.delete("/<int:sprint_id>")
+@login_required
+def delete_sprint(path: SprintPath):
+    """
+    Delete sprint board
+    @param sprint_id identity for sprint board
+    """
+    sprint_id = path.sprint_id
+    is_static = request.args.get("static", "True")
+    if is_static.lower() == "false":
+        is_static = False
+    sprint = backend.get_sprint(current_user, sprint_id)
+    if not sprint:
+        abort(404, f"Sprint with ID {sprint_id} was not found.")
+    # Not even pretending there's a non-JSON way to reach this
+    if len(sprint.tasks) > 0:
+        abort(500, "Cannot delete sprint with tasks in it")
+    else:
+        backend.delete_sprint(current_user, sprint.id)
+        return {"Success": True, "sprint_id": sprint_id}
 
 
 @bp.route("/active", methods=("GET",))
@@ -401,5 +438,9 @@ def active():
         )
     sprint_id = current_sprint.id
     if is_json:
-        return {"Success": True, "sprint_id": sprint_id, "sprint": dict(current_sprint)}
+        return {
+            "Success": True,
+            "sprint_id": sprint_id,
+            "sprint": current_sprint.to_dict(),
+        }
     return get_sprint_board(sprint_id, current_sprint, is_static=False)

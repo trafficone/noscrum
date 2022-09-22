@@ -1,10 +1,113 @@
 'use strict;'
 import { PropTypes } from 'prop-types'
 import React from 'react'
+import axios from 'axios'
 import app from './app.jsx'
 
 const DeadlineLabel = app.DeadlineLabel
 const EditableHandleClick = app.EditableHandleClick
+
+class CreateTask extends React.Component {
+  static propTypes = {
+    story: PropTypes.number.isRequired,
+    addTask: PropTypes.func.isRequired,
+    notOpen: PropTypes.func
+  }
+
+  constructor (props) {
+    super(props)
+    this.state = {
+      task: '',
+      estimate: 0
+    }
+  }
+
+  async createTask () {
+    if (this.state.task === undefined) {
+      app.PrettyAlert('Cannot Create Unnamed Task')
+      return
+    }
+    await axios.put(`/task/create/${this.props.story}?is_json=true`, this.state)
+      .then((response) => {
+        const task = response.data.task
+        this.props.addTask(task)
+        this.props.notOpen()
+      })
+  }
+
+  render () {
+    return (
+      <div id="TaskCreate">
+        <label>Task:<input
+          type="text"
+          placeholder="Task Name"
+          aria-describedby="exampleHelpTask"
+          onChange={(v) => this.setState({ ...this.state, task: v.target.value })}
+          required />
+        </label>
+        <label htmlFor="estimate">
+            Estimate:
+            <input type="text"
+              name="estimate"
+              pattern="\d+\.?\d*"
+              placeholder="3.5"
+              aria-describedby="exampleHelpEstimate"
+              onChange={(v) => {
+                const val = v.target.value
+                if (!isNaN(Number(val))) {
+                  this.setState({ ...this.state, estimate: Number(val) })
+                }
+              }}
+              />
+            <span className="form-error">
+                Expecting a number. Use partial hours to estimate minutes.<br />
+                30m for .5, 15m for .25, etc.
+            </span>
+        </label>
+        <div>
+            <button className="button float-left" onClick={() => this.createTask()}>Create</button>
+            <button type="button" className="button float-right cancel" onClick={() => this.props.notOpen()}>Cancel</button>
+        </div>
+      </div>
+    )
+  }
+}
+
+class CreateTaskButton extends React.Component {
+  static propTypes = {
+    addTask: PropTypes.func.isRequired,
+    story: PropTypes.number.isRequired
+  }
+
+  constructor (props) {
+    super(props)
+    this.state = {
+      open: false
+    }
+  }
+
+  notOpen () {
+    this.setState({ open: false })
+  }
+
+  render () {
+    let content = (
+      <button
+        className="button create create-task"
+        onClick={() => { this.setState({ open: true }) }}
+      >
+        Create Task
+      </button>)
+    if (this.state.open) {
+      content = (<CreateTask story={this.props.story} addTask={(v) => this.props.addTask(v)} notOpen={() => this.notOpen()} />)
+    }
+    return (
+      <div>
+        {content}
+      </div>
+    )
+  }
+}
 
 class TaskStatusButton extends React.Component {
   static propTypes = {
@@ -56,7 +159,7 @@ class TaskNameLabel extends React.Component {
 
   render () {
     return (
-      <div className="columns large-6 task-name">
+      <div className=" cell large-6 task-name">
         <span
           className={this.props.update ? 'editable' : ''}
           title={this.props.update ? 'Click to Edit' : 'Task Name'}
@@ -84,13 +187,13 @@ class TaskEstimateLabel extends React.Component {
 
   render () {
     return (
-      <div className="columns small-2">
+      <div className=" cell small-2">
         E:&nbsp;
         <span
           title="Click to Edit Estimate"
           className={'note estimate ' + this.props.update ? 'editable' : ''}
           onClick={
-            this.props.update ? (t) => EditableHandleClick(t, this) : () => {}
+            this.props.update ? (t) => EditableHandleClick(t, this, true) : () => {}
           }
         >
           { this.props.estimate ? this.props.estimate : 'None' }
@@ -109,7 +212,7 @@ class TaskRecurringButton extends React.Component {
     return (
       <div
         className={
-          'oneOver columns small-2 label recurring ' +
+          'oneOver  cell small-2 label recurring ' +
           (this.props.recurring ? 'recur_color' : '')
         }
         onClick={this.props.update ? () => this.handleClick() : () => {}}
@@ -127,7 +230,7 @@ class TaskRecurringButton extends React.Component {
 
 function TaskActualLabel (props) {
   return (
-    <div className="columns small-2">
+    <div className=" cell small-2">
       <span className="float-right">
         A:&nbsp;{props.actual ? props.actual : 'None'}
       </span>
@@ -152,18 +255,19 @@ class TaskSchedulingWidget extends React.Component {
     status: PropTypes.string,
     sprint: PropTypes.object,
     handleClick: PropTypes.func,
-    update: PropTypes.func
+    update: PropTypes.func,
+    planningSprint: PropTypes.string
   }
 
   render () {
     return (
-      <div className="columns large-6">
+      <div className="grid-x cell large-6">
         <DeadlineLabel
           deadline={this.props.deadline}
           recurring={this.props.recurring}
           update={(v, c) => this.props.update('deadline', v, c)}
         />
-        <button className="float-right button sprintPlan hidden">
+        <button className={'float-right button sprintPlan ' + this.props.planningSprint ? '' : 'hidden'}>
           Plan Task
         </button>
         <span className="float-right">{this.get_status_message()}</span>
@@ -197,28 +301,39 @@ class TaskContainerShowcase extends React.Component {
     actual: PropTypes.number,
     deadline: PropTypes.string,
     recurring: PropTypes.bool,
-    sprint: PropTypes.object
+    sprint: PropTypes.object,
+    filterObject: PropTypes.object,
+    planningSprint: PropTypes.string
   }
 
   render () {
+    const isFilteredStatus = this.props.filterObject.status[this.props.status]
+    const deadline = new Date(this.props.deadline)
+    const isFilteredDateStart = this.props.filterObject.startDate ? new Date(this.props.filterObject.startDate) > deadline : false
+    console.dir(this.props.filterObject)
+    console.log(`Task Filter Detail: ${this.props.filterObject.startDate} and ${new Date(this.props.filterObject.startDate) > deadline}`)
+    const isFilteredDateEnd = this.props.filterObject.endDate ? new Date(this.props.filterObject.endDate) < deadline : false
+    if (isFilteredStatus || isFilteredDateEnd || isFilteredDateStart) {
+      return
+    }
     return (
       <div
         className="container task-container"
         task={this.props.id}
       >
-        <div className="row task-header">
+        <div className="grid-x task-header">
           <TaskNameLabel
             task={this.props.task}
             update={(v, c) => this.props.update('task', v, c)}
             update_key="task"
           />
-          <div className="columns small-4"></div>
+          <div className=" cell small-4"></div>
           <TaskStatusButton
             status={this.props.status}
             update={(v, c) => this.props.update('status', v, c)}
           />
         </div>
-        <div className="row task-work">
+        <div className="grid-x task-work">
           <TaskEstimateLabel
             estimate={this.props.estimate}
             update={(v, c) => this.props.update('estimate', v, c)}
@@ -231,6 +346,7 @@ class TaskContainerShowcase extends React.Component {
             deadline={this.props.deadline}
             recurring={this.props.recurring}
             update={(t, v, c) => this.props.update(t, v, c)}
+            planningSprint={this.props.planningSprint}
           />
           <TaskRecurringButton
             recurring={this.props.recurring}
@@ -242,6 +358,186 @@ class TaskContainerShowcase extends React.Component {
   }
 }
 
-export default {
-  TaskContainerShowcase
+function TaskWorkLabel (props) {
+  return (
+    <div className="small-6  cell float-right">
+      Worked This Day:
+      <span className="hours-worked">
+        {props.scheduleWork ? props.scheduleWork : 0}
+      </span>
+    </div>
+  )
+}
+TaskWorkLabel.propTypes = {
+  scheduleWork: PropTypes.number
+}
+
+class TaskEpicLabel extends React.Component {
+  static propTypes = {
+    color: PropTypes.string.isRequired,
+    epic: PropTypes.string.isRequired
+  }
+
+  render () {
+    return (
+      <div className={'columns small-2 epic-label ' + this.props.color}>
+        {this.props.epic}
+      </div>
+    )
+  }
+}
+
+class TaskStoryLabel extends React.Component {
+  static propTypes = {
+    story: PropTypes.string.isRequired
+  }
+
+  render () {
+    return (
+      <div className="cell small-2 story-label">{this.props.story}</div>
+    )
+  }
+}
+
+class TaskWorkButton extends React.Component {
+  static propTypes = {
+    scheduleWork: PropTypes.number,
+    update: PropTypes.func.isRequired
+  }
+
+  render () {
+    return (
+      <div
+        title="Click to Log Work"
+        className="cell small-2 label float-right log-work"
+        onClick={(t) => this.handleClick(t)}
+      >
+        Log Work
+      </div>
+    )
+  }
+
+  handleClick (t) {
+    // TODO: Handle Work Logging Modal
+    console.log('Work Log for T:' + t)
+    const newWorkVal = this.props.scheduleWork
+      ? this.props.scheduleWork + 2
+      : 2
+    this.props.update(newWorkVal, () => {
+      console.log('You worked 2 hours & closed modal')
+    })
+  }
+}
+
+class TaskScheduleNote extends React.Component {
+  static propTypes = {
+    scheduleNote: PropTypes.string,
+    update: PropTypes.func
+  }
+
+  constructor (props) {
+    super(props)
+
+    this.state = { noteComment: this.props.scheduleNote ? this.props.scheduleNote : 'Schedule-Specific Note' }
+  }
+
+  render () {
+    return (
+      <div title="Click to Edit Note" className="small-8  cell">
+        <span
+          className="note"
+          title="Schedule-specific Note"
+          onClick={(t) => this.handleClick(t)}
+        >
+          {this.state.noteComment}
+        </span>
+      </div>
+    )
+  }
+
+  handleClick (t) {
+    if (!this.props.update) {
+      return
+    }
+    if (this.state.noteComment === 'Schedule-Specific Note') {
+      this.setState({ noteComment: '' })
+    }
+    EditableHandleClick(t, this)
+  }
+}
+class TaskScheduleHours extends React.Component {
+  static propTypes = {
+    scheduleHours: PropTypes.number
+  }
+
+  render () {
+    return (
+      <span>
+        Scheduled: {this.props.scheduleHours}
+      </span>
+    )
+  }
+}
+
+class TaskContainerSprint extends React.Component {
+  static propTypes = {
+    status: PropTypes.string,
+    scheduleWork: PropTypes.number,
+    scheduleNote: PropTypes.string,
+    scheduleHours: PropTypes.number,
+    epic: PropTypes.string,
+    story: PropTypes.string,
+    color: PropTypes.string,
+    task: PropTypes.string,
+    estimate: PropTypes.number,
+    update: PropTypes.func
+  }
+
+  constructor (props) {
+    super(props)
+    this.state = {
+      status: props.status,
+      scheduleWork: props.scheduleWork,
+      scheduleNote: props.scheduleNote
+    }
+  }
+
+  render () {
+    return (
+      <div className="task-container container">
+        <div className="grid-x">
+          <TaskEpicLabel epic={this.props.epic} color={this.props.color} />
+          <TaskStoryLabel story={this.props.story} />
+          <TaskNameLabel task={this.props.task} />
+          <TaskStatusButton
+            status={this.state.status}
+            update={(v, c) => this.handleClick('status', v, c)}
+          />
+        </div>
+        <div className="grid-x">
+          <TaskEstimateLabel estimate={this.props.estimate} />
+          <TaskScheduleHours scheduleHours={this.props.scheduleHours} />
+          <TaskWorkLabel scheduleWork={this.state.scheduleWork} />
+          <TaskScheduleNote
+            scheduleNote={this.state.scheduleNote}
+            update={(v, c) => this.handleClick('status_note', v, c)}
+          />
+          <TaskWorkButton
+            scheduleWork={this.state.scheduleWork}
+            update={(v, c) => this.handleClick('schedule_work', v, c)}
+          />
+        </div>
+      </div>
+    )
+  }
+
+  handleClick (target, newValue, callback) {
+    this.props.update(target, newValue, callback)
+  }
+}
+
+export {
+  TaskContainerShowcase,
+  TaskContainerSprint,
+  CreateTaskButton
 }

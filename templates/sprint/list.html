@@ -29,7 +29,7 @@ This cannot be undone.
         End Date {{ sprint['end_date'] }}<br>
         <a class="button" href="{{ url_for('sprint.show', sprint_id=sprint['id']) }}">View Sprint</a>
         <a class="button" href="{{ url_for('sprint.show',sprint_id=sprint['id'],static=False) }}">Schedule Sprint Tasks</a>
-        <button class="button deletesprint" href="{{ url_for('sprint.show',sprint_id=sprint['id'])}}">Delete Sprint</button>
+        <button class="button deletesprint" href="{{ url_for('sprint.delete_sprint',sprint_id=sprint['id'])}}">Delete Sprint</button>
     </div>
     <div class="column">
         <h4>{% if sprint.id == current_sprint.id%}Current {% endif %}Sprint Summary:</h4>

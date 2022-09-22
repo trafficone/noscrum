@@ -60,14 +60,7 @@
 <script>
 // {% block jquery %}
     const app = require('app');
-    $.ajax({
-        url:'{{url_for("task.list_all")}}?is_json=true',
-        method:'GET'
-    }).done(function (json) {
-        const initialEpicsResp = json;
-        console.dir(initialEpicsResp.epics)
-        app.renderTaskShowcase('reactComponents',initialEpicsResp.epics);
-    });
+    app.renderTaskShowcase('reactComponents');
     $('#clear_filter_button').click(function(){
         $('.task-container').removeClass('hide');
     });

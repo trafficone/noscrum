@@ -51,9 +51,12 @@ def create(path: EpicPath, query: NoscrumBaseQuery):
     if epic is None:
         flash(f'Epic with ID "{epic_id}" Not found.', "error")
         return redirect(url_for("story.list_all"))
-    story = request.form.get("story", None)
-    prioritization = request.form.get("prioritization", None)
-    deadline = request.form.get("deadline", None)
+    req = request.form
+    if request.get_json() is not None:
+        req = request.get_json()
+    story = req.get("story", None)
+    prioritization = req.get("prioritization", None)
+    deadline = req.get("deadline", None)
     error = None
     if not story or story == "NULL":
         error = "Story Name is Required"
@@ -67,7 +70,7 @@ def create(path: EpicPath, query: NoscrumBaseQuery):
         )
         if not is_json:
             return redirect(url_for("task.list_all"))
-        return {"Success": True, "story_id": story.id}
+        return {"Success": True, "story": story.to_dict()}
     return abort(500, error)
 
 

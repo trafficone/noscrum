@@ -1,12 +1,114 @@
 'use strict;'
 import { PropTypes } from 'prop-types'
 import React from 'react'
+import axios from 'axios'
 import app from './app.jsx'
-import TaskContainerShowcase from './task.jsx'
+import { TaskContainerShowcase, CreateTaskButton } from './task.jsx'
 
 const EditableHandleClick = app.EditableHandleClick
 const DeadlineLabel = app.DeadlineLabel
-const CreateElementClick = app.CreateElementClick
+
+class CreateStory extends React.Component {
+  static propTypes = {
+    epic: PropTypes.number.isRequired,
+    addStory: PropTypes.func.isRequired,
+    notOpen: PropTypes.func
+  }
+
+  constructor (props) {
+    super(props)
+    this.state = {
+      story: '',
+      prioritization: 5
+    }
+  }
+
+  async createStory () {
+    if (this.state.story === undefined) {
+      app.PrettyAlert('Cannot Create Unnamed Story')
+      return
+    }
+    await axios.post(`/story/create/${this.props.epic}?is_json=true`, this.state)
+      .then((response) => {
+        const newStory = response.data.story
+        this.props.addStory(newStory)
+        this.props.notOpen()
+      })
+  }
+
+  render () {
+    return (
+      <div>
+        <div className="cell">
+          <label>Story
+            <input type="text"
+                name="story"
+                id="story"
+                aria-describedby="exampleHelpStory"
+                onChange={(v) => this.setState({ ...this.state, story: v.target.value })}
+                data-abide-ignore
+                required />
+          </label>
+          <p className="help-text" id="exampleHelpStory">Name of Story You are Creating.</p>
+        </div>
+        <div className="cell medium-6">
+          <label>
+            Prioritization
+            <select id="prioritization"
+              name="prioritization"
+              onChange={(v) => this.setState({ ...this.state, prioritization: v.target.value })}
+            required>
+            <option value="5">5 - Critical</option>
+            <option value="4">4 - High</option>
+            <option value="3">3 - Medium</option>
+            <option value="2">2 - Low</option>
+            <option value="1">1 - No Priority</option>
+          </select>
+        </label>
+      </div><div>
+          <button className="button float-left" onClick={() => this.createStory()}>Create</button>
+          <button className="button cancel float-right" onClick={() => this.props.notOpen()}>Cancel</button>
+        </div>
+      </div>
+    )
+  }
+}
+
+class CreateStoryButton extends React.Component {
+  static propTypes = {
+    addStory: PropTypes.func.isRequired,
+    epic: PropTypes.number.isRequired
+  }
+
+  constructor (props) {
+    super(props)
+    this.state = {
+      open: false
+    }
+  }
+
+  notOpen () {
+    this.setState({ open: false })
+  }
+
+  render () {
+    let content = (
+      <button
+        className="button create create-story"
+        onClick={() => { this.setState({ open: true }) }}
+      >
+        Create Story
+      </button>)
+    if (this.state.open) {
+      content = (<CreateStory epic={this.props.epic} addStory={(v) => this.props.addStory(v)} notOpen={() => this.notOpen()} />)
+    }
+    return (
+      <div>
+        {content}
+      </div>
+    )
+  }
+}
 
 class StoryNameLabel extends React.Component {
   static propTypes = {
@@ -110,12 +212,17 @@ class StorySummaryContainer extends React.Component {
 
   render () {
     return (
-      <div className="small-2 columns story-label">
+      <div className="small-2  cell story-label">
         <StoryEstimateLabel estimate={this.props.estimate} />
         <StoryIncompleteLabel incomplete={this.props.incomplete} />
         <DeadlineLabel
           deadline={this.props.deadline}
-          update={(v, c) => this.props.update('deadline', v, c)}
+          update={(v, c) => {
+            this.props.update(v, () => {
+              console.log('Updating to ' + v)
+              c()
+            })
+          }}
         />
         <StoryArchiveButton update={this.props.update} />
       </div>
@@ -125,7 +232,9 @@ class StorySummaryContainer extends React.Component {
 class StoryTasksContainer extends React.Component {
   static propTypes = {
     tasks: PropTypes.array,
-    update: PropTypes.func
+    update: PropTypes.func,
+    filterObject: PropTypes.object,
+    planningSprint: PropTypes.string
   }
 
   render () {
@@ -141,30 +250,14 @@ class StoryTasksContainer extends React.Component {
         recurring={task.recurring}
         sprint={task.sprint}
         update={(s, v, c) => this.props.update(task.id, s, v, c)}
+        filterObject={this.props.filterObject}
+        planningSprint={this.props.planningSprint}
       />
     ))
     return <div className="containers">{taskContainers}</div>
   }
 }
 
-class StoryCreateTaskButton extends React.Component {
-  static propTypes = {
-    new_task_url: PropTypes.string.isRequired
-  }
-
-  render () {
-    return (
-      <div>
-      <button
-        className="button create"
-        onClick={(t) => CreateElementClick(t, this.props.new_task_url)}
-      >
-        Create Task
-      </button>
-      </div>
-    )
-  }
-}
 class StoryContainerTShowcase extends React.Component {
   static propTypes = {
     id: PropTypes.number.isRequired,
@@ -173,11 +266,34 @@ class StoryContainerTShowcase extends React.Component {
     deadline: PropTypes.string,
     tasks: PropTypes.array,
     update: PropTypes.func,
-    updateTask: PropTypes.func
+    updateTask: PropTypes.func,
+    filterObject: PropTypes.object,
+    planningSprint: PropTypes.string
+  }
+
+  constructor (props) {
+    super(props)
+
+    this.state = {
+      task: this.props.tasks,
+      hasError: false
+    }
+  }
+
+  // eslint-disable-next-line n/handle-callback-err
+  static getDerivedStateFromError (error) {
+    return { hasError: true }
   }
 
   render () {
-    const tasks = this.props.tasks
+    if (this.state.hasError) {
+      return (
+        <div className='epic '>
+          <span><i className="fi-alert"></i>An error occurred in this component. Please refresh page.</span>
+        </div>
+      )
+    }
+    const tasks = this.state.task
     const totalEstimate = tasks.reduce((acc, task) => {
       return acc + Number(task.estimate ? task.estimate : 0)
     }, 0)
@@ -186,7 +302,7 @@ class StoryContainerTShowcase extends React.Component {
     }, 0)
     return (
       <div>
-      <div className="row story">
+      <div className="grid-x story">
           <StoryPriorityLabel
             prioritization={this.props.prioritization}
             update={(v, c) => this.props.update('prioritization', v, c)}
@@ -196,7 +312,7 @@ class StoryContainerTShowcase extends React.Component {
             update={(v, c) => this.props.update('story', v, c)}
           />
         </div>
-        <div className="row summary-story">
+        <div className="grid-x summary-story">
           <StorySummaryContainer
             estimate={totalEstimate}
             incomplete={incompleteTasks}
@@ -205,16 +321,27 @@ class StoryContainerTShowcase extends React.Component {
             archive={true}
           />
 
-          <div className="columns large-10">
-          <StoryTasksContainer tasks={tasks} update={(t, s, v, c) => this.props.updateTask(t, s, v, c)}/>
-          <StoryCreateTaskButton new_task_url={'/tasks/create/' + this.props.id + '?is_asc=true'} />
+          <div className=" cell large-10">
+          <StoryTasksContainer
+            tasks={tasks}
+            update={(t, s, v, c) => this.props.updateTask(t, s, v, c)}
+            filterObject={this.props.filterObject}
+            planningSprint={this.props.planningSprint}/>
+          <CreateTaskButton addTask={(s) => this.addTask(s)} story={this.props.id} />
           </div>
         </div>
       </div>
     )
   }
+
+  addTask (task) {
+    const newState = this.state
+    newState.task.push(task)
+    this.setState(newState)
+  }
 }
 
-export default {
-  StoryContainerTShowcase
+export {
+  StoryContainerTShowcase,
+  CreateStoryButton
 }

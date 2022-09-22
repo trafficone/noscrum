@@ -1,9 +1,9 @@
 """
 User view controller
 """
-from flask_openapi3 import APIBlueprint as Blueprint
-import flask
 import logging
+import flask
+from flask_openapi3 import APIBlueprint as Blueprint
 from flask_login import current_user, login_required, login_user, logout_user, UserMixin
 import noscrum_backend.user as backend
 
@@ -71,7 +71,11 @@ def get_login():
     """
     Return login form for user
     """
-    if current_user is not None and isinstance(current_user, UserMixin):
+    if (
+        isinstance(current_user, UserMixin)
+        and hasattr(current_user, "id")
+        and current_user.id is not None
+    ):
         return flask.redirect(flask.url_for("user.profile"))
     return flask.render_template("user/login.html")
 

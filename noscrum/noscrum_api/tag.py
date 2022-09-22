@@ -75,7 +75,7 @@ def show(path: TagPath, query: NoscrumBaseQuery):
         flash(error, "error")
         return redirect(url_for("tag.list_all"))
     if is_json:
-        return {"Success": True, tag: dict(tag)}
+        return {"Success": True, tag: tag.to_dict()}
     return render_template("tag/show.html", tag=tag)
 
 
