@@ -112,10 +112,17 @@ class DeadlineLabel extends React.Component {
   }
 }
 
+const contextObject = React.createContext(
+  {
+    context: 'Uninitialized',
+    filter: {}
+  })
+
 export default {
   EditableHandleClick,
   AjaxUpdateProperty,
   GetUpdateURL,
   DeadlineLabel,
-  PrettyAlert
+  PrettyAlert,
+  contextObject
 }

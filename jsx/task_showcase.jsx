@@ -4,13 +4,12 @@ import ReactModal from 'react-modal'
 import axios from 'axios'
 import Skeleton from 'react-loading-skeleton'
 import { EpicContainer, CreateEpicButton } from './epic.jsx'
-import { TaskContainerShowcase } from './task.jsx'
-import * as app from './app.jsx'
+import app from './app.jsx'
 import { PropTypes } from 'prop-types'
 import DatePicker from 'react-datepicker'
-// import 'react-loading-skeleton/dist/skeleton.css'
 
 const PrettyAlert = app.PrettyAlert
+const contextObject = app.contextObject
 
 class SprintPlanButton extends React.Component {
   static propTypes = {
@@ -54,11 +53,51 @@ class SprintPlanMdl extends React.Component {
     update: PropTypes.func
   }
 
-  updatePlannedSprint (date) {
+  constructor (props) {
+    super(props)
+    this.state = {
+      selectedDay: new Date()
+    }
+  }
+
+  updatePlannedSprint () {
+    axios.post('/sprint/create',
+      {
+        start_date: this.state.startDate,
+        end_date: this.state.endDate
+      })
+      .then((result) => {
+        this.props.update(result.sprint_id)
+        this.props.close()
+      })
+  }
+
+  dateToString (inDate) {
+    const ye = new Intl.DateTimeFormat('en', { year: 'numeric' }).format(inDate)
+    const mo = new Intl.DateTimeFormat('en', { month: '2-digit' }).format(inDate)
+    const da = new Intl.DateTimeFormat('en', { day: '2-digit' }).format(inDate)
+    return (`${ye}-${mo}-${da}`)
+  }
+
+  getWeekForDay (inDate) {
+    const dowStart = (inDate.getDay() + 6) % 7
+    const dayInMs = 24 * 3600 * 1000
+    const monday = new Date(inDate.valueOf() - (dowStart) * dayInMs)
+    const weekdays = Array.from(Array(7), (x, i) => new Date(monday.valueOf() + (i * dayInMs)))
+    return weekdays
+  }
+
+  updateDates (date) {
+    const week = this.getWeekForDay(date)
+    this.setState({
+      ...this.state,
+      selectedDay: date,
+      startDate: this.dateToString(week[0]),
+      endDate: this.dateToString(week[6])
+    })
   }
 
   render () {
-    const startDate = new Date()
     return (
       <ReactModal isOpen={this.props.isOpen}
       style={{
@@ -70,13 +109,15 @@ class SprintPlanMdl extends React.Component {
         <h3>Select Sprint</h3>
         <p>Week of Sprint {'please select sprint'}</p>
         <DatePicker
-          selected={startDate}
-          onChange={(date) => console.dir(date)}
-          onWeekSelect={(t) => console.dir(t)}
+          selected={this.state.selectedDay}
+          onChange={(date) => this.updateDates(date)}
           weekLabel='Sprint'
-          highlightDates={[]}
+          highlightDates={this.getWeekForDay(this.state.selectedDay)}
           placeholderText="This highlights a week ago and a week from today"
+          inline
         />
+        <button className="button" onClick={() => this.updatePlannedSprint()}>Plan Sprint</button>
+        <button className="close-button" onClick={() => this.props.close()} aria-label="Close"><span aria-hidden="true">&times;</span></button>
       </ReactModal>
     )
   }
@@ -87,14 +128,12 @@ class ShowcaseFilterStatusMdl extends React.Component {
     isOpen: PropTypes.bool.isRequired,
     close: PropTypes.func.isRequired,
     update: PropTypes.func,
-    filterObject: PropTypes.object.isRequired
+    prevFilter: PropTypes.object
   }
 
   constructor (props) {
     super(props)
-    this.state = {
-      filter: props.filterObject
-    }
+    this.state = { filter: props.prevFilter }
   }
 
   handleSubmit () {
@@ -132,7 +171,6 @@ class ShowcaseFilterStatusMdl extends React.Component {
           <legend>Status Filters</legend>
           {statFilterBtns}
         </fieldset>
-        <h3>Deadline Filter</h3>
           <fieldset className="cell medium-6 fieldset">
             <legend>Deadline Filters</legend>
             <div className="input-group">
@@ -217,13 +255,14 @@ class ShowcaseFilterStatusMdl extends React.Component {
     )
   }
 }
+ShowcaseFilterStatusMdl.contextType = app.contextObject
 
 class ShowcaseFilterBtn extends React.Component {
   static propTypes = {
-    filterObject: PropTypes.object.isRequired,
-    update: PropTypes.func
+    update: PropTypes.func,
+    prevFilter: PropTypes.object
   }
-
+  
   constructor (props) {
     super(props)
     this.state = { modalOpen: false }
@@ -244,8 +283,9 @@ class ShowcaseFilterBtn extends React.Component {
       <ShowcaseFilterStatusMdl
         isOpen={this.state.modalOpen}
         close={() => this.close()}
-        filterObject={this.props.filterObject}
-        update={(f) => this.props.update(f)}/>
+        update={(f) => this.props.update(f)}
+        prevFilter={this.props.prevFilter}
+        />
       </div>
     )
   }
@@ -270,11 +310,11 @@ class TaskShowcase extends React.Component {
 
   constructor (props) {
     super(props)
-    getUserTasks().then((epics) => {
-      this.setState({ ...this.state, epic_list: epics })
-    })
     this.state = {
-      filterObject: {
+      epic_list: [],
+      context: 'TaskShowcase',
+      sprintPlanning: false,
+      filter: {
         status: {
           'To-Do': false,
           'In Progress': false,
@@ -282,19 +322,21 @@ class TaskShowcase extends React.Component {
         },
         startDate: null,
         endDate: null
-      },
-      planningSprint: null
+      }
     }
-  }
-
-  setSprintPlanning (isPlanning) {
-    this.setState({ ...this.state, planningSprint: isPlanning })
   }
 
   render () {
     const epics = this.state.epic_list
     let epicContainers
-    if (epics === undefined) {
+    if (epics.length === 0) {
+      getUserTasks().then((epics) => {
+        if (epics.length !== 0) {
+          this.setState({ ...this.state, epic_list: epics })
+        } else {
+          this.setState({ ...this.state, epic_list: [{ epic: 'No Epic Found' }] })
+        }
+      })
       epicContainers = (
         <div>
           <Skeleton count={4} />
@@ -309,23 +351,22 @@ class TaskShowcase extends React.Component {
               oEpic={epic.epic}
               oColor={epic.color}
               oStories={epic.stories}
-              filterObject={this.state.filterObject}
-            >
-              <TaskContainerShowcase planningSprint={this.state.planningSprint} />
-              </EpicContainer>
+            />
         )
       })
     }
     return (
       <div className="content">
         <header>
-        <h2>Task Showcase</h2>
         <SprintPlanButton update={(sprint) => this.setSprintPlanning(sprint)}/>
         <div className="button-group align-right">
-        <ShowcaseFilterBtn update={(f) => this.updateFilterState(f)} filterObject={this.state.filterObject}/>
+        <ShowcaseFilterBtn
+          prevFilter={this.state.filter}
+          update={(f) => this.updateFilterState(f)} />
         </div>
         </header>
-        {epicContainers}
+        <contextObject.Provider value={this.state} >
+          {epicContainers}</contextObject.Provider>
         <CreateEpicButton addEpic={(e) => this.addEpic(e)} />
       </div>
     )
@@ -335,6 +376,10 @@ class TaskShowcase extends React.Component {
     const newstate = this.state
     newstate.epic_list.push(epic)
     this.setState(newstate)
+  }
+
+  setSprintPlanning (isPlanning) {
+    this.setState({ ...this.state, sprintPlanning: isPlanning })
   }
 
   updateFilterState (newFilter) {
@@ -385,4 +430,4 @@ const noscrumObj = [{
   ]
 }]
 
-export default { TaskShowcase, noscrumObj, working: 'YES I AM WORKING' }
+export default { TaskShowcase, noscrumObj, working: 'YES I AM WORKING', contextObject }

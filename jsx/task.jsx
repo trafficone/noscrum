@@ -120,7 +120,7 @@ class TaskStatusButton extends React.Component {
     return (
       <div
         className={
-          'columns small-2 label status ' +
+          'cell small-2 label status ' +
           this.getStatusClass()
         }
         onClick={
@@ -159,17 +159,16 @@ class TaskNameLabel extends React.Component {
 
   render () {
     return (
-      <div className=" cell large-6 task-name">
+      <div className="cell large-9 task-name">
         <span
           className={this.props.update ? 'editable' : ''}
           title={this.props.update ? 'Click to Edit' : 'Task Name'}
-          update_key="task"
           onClick={
             this.props.update
               ? (t) => {
                   EditableHandleClick(t, this)
                 }
-              : () => {}
+              : () => { return false }
           }
         >
           {this.props.task}
@@ -202,6 +201,7 @@ class TaskEstimateLabel extends React.Component {
     )
   }
 }
+
 class TaskRecurringButton extends React.Component {
   static propTypes = {
     update: PropTypes.func,
@@ -230,8 +230,8 @@ class TaskRecurringButton extends React.Component {
 
 function TaskActualLabel (props) {
   return (
-    <div className=" cell small-2">
-      <span className="float-right">
+    <div className="cell small-2">
+      <span>
         A:&nbsp;{props.actual ? props.actual : 'None'}
       </span>
     </div>
@@ -254,33 +254,29 @@ class TaskSchedulingWidget extends React.Component {
     recurring: PropTypes.bool,
     status: PropTypes.string,
     sprint: PropTypes.object,
-    handleClick: PropTypes.func,
-    update: PropTypes.func,
-    planningSprint: PropTypes.string
+    update: PropTypes.func
   }
 
   render () {
     return (
-      <div className="grid-x cell large-6">
+      <div className="grid-x cell small-5">
         <DeadlineLabel
           deadline={this.props.deadline}
           recurring={this.props.recurring}
           update={(v, c) => this.props.update('deadline', v, c)}
         />
-        <button className={'float-right button sprintPlan ' + this.props.planningSprint ? '' : 'hidden'}>
-          Plan Task
-        </button>
         <span className="float-right">{this.get_status_message()}</span>
       </div>
     )
   }
 
   get_status_message () {
+    const planningSprint = this.context.planningSprint
     if (this.props.status === 'Done') {
       return 'Task Complete'
-    } else if (this.props.sprint === 'scheduling') {
+    } else if (planningSprint && this.props.update) {
       return (
-        <TaskSchedulingButton handleClick={this.props.handleClick('schedule')}
+        <TaskSchedulingButton handleClick={(v, c) => this.props.update('schedule', v, c)}
         />
       )
     } else if (this.props.sprint !== null && this.props.sprint !== undefined) {
@@ -300,26 +296,24 @@ class TaskContainerShowcase extends React.Component {
     status: PropTypes.string,
     actual: PropTypes.number,
     deadline: PropTypes.string,
-    recurring: PropTypes.bool,
-    sprint: PropTypes.object,
-    filterObject: PropTypes.object,
-    planningSprint: PropTypes.string
+    recurring: PropTypes.bool
   }
 
   render () {
-    const isFilteredStatus = this.props.filterObject.status[this.props.status]
+    // planningSprint is now a context item of TaskContainerShowcase
+    // as well as filterObject
+    const filterObject = this.context.filter
+    const isFilteredStatus = filterObject.status[this.props.status]
     const deadline = new Date(this.props.deadline)
-    const isFilteredDateStart = this.props.filterObject.startDate ? new Date(this.props.filterObject.startDate) > deadline : false
-    console.dir(this.props.filterObject)
-    console.log(`Task Filter Detail: ${this.props.filterObject.startDate} and ${new Date(this.props.filterObject.startDate) > deadline}`)
-    const isFilteredDateEnd = this.props.filterObject.endDate ? new Date(this.props.filterObject.endDate) < deadline : false
+    const isFilteredDateStart = filterObject.startDate ? new Date(filterObject.startDate) > deadline : false
+    console.log(`Task Filter Detail: ${filterObject.startDate} and ${new Date(filterObject.startDate) > deadline}`)
+    const isFilteredDateEnd = filterObject.endDate ? new Date(filterObject.endDate) < deadline : false
     if (isFilteredStatus || isFilteredDateEnd || isFilteredDateStart) {
-      return
+      return/// (<div className="container task-container">Task Filtered</div>)
     }
     return (
       <div
         className="container task-container"
-        task={this.props.id}
       >
         <div className="grid-x task-header">
           <TaskNameLabel
@@ -327,7 +321,6 @@ class TaskContainerShowcase extends React.Component {
             update={(v, c) => this.props.update('task', v, c)}
             update_key="task"
           />
-          <div className=" cell small-4"></div>
           <TaskStatusButton
             status={this.props.status}
             update={(v, c) => this.props.update('status', v, c)}
@@ -341,12 +334,10 @@ class TaskContainerShowcase extends React.Component {
           />
           <TaskActualLabel actual={this.props.actual} />
           <TaskSchedulingWidget
-            sprint={this.props.sprint}
             status={this.props.status}
             deadline={this.props.deadline}
             recurring={this.props.recurring}
             update={(t, v, c) => this.props.update(t, v, c)}
-            planningSprint={this.props.planningSprint}
           />
           <TaskRecurringButton
             recurring={this.props.recurring}
@@ -357,6 +348,7 @@ class TaskContainerShowcase extends React.Component {
     )
   }
 }
+TaskContainerShowcase.contextType = app.contextObject
 
 function TaskWorkLabel (props) {
   return (

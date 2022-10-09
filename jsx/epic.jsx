@@ -177,9 +177,7 @@ class EpicStoriesContainer extends React.Component {
     updateTask: PropTypes.func,
     updateStory: PropTypes.func,
     stories: PropTypes.array,
-    filterObject: PropTypes.object,
-    isActive: PropTypes.bool,
-    planningSprint: PropTypes.string
+    isActive: PropTypes.bool
   }
 
   render () {
@@ -205,8 +203,6 @@ class EpicStoriesContainer extends React.Component {
           tasks={story.tasks}
           update={(s, v, c) => this.props.updateStory(story.id, s, v, c)}
           updateTask={(t, s, v, c) => this.props.updateTask(story.id, t, s, v, c)}
-          filterObject={this.props.filterObject}
-          planningSprint={this.props.planningSprint}
         />
       )
     })
@@ -224,7 +220,6 @@ class EpicContainer extends React.Component {
     oEpic: PropTypes.string.isRequired,
     oColor: PropTypes.string,
     oStories: PropTypes.array,
-    filterObject: PropTypes.object
   }
 
   constructor (props) {
@@ -274,7 +269,6 @@ class EpicContainer extends React.Component {
           stories={stories}
           updateStory={(st, s, v, c) => this.handleStoryClick(st, s, v, c)}
           updateTask={(st, t, s, v, c) => this.handleTaskClick(st, t, s, v, c)}
-          filterObject={this.props.filterObject}
           isActive={this.state.isActive}/>
         <CreateStoryButton addStory={(s) => this.addStory(s)} epic={this.props.id}/>
       </div>

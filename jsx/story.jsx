@@ -233,13 +233,14 @@ class StoryTasksContainer extends React.Component {
   static propTypes = {
     tasks: PropTypes.array,
     update: PropTypes.func,
-    filterObject: PropTypes.object,
     planningSprint: PropTypes.string
   }
 
   render () {
     const tasks = this.props.tasks
-    const taskContainers = tasks.map((task) => (
+    let taskContainers
+    if (tasks !== undefined) {
+      taskContainers = tasks.map((task) => (
       <TaskContainerShowcase
         key={task.id}
         id={task.id}
@@ -250,10 +251,11 @@ class StoryTasksContainer extends React.Component {
         recurring={task.recurring}
         sprint={task.sprint}
         update={(s, v, c) => this.props.update(task.id, s, v, c)}
-        filterObject={this.props.filterObject}
-        planningSprint={this.props.planningSprint}
       />
-    ))
+      ))
+    } else {
+      taskContainers = 'No tasks in epic'
+    }
     return <div className="containers">{taskContainers}</div>
   }
 }
@@ -266,9 +268,7 @@ class StoryContainerTShowcase extends React.Component {
     deadline: PropTypes.string,
     tasks: PropTypes.array,
     update: PropTypes.func,
-    updateTask: PropTypes.func,
-    filterObject: PropTypes.object,
-    planningSprint: PropTypes.string
+    updateTask: PropTypes.func
   }
 
   constructor (props) {
@@ -325,8 +325,7 @@ class StoryContainerTShowcase extends React.Component {
           <StoryTasksContainer
             tasks={tasks}
             update={(t, s, v, c) => this.props.updateTask(t, s, v, c)}
-            filterObject={this.props.filterObject}
-            planningSprint={this.props.planningSprint}/>
+            />
           <CreateTaskButton addTask={(s) => this.addTask(s)} story={this.props.id} />
           </div>
         </div>

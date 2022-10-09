@@ -10,8 +10,8 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "lint:js": "eslint --ext jsx,js jsx/*.jsx",
     "bosslint:js": "eslint --ext jsx,js,html --fix jsx/*.jsx templates/**/*",
-    "build-dev": "watchify -v -r ./jsx/*.jsx -r ./jsx/index.jsx:app -o static/js/app.js",
-    "build": "cross-env NODE_ENV=production browserify -r ./jsx/index.jsx:app -o static/js/app.js -p [ parcelify -o static/bundle.css ]"
+    "build-dev": "cross-env NODE_ENV=dev gulp",
+    "build": "cross-env NODE_ENV=production gulp"
   },
   "browserify": {
     "transform": [

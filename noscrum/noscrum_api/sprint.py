@@ -270,17 +270,22 @@ def get_create():
         "sprint/create.html", start_date=start_date, end_date=end_date
     )
 
+class SprintQuery(BaseModel):
+    start_date: str
+    end_date: str
+    force_create: bool = None
+
 
 @bp.post("/create")
 @login_required
-def create():
+def create(body: SprintQuery):
     """
     Create a New Sprint defaulting last week's
     sprint, but it will accept input if needed
     """
-    start_date = request.form["start_date"]
-    end_date = request.form["end_date"]
-    force_create = request.form.get("force_create", None)
+    start_date = body.start_date
+    end_date = body.end_date
+    force_create = body.force_create
     error = None
     same_sprint = backend.get_sprint_by_date(
         current_user, start_date=start_date, end_date=end_date
