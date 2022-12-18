@@ -120,6 +120,14 @@ def get_sprint_schedule(path: SprintPath):
 def schedule(path: SprintPath):
     """
     Get or set scheduling information for a given sprint.
+    params:
+    schedule_id
+    task_id
+    sprint_day
+    sprint_hour
+    schedule_time
+    note
+    recurring (not used)
     """
     sprint_id = path.sprint_id
     sprint = backend.get_sprint(current_user, sprint_id)
@@ -137,6 +145,7 @@ def schedule(path: SprintPath):
     sprint_hour = request.form.get("sprint_hour", None)
     schedule_time = request.form.get("schedule_time", 0)
     if schedule_time in (None, 0, "") and schedule_record is None:
+        print(request.form)
         return {"Success": "False", "Error": "Cannot schedule 0 time"}
     schedule_time = schedule_record.schedule_time
     note = request.form.get("note")
@@ -269,6 +278,7 @@ def get_create():
     return render_template(
         "sprint/create.html", start_date=start_date, end_date=end_date
     )
+
 
 class SprintQuery(BaseModel):
     start_date: str

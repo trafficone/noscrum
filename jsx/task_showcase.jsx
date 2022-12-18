@@ -10,10 +10,20 @@ import DatePicker from 'react-datepicker'
 
 const PrettyAlert = app.PrettyAlert
 const contextObject = app.contextObject
+const baseFilter = {
+  status: {
+    'To-Do': false,
+    'In Progress': false,
+    Done: true
+  },
+  startDate: null,
+  endDate: null
+}
 
 class SprintPlanButton extends React.Component {
   static propTypes = {
-    update: PropTypes.func
+    update: PropTypes.func,
+    isPlanningNow: PropTypes.bool.isRequired
   }
 
   constructor (props) {
@@ -32,10 +42,17 @@ class SprintPlanButton extends React.Component {
   }
 
   render () {
+    let clickFunc = () => this.openPlan()
+    let planMsg = 'Plan Sprint'
+    if (this.props.isPlanningNow) {
+      console.log('currently planning')
+      clickFunc = () => this.props.update(0)
+      planMsg = 'End Planning'
+    }
     return (
       <div>
-        <button className="button" onClick={() => this.openPlan()}>
-          Plan Sprint
+        <button className="button" onClick={clickFunc}>
+          { planMsg }
         </button>
         <SprintPlanMdl
           isOpen={this.state.modalOpen}
@@ -50,7 +67,7 @@ class SprintPlanMdl extends React.Component {
   static propTypes = {
     isOpen: PropTypes.bool,
     close: PropTypes.func,
-    update: PropTypes.func
+    update: PropTypes.func.isRequired
   }
 
   constructor (props) {
@@ -61,13 +78,18 @@ class SprintPlanMdl extends React.Component {
   }
 
   updatePlannedSprint () {
+    const week = this.getWeekForDay(this.state.selectedDay)
+    const dates = {
+      startDate: this.dateToString(week[0]),
+      endDate: this.dateToString(week[6])
+    }
     axios.post('/sprint/create',
       {
-        start_date: this.state.startDate,
-        end_date: this.state.endDate
+        start_date: dates.startDate,
+        end_date: dates.endDate
       })
       .then((result) => {
-        this.props.update(result.sprint_id)
+        this.props.update(result.data.sprint_id)
         this.props.close()
       })
   }
@@ -87,16 +109,6 @@ class SprintPlanMdl extends React.Component {
     return weekdays
   }
 
-  updateDates (date) {
-    const week = this.getWeekForDay(date)
-    this.setState({
-      ...this.state,
-      selectedDay: date,
-      startDate: this.dateToString(week[0]),
-      endDate: this.dateToString(week[6])
-    })
-  }
-
   render () {
     return (
       <ReactModal isOpen={this.props.isOpen}
@@ -110,7 +122,7 @@ class SprintPlanMdl extends React.Component {
         <p>Week of Sprint {'please select sprint'}</p>
         <DatePicker
           selected={this.state.selectedDay}
-          onChange={(date) => this.updateDates(date)}
+          onChange={(date) => this.setState({ ...this.state, selectedDay: date })}
           weekLabel='Sprint'
           highlightDates={this.getWeekForDay(this.state.selectedDay)}
           placeholderText="This highlights a week ago and a week from today"
@@ -243,12 +255,6 @@ class ShowcaseFilterStatusMdl extends React.Component {
           </fieldset>
         <div className="button-group">
           <button className="button" onClick={() => this.handleSubmit()}>Filter</button>
-          <button className="button" onClick={() => {
-            this.setState({
-              ...this.state,
-              filter: { status: { 'To-Do': false, 'In Progress': false, Done: false }, startDate: null, endDate: null }
-            }, this.handleSubmit)
-          }}>Clear Filter</button>
         </div>
         <button className="close-button" onClick={() => this.props.close()} aria-label="Close"><span aria-hidden="true">&times;</span></button>
     </ReactModal>
@@ -262,7 +268,7 @@ class ShowcaseFilterBtn extends React.Component {
     update: PropTypes.func,
     prevFilter: PropTypes.object
   }
-  
+
   constructor (props) {
     super(props)
     this.state = { modalOpen: false }
@@ -313,16 +319,8 @@ class TaskShowcase extends React.Component {
     this.state = {
       epic_list: [],
       context: 'TaskShowcase',
-      sprintPlanning: false,
-      filter: {
-        status: {
-          'To-Do': false,
-          'In Progress': false,
-          Done: true
-        },
-        startDate: null,
-        endDate: null
-      }
+      sprintPlanning: 0,
+      filter: { ...baseFilter }
     }
   }
 
@@ -358,7 +356,8 @@ class TaskShowcase extends React.Component {
     return (
       <div className="content">
         <header>
-        <SprintPlanButton update={(sprint) => this.setSprintPlanning(sprint)}/>
+        <SprintPlanButton update={(sprint) => this.setSprintPlanning(sprint)}
+                          isPlanningNow={this.state.sprintPlanning > 0}/>
         <div className="button-group align-right">
         <ShowcaseFilterBtn
           prevFilter={this.state.filter}
@@ -366,7 +365,8 @@ class TaskShowcase extends React.Component {
         </div>
         </header>
         <contextObject.Provider value={this.state} >
-          {epicContainers}</contextObject.Provider>
+          {epicContainers}
+        </contextObject.Provider>
         <CreateEpicButton addEpic={(e) => this.addEpic(e)} />
       </div>
     )

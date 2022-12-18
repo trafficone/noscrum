@@ -13,21 +13,18 @@ const SprintShowcase = sprintSC.SprintShowcase
 root.render(<TaskShowcase epics={taskSC.noscrumObj} />) */
 
 async function getSprintTasks (sprintId) {
-  await axios.get(`/sprint/${sprintId}?is_json=true`)
+  return await axios.get(`/sprint/${sprintId}?is_json=true`)
     .then((resp) => {
-      return resp.data.tasks
+      return resp.data
     })
     .catch((error) => {
-      if (error.response.status === 404) {
-        return []
-      } else {
-        PrettyAlert('Could not get Sprint')
-      }
+      PrettyAlert('Could not get Sprint: ' + error)
+      return []
     })
 }
 
 async function getSprintSchedule (sprintId) {
-  await axios.get(`/sprint/schedule/${sprintId}?is_json=true`)
+  return await axios.get(`/sprint/schedule/${sprintId}?is_json=true`)
     .then((resp) => {
       return resp.data.schedule_tasks
     })
@@ -49,16 +46,18 @@ module.exports = {
   },
 
   renderSprintShowcase (showcaseId, sprintId) {
+    let sprintObj
     let taskList
     let scheduleList
     Promise.all([
       getSprintTasks(sprintId),
       getSprintSchedule(sprintId)
     ]).then((results) => {
-      taskList = results[0]
+      taskList = results[0].tasks
+      sprintObj = results[0].sprint
       scheduleList = results[1]
+      const root = ReactDOM.createRoot(document.getElementById(showcaseId))
+      root.render(<SprintShowcase oTasks={taskList} oSchedule={scheduleList} sprint={sprintObj} />)
     })
-    const root = ReactDOM.createRoot(document.getElementById(showcaseId))
-    root.render(<SprintShowcase oTasks={taskList} oSchedule={scheduleList} />)
   }
 }

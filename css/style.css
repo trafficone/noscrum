@@ -332,3 +332,8 @@ textarea {
   color: #0a0a0a;
   transition: box-shadow 0.5s, border-color 0.25s ease-in-out;
   appearance: none; }
+
+  .deadline {
+    height: fit-content;
+    padding: 0px;
+  }

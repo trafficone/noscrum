@@ -46,7 +46,7 @@ if (process.env.NODE_ENV === 'production') {
 } else {
   exports.build = function () {
     console.log('Dev Build Active -- watching')
-    gulp.watch('jsx/*',
+    gulp.watch('jsx/',
       gulp.series(clean, gulp.parallel(buildJSX, css))
     )
   }

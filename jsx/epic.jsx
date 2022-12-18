@@ -219,7 +219,7 @@ class EpicContainer extends React.Component {
     id: PropTypes.number.isRequired,
     oEpic: PropTypes.string.isRequired,
     oColor: PropTypes.string,
-    oStories: PropTypes.array,
+    oStories: PropTypes.array
   }
 
   constructor (props) {

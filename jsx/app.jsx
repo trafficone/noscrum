@@ -93,7 +93,7 @@ class DeadlineLabel extends React.Component {
           value={this.props.deadline ? this.props.deadline : ''}
           onInput={this.props.update ? (d) => this.handleChange(d) : () => {}}
           onChange={() => {}}
-          className={'deadline ' + this.props.update ? 'editable' : ''} />
+          className={`deadline ${this.props.update ? 'editable' : ''}`} />
         </label>
         </div>
     )
@@ -115,7 +115,8 @@ class DeadlineLabel extends React.Component {
 const contextObject = React.createContext(
   {
     context: 'Uninitialized',
-    filter: {}
+    filter: {},
+    sprintPlanning: null
   })
 
 export default {

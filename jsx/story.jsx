@@ -173,6 +173,7 @@ class StoryArchiveButton extends React.Component {
 
   handleArchive () {
     // TODO: Handle Archive
+    console.log('Not Ipmelemented Yet')
   }
 }
 
@@ -249,7 +250,7 @@ class StoryTasksContainer extends React.Component {
         estimate={task.estimate}
         deadline={task.deadline}
         recurring={task.recurring}
-        sprint={task.sprint}
+        sprint={task.sprint_id}
         update={(s, v, c) => this.props.update(task.id, s, v, c)}
       />
       ))
