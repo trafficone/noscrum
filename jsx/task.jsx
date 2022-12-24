@@ -474,6 +474,9 @@ class TaskScheduleHours extends React.Component {
   }
 
   render () {
+    if (!this.props.scheduleHours) {
+      return
+    }
     return (
       <span>
         Scheduled: {this.props.scheduleHours}
@@ -515,12 +518,17 @@ class TaskContainerSprint extends React.Component {
   render () {
     let scheduled
     if (this.props.scheduler && this.props.deadline) {
-      scheduled = <div className="col">Due: {this.props.deadline}</div>
+      scheduled = <div className="row">
+          <TaskEstimateLabel estimate={this.props.estimate} />
+            Due: {this.props.deadline}</div>
     } else if (this.props.scheduler) {
-      scheduled = <div className="col">No Due Date</div>
+      scheduled = <div className="row">
+          <TaskEstimateLabel estimate={this.props.estimate} />
+        No Due Date</div>
     } else {
       scheduled = (
-        <div>
+        <div className="row">
+          <TaskScheduleHours scheduleHours={this.props.scheduleHours} />
           <TaskWorkLabel scheduleWork={this.state.scheduleWork} />
           <TaskScheduleNote
             scheduleNote={this.state.scheduleNote}
@@ -544,8 +552,6 @@ class TaskContainerSprint extends React.Component {
           />
         </div>
         <div className="grid-x">
-          <TaskEstimateLabel estimate={this.props.estimate} />
-          <TaskScheduleHours scheduleHours={this.props.scheduleHours} />
           {scheduled}
         </div>
       </div>

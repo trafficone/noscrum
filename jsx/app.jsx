@@ -71,6 +71,18 @@ function AjaxUpdateProperty (updateUrl, newValue, callback) {
     })
 }
 
+function AjaxDelete (updateUrl, identifier, callback) {
+  axios.delete(updateUrl, { data: identifier })
+    .then(function (json) {
+      callback(json)
+    }).catch(function (errorThrown) {
+      PrettyAlert('Sorry, there was a problem!')
+      console.log('Error: ' + errorThrown)
+    }).then(function (xhr, status) {
+      console.log('Request to update status complete!')
+    })
+}
+
 class DeadlineLabel extends React.Component {
   // FIXME - React-specific DatePicker element instead
   static propTypes = {
@@ -122,6 +134,7 @@ const contextObject = React.createContext(
 export default {
   EditableHandleClick,
   AjaxUpdateProperty,
+  AjaxDelete,
   GetUpdateURL,
   DeadlineLabel,
   PrettyAlert,

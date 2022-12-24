@@ -102,17 +102,17 @@ def get_sprint_schedule(path: SprintPath):
     )
     if len(schedule_tasks) == 0:
         return abort(404, "No Schedules Found")
-    keys = schedule_tasks[0].keys()
     schedule_tasks_out = []
     for task in schedule_tasks:
-        task_dict = dict(
+        """task_dict = dict(
             zip(
                 keys,
                 [str(task[k]) if isinstance(task[k], date) else task[k] for k in keys],
             )
-        )
+        )"""
+        task_dict = task.to_dict()
         schedule_tasks_out.append(task_dict)
-    return {"Success": True, "y": schedule_tasks_out}
+    return {"Success": True, "schedule_tasks": schedule_tasks_out}
 
 
 @bp.post("/schedule/<int:sprint_id>")
@@ -131,25 +131,28 @@ def schedule(path: SprintPath):
     """
     sprint_id = path.sprint_id
     sprint = backend.get_sprint(current_user, sprint_id)
-    schedule_id = request.form.get("schedule_id", None)
+    req = request.form
+    if request.get_json() is not None:
+        req = request.get_json()
+    schedule_id = req.get("schedule_id", None)
     schedule_record = (
         None if schedule_id is None else backend.get_schedule(current_user, schedule_id)
     )
-    task_id = request.form.get("task_id", None)
-    sprint_day = request.form.get("sprint_day", None)
+    task_id = req.get("task_id", None)
+    sprint_day = req.get("sprint_day", None)
     sprint_day = (
         datetime.strptime(sprint_day, "%Y-%m-%d").date()
         if isinstance(sprint_day, str)
         else sprint_day
     )
-    sprint_hour = request.form.get("sprint_hour", None)
-    schedule_time = request.form.get("schedule_time", 0)
+    sprint_hour = req.get("sprint_hour", None)
+    schedule_time = req.get("schedule_time", 0)
     if schedule_time in (None, 0, "") and schedule_record is None:
-        print(request.form)
         return {"Success": "False", "Error": "Cannot schedule 0 time"}
-    schedule_time = schedule_record.schedule_time
-    note = request.form.get("note")
-    recurring = request.form.get("recurring", 0)
+    # if schedule_record != None:
+    #    schedule_time = schedule_record.schedule_time
+    note = req.get("note")
+    recurring = req.get("recurring", 0)
     error = None
     if recurring == "1":
         task = get_task(current_user, task_id)
@@ -214,9 +217,12 @@ def del_schedule(path: SprintPath):
     Delete schedule with a given schedule_id for a given sprint
     """
     logger.info("%s and %s", request.method, request.method == "DELETE")
-    schedule_id = request.form.get("schedule_id", None)
+    req = request.form
+    if request.get_json() is not None:
+        req = request.get_json()
+    schedule_id = req.get("schedule_id", None)
     sprint_id = path.sprint_id
-    if request.form.get("recurring", 0) == 1:
+    if req.get("recurring", 0) == 1:
         sprint_id = 0
     error = None
     if schedule_id is None:
