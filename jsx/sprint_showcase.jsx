@@ -1,160 +1,14 @@
 'use strict'
 import React from 'react'
-import ReactModal from 'react-modal'
 import PropTypes from 'prop-types'
 import app from './app.jsx'
 import { TaskContainerSprint } from './task.jsx'
+import { SchedulerConfirm, SchedulerModal } from './scheduling_modal.jsx'
 // import ReactDatePicker from 'react-datepicker'
 
 const GetUpdateURL = app.GetUpdateURL
 const AjaxUpdateProperty = app.AjaxUpdateProperty
 const AjaxDelete = app.AjaxDelete
-
-class SchedulerModal extends React.Component {
-  static propTypes = {
-    tasks: PropTypes.object.isRequired,
-    schedule: PropTypes.object,
-    update: PropTypes.func,
-    unschedule: PropTypes.func,
-    open: PropTypes.bool,
-    close: PropTypes.func
-  }
-
-  constructor (props) {
-    super(props)
-    this.state = {
-      recurring: false
-    }
-  }
-
-  render () {
-    return (
-    <ReactModal isOpen={this.props.open}
-      style={{
-        content: {
-          width: '50%',
-          minwidth: '20em'
-        }
-      }}>
-      <button className="button"
-              id="unschedule-task"
-              title="Unschedule Task Clicked (if any)"
-              onClick={() => {
-                console.log('Unschedule Clicked')
-                this.props.unschedule()
-              }}
-              data-close>Unschedule Task</button>
-      <button className="button" id="unplanned-task" title="Create or Add Task to Sprint" data-open="UnplannedTask">Add Unplanned Task</button>
-      <ul className="tabs" data-tabs id="task-tabs">
-        <li className="tabs-title is-active">
-          <button aria-selected="true" className="button" onClick={() => this.setState({ ...this.state, recurring: false })}>Planned Tasks</button>
-        </li>
-        <li className="tabs-title">
-          <button className="button" onClick={() => this.setState({ ...this.state, recurring: true })}>Recurring Tasks</button>
-        </li>
-      </ul>
-      <div className="tabs-content" data-tabs-content="task-tabs">
-      <div className="tabs-panel is-active">
-        <PlanTaskForm
-          tasks={this.props.tasks}
-          update={(taskId, callback) => this.props.update(taskId, callback)}
-          recurring={this.state.recurring}/>
-      </div>
-      <button className="close-button" data-close aria-label="Close" onClick={() => this.props.close()} > <span aria-hidden="true">&times;</span></button>
-      </div>
-    </ReactModal>
-    )
-  }
-}
-
-class SchedulerConfirm extends React.Component {
-  static propTypes = {
-    open: PropTypes.bool,
-    close: PropTypes.func,
-    task: PropTypes.object,
-    update: PropTypes.func
-  }
-
-  constructor (props) {
-    super(props)
-    this.state = {
-      inputValue: ''
-    }
-  }
-
-  render () {
-    const task = this.props.task
-    return (
-      <ReactModal isOpen={this.props.open}
-        style={{
-          content: {
-            width: '50%',
-            minwidth: '20em'
-          }
-        }}>
-          <TaskContainerSprint
-            key={task.id}
-            task={task.task}
-            estimate={task.estimate}
-            status={task.status}
-            epic={'epic not found'}
-            story={'story not found'}
-            scheduleHours={0}
-            deadline={task.deadline}
-            scheduler={true}
-           />
-           <label>Hours Planned
-           <input type="text" value={this.state.inputValue} onChange={evt => this.updateInputValue(evt)}/>
-           </label>
-           <button className="button" onClick={() => this.props.update(this.state.inputValue)}>Plan</button>
-
-      <button className="close-button" data-close aria-label="Close" onClick={() => this.props.close()} > <span aria-hidden="true">&times;</span></button>
-      </ReactModal>
-    )
-  }
-
-  updateInputValue (event) {
-    this.setState({ ...this.state, inputValue: event.target.value })
-  }
-}
-
-class PlanTaskForm extends React.Component {
-  static propTypes = {
-    tasks: PropTypes.object.isRequired,
-    update: PropTypes.func,
-    recurring: PropTypes.bool
-  }
-
-  render () {
-    const tasksFiltered = this
-      .props
-      .tasks
-      .filter((t) => { return t.recurring === this.props.recurring })
-      .map((t) => {
-        return (
-          <TaskContainerSprint
-            key={t.id}
-            task={t.task}
-            estimate={t.estimate}
-            status={t.status}
-            epic={'epic not found'}
-            story={'story not found'}
-            scheduleHours={0}
-            deadline={t.deadline}
-            scheduler={true}
-            click={() => this.props.update(t.id, () => {})}
-           />
-        )
-      })
-
-    return (
-      <div>
-        {tasksFiltered}
-
-      </div>
-    )
-  }
-}
 
 function NoTask (props) {
   return (
@@ -246,7 +100,9 @@ class SprintShowcase extends React.Component {
 
   constructor (props) {
     super(props)
+    const isStatic = (new URLSearchParams(window.location.search)).get('static').toLowerCase() !== 'false'
     this.state = {
+      static: isStatic,
       tasks: props.oTasks,
       schedule: props.oSchedule ? props.oSchedule : [],
       schedulerOpen: false,
@@ -272,14 +128,11 @@ class SprintShowcase extends React.Component {
   render () {
     const days = this.getSprintDates()
     const schedule = this.state.schedule
-    // console.log('Schedule')
-    // console.dir(schedule)
     const tasks = this.state.tasks
     const caller = this
     let totalScheduled = 0
     const dayComponents = days.map(function (day, dindex) {
       let dayScheduled = 0
-      // let dayTasks = []
       let daySchedule = []
       const dayString = day.toLocaleDateString('ja-JP').replaceAll('/', '-')
       if (schedule !== undefined) {
@@ -328,6 +181,9 @@ class SprintShowcase extends React.Component {
   }
 
   unschedule (callback) {
+    if (this.state.static) {
+      return
+    }
     const day = this.state.scheduleDay
     const hour = this.state.scheduleHour
     const parentObject = this
@@ -362,6 +218,9 @@ class SprintShowcase extends React.Component {
   }
 
   openScheduler (day, hour) {
+    if (this.state.static) {
+      return
+    }
     if (this.state.schedulerOpen) {
       return
     }
@@ -375,6 +234,9 @@ class SprintShowcase extends React.Component {
   }
 
   confirmSchedule (taskId, callback) {
+    if (this.state.static) {
+      return
+    }
     this.setState({
       ...this.state,
       schedulerOpen: false,
@@ -385,6 +247,9 @@ class SprintShowcase extends React.Component {
   }
 
   scheduleTask (plan, callback) {
+    if (this.state.static) {
+      return
+    }
     // TODO - see if schedule exists for sprint at day/hour & reschedule
     // ? would it make sense to migrate from a scheduleID to a day/hour lookup?
     this.setState({
@@ -422,7 +287,11 @@ class SprintShowcase extends React.Component {
   }
 
   update (taskId, scheduleId, stateItem, newValue, callback) {
-    let updateType, updateID, newState
+    if (this.state.static) {
+      return
+    }
+    let updateType, updateID
+    let newState = { ...this.state }
     const updateValue = {}
     updateValue[stateItem] = newValue
     // If the item being changed includes "schedule" then it's a schedule object, otherwise task
@@ -430,13 +299,15 @@ class SprintShowcase extends React.Component {
       updateType = 'sprint/schedule'
       updateValue.schedule_id = scheduleId
       updateID = this.props.sprint.id
-      newState = { schedule: this.state.schedule }
-      newState.filter((d) => { return d.schedule.id === scheduleId })[0][stateItem] = newValue
+      let schedule = this.state.schedule
+      schedule = schedule.filter((d) => { return d.schedule.id === scheduleId })[0][stateItem] = newValue
+      newState = { ...newState, schedule }
     } else {
       updateType = 'task'
       updateID = taskId
-      newState = { tasks: this.state.tasks }
-      newState.filter((t) => { return t.id === taskId })[0][stateItem] = newValue
+      let tasks = this.state.tasks
+      tasks = tasks.filter((t) => { return t.id === taskId })[0][stateItem] = newValue
+      newState = { ...newState, tasks }
     }
     AjaxUpdateProperty(GetUpdateURL(updateType, updateID), updateValue, () => {
       this.setState(newState)

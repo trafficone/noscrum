@@ -365,8 +365,8 @@ def show(path: SprintPath):
     """
     sprint_id = path.sprint_id
     is_json = request.args.get("is_json", False)
-    is_static = request.args.get("static", "True")
-    if is_static.lower() == "false":
+    is_static = True
+    if request.args.get("static", "true").lower() == "false":
         is_static = False
     sprint = backend.get_sprint(current_user, sprint_id)
     if not sprint:
