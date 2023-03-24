@@ -28,7 +28,8 @@
 			"extensions": [
 				"ms-python.python",
 				"ms-python.vscode-pylance",
-				"dbaeumer.vscode-eslint"
+				"dbaeumer.vscode-eslint",
+				"vadimcn.vscode-lldb"
 			]
 		}
 	},
@@ -37,7 +38,6 @@
 
 	"remoteUser": "vscode",
 	"features": {
-		"aws-cli": "latest",
-		"fish": "latest"
+		"aws-cli": "latest"
 	}
 }

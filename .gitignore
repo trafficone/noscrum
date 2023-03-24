@@ -3,6 +3,7 @@ noscrum/static/js/
 noscrum/static/examples/
 venv/
 msvenv/
+static/
 *.sqlite
 *.bak
 
@@ -27,3 +28,4 @@ node_modules/
 bower_components/
 .hypothesis/
 browserify-cache.json
+package-lock.json

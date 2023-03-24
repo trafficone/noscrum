@@ -8,6 +8,10 @@ import 'foundation-sites'
 function GetUpdateURL (objectType, locatorId) {
   return `/${objectType}/${locatorId}?is_json=true`
 }
+function GetCloseURL (objectType, locatorId) {
+  return `/${objectType}/close/${locatorId}?is_json=true`
+}
+
 // FIXME: React-ify these JQuery functions
 function EditableHandleClick (t, origin, isNumeric) {
   if (isNumeric === undefined) {
@@ -43,7 +47,8 @@ function EditableHandleClick (t, origin, isNumeric) {
 }
 
 function PrettyAlert (message) {
-  $('header').after(
+  // TODO: replace with React
+  $('header.reactified').after(
     $('<div>')
       .text(message)
       .append(
@@ -65,7 +70,7 @@ function AjaxUpdateProperty (updateUrl, newValue, callback) {
       callback(json)
     }).catch(function (errorThrown) {
       PrettyAlert('Sorry, there was a problem!')
-      console.log('Error: ' + errorThrown)
+      console.error('Error: ' + errorThrown)
     }).then(function (xhr, status) {
       console.log('Request to update status complete!')
     })
@@ -77,7 +82,7 @@ function AjaxDelete (updateUrl, identifier, callback) {
       callback(json)
     }).catch(function (errorThrown) {
       PrettyAlert('Sorry, there was a problem!')
-      console.log('Error: ' + errorThrown)
+      console.error('Error: ' + errorThrown)
     }).then(function (xhr, status) {
       console.log('Request to update status complete!')
     })
@@ -136,6 +141,7 @@ export default {
   AjaxUpdateProperty,
   AjaxDelete,
   GetUpdateURL,
+  GetCloseURL,
   DeadlineLabel,
   PrettyAlert,
   contextObject

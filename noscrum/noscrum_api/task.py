@@ -4,6 +4,7 @@ Task View and Database Interaction Module
 import logging
 import json
 from datetime import datetime
+from typing import Any, Optional
 
 from pydantic import BaseModel, Field
 from flask import abort, flash, redirect, request, url_for
@@ -56,9 +57,13 @@ def create(path: StoryPath, query: NoscrumBaseQuery):
             return abort(404, error)
         flash(error, "error")
         return redirect(url_for("task.list_all"))
-    req = request.form
-    if request.get_json() is not None:
-        req = request.get_json()
+    req: dict = request.form
+    if request.get_json(silent=True) is not None:
+        json_req: Optional[Any] = request.get_json()
+        if isinstance(json_req, dict):
+            req = json_req
+        else:
+            abort(400, "Request was not a valid object")
     task = req.get("task", None)
     estimate = req.get("estimate", None)
     deadline = req.get("deadline", None)
@@ -142,7 +147,8 @@ def show(path: TaskPath, query: NoscrumBaseQuery):
 def update(path: TaskPath, query: NoscrumBaseQuery):
     """
     POST: Update the task given input provided
-    @param task_id Task Identity being queried
+    @param TaskPath path: the path being requested
+    @param NoscrumBaseQuery query: the query posted with the input
     """
     error = None
     is_json = query.is_json
@@ -156,9 +162,13 @@ def update(path: TaskPath, query: NoscrumBaseQuery):
             flash(error, "error")
             redirect(url_for("task.list_all"))
 
-    req = request.form
-    if request.get_json() is not None:
-        req = request.get_json()
+    req: dict = request.form
+    if request.get_json(silent=True) is not None:
+        json_req: Optional[Any] = request.get_json()
+        if isinstance(json_req, dict):
+            req = json_req
+        else:
+            abort(400, "Request was not a valid object")
     task_name = req.get("task", task.task)
     estimate = req.get("estimate", task.estimate)
     actual = req.get("actual", task.actual)
@@ -195,7 +205,8 @@ def update(path: TaskPath, query: NoscrumBaseQuery):
     return abort(500, error)
 
 
-rowproxy_to_dict = lambda x: [dict(rowproxy.items()) for rowproxy in x]
+def rowproxy_to_dict(x):
+    return [dict(rowproxy.items()) for rowproxy in x]
 
 
 @bp.get("/")
@@ -206,8 +217,9 @@ def list_all(query: NoscrumBaseQuery):
     """
     is_json = query.is_json
     get_closed = request.args.get("archive", False)
+    print("Get archived tasks?", get_closed)
     tasks = backend.get_tasks(current_user)
-    if get_closed:
+    if get_closed or get_closed == "true":
         stories = get_stories(current_user, closed=True)
     else:
         stories = get_stories(current_user, closed=False)

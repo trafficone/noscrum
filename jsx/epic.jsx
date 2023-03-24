@@ -6,7 +6,9 @@ import { StoryContainerTShowcase, CreateStoryButton } from './story.jsx'
 import axios from 'axios'
 
 const AjaxUpdateProperty = app.AjaxUpdateProperty
+const AjaxDelete = app.AjaxDelete
 const GetUpdateURL = app.GetUpdateURL
+const GetCloseURL = app.GetCloseURL
 const EditableHandleClick = app.EditableHandleClick
 
 class CreateEpic extends React.Component {
@@ -176,8 +178,10 @@ class EpicStoriesContainer extends React.Component {
   static propTypes = {
     updateTask: PropTypes.func,
     updateStory: PropTypes.func,
+    closeStory: PropTypes.func,
     stories: PropTypes.array,
-    isActive: PropTypes.bool
+    isActive: PropTypes.bool,
+    isArchive: PropTypes.bool
   }
 
   render () {
@@ -201,8 +205,10 @@ class EpicStoriesContainer extends React.Component {
           story={story.story}
           deadline={story.deadline}
           tasks={story.tasks}
+          close={(v, c) => this.props.closeStory(story.id, v, c)}
           update={(s, v, c) => this.props.updateStory(story.id, s, v, c)}
           updateTask={(t, s, v, c) => this.props.updateTask(story.id, t, s, v, c)}
+          isArchive={this.props.isArchive}
         />
       )
     })
@@ -219,7 +225,8 @@ class EpicContainer extends React.Component {
     id: PropTypes.number.isRequired,
     oEpic: PropTypes.string.isRequired,
     oColor: PropTypes.string,
-    oStories: PropTypes.array
+    oStories: PropTypes.array,
+    isArchive: PropTypes.bool
   }
 
   constructor (props) {
@@ -267,9 +274,11 @@ class EpicContainer extends React.Component {
         </div>
         <EpicStoriesContainer
           stories={stories}
+          closeStory={(st, v, c) => this.close('story', st, v, c)}
           updateStory={(st, s, v, c) => this.handleStoryClick(st, s, v, c)}
           updateTask={(st, t, s, v, c) => this.handleTaskClick(st, t, s, v, c)}
-          isActive={this.state.isActive}/>
+          isActive={this.state.isActive}
+          isArchive={this.props.isArchive}/>
         <CreateStoryButton addStory={(s) => this.addStory(s)} epic={this.props.id}/>
       </div>
     )
@@ -299,10 +308,14 @@ class EpicContainer extends React.Component {
   handleStoryClick (storyId, statusItem, value, callback) {
     const newState = this.state.story
     const storyIndex = newState.findIndex((story) => story.id === storyId)
+    if (!storyIndex) {
+      console.error('Could not find story with that index')
+      return
+    }
     newState[storyIndex][statusItem] = value
     const ajaxUpdate = {}
     ajaxUpdate[statusItem] = value
-    AjaxUpdateProperty(GetUpdateURL('story', newState[storyIndex].id), ajaxUpdate, () => {
+    AjaxUpdateProperty(GetUpdateURL('story', storyId), ajaxUpdate, () => {
       this.setState(newState)
       callback()
     })
@@ -312,14 +325,43 @@ class EpicContainer extends React.Component {
     console.log(storyId, taskId, statusItem, value, callback)
     const newState = this.state.story
     const storyIndex = newState.findIndex((story) => story.id === storyId)
-    const taskIndex = newState[storyIndex].tasks.findIndex((task) => task.id === taskId)
+    const taskIndex = storyIndex ? newState[storyIndex].tasks.findIndex((task) => task.id === taskId) : null
+    if (!storyIndex || !taskIndex) {
+      console.error('Could not find story or task with that index')
+      return
+    }
     const ajaxUpdate = {}
     ajaxUpdate[statusItem] = value
     newState[storyIndex].tasks[taskIndex][statusItem] = value
-    AjaxUpdateProperty(GetUpdateURL('task', newState[storyIndex].tasks[taskIndex].id), ajaxUpdate, () => {
+    AjaxUpdateProperty(GetUpdateURL('task', taskId), ajaxUpdate, () => {
       this.setState(newState)
       callback()
     })
+  }
+
+  close (type, id, archive, callback) {
+    let newState, storyIndex//, taskIndex, epicIndex
+    if (type === 'story') {
+      newState = this.state.story
+      storyIndex = newState.findIndex((story) => story.id === id)
+      newState[storyIndex].closure_state = archive ? 'Closed' : null
+    } else {
+      console.error('Type is not supported')
+      return
+    }
+    if (!archive) {
+      console.log('Archiving story ' + id)
+      AjaxUpdateProperty(GetCloseURL(type, id), id, () => {
+        this.setState(newState)
+        callback()
+      })
+    } else {
+      console.log('Un-archiving story ' + id)
+      AjaxDelete(GetCloseURL(type, id), id, () => {
+        this.setState(newState)
+        callback()
+      })
+    }
   }
 }
 

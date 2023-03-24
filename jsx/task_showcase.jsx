@@ -297,9 +297,12 @@ class ShowcaseFilterBtn extends React.Component {
   }
 }
 
-async function getUserTasks () {
+async function getUserTasks (isArchive) {
+  const queryPath = '/task/?is_json=true'
+  const archive = isArchive ? '&archive=true' : ''
+  console.log(queryPath)
   try {
-    const resp = await axios.get('/task/?is_json=true')
+    const resp = await axios.get(queryPath + archive)
     return resp.data.epics
   } catch (error) {
     if (error.response.status === 404) {
@@ -312,6 +315,7 @@ async function getUserTasks () {
 
 class TaskShowcase extends React.Component {
   static propTypes = {
+    isArchive: PropTypes.bool
   }
 
   constructor (props) {
@@ -328,7 +332,7 @@ class TaskShowcase extends React.Component {
     const epics = this.state.epic_list
     let epicContainers
     if (epics.length === 0) {
-      getUserTasks().then((epics) => {
+      getUserTasks(this.props.isArchive).then((epics) => {
         if (epics.length !== 0) {
           this.setState({ ...this.state, epic_list: epics })
         } else {
@@ -349,13 +353,14 @@ class TaskShowcase extends React.Component {
               oEpic={epic.epic}
               oColor={epic.color}
               oStories={epic.stories}
+              isArchive={this.props.isArchive}
             />
         )
       })
     }
     return (
       <div className="content">
-        <header>
+        <header className="reactified">
         <SprintPlanButton update={(sprint) => this.setSprintPlanning(sprint)}
                           isPlanningNow={this.state.sprintPlanning > 0}/>
         <div className="button-group align-right">

@@ -85,7 +85,6 @@ def create_app(test_config=None):
     logger.info("Creating Database")
     # Init SQLAlchemy
     APP_DB = get_db_instance(running_app)
-    from noscrum_backend.db import get_db
 
     logger.info("Populating Database")
 
@@ -98,7 +97,7 @@ def create_app(test_config=None):
     login_manager = LoginManager()
 
     @login_manager.user_loader
-    def load_user(user_id):
+    def load_user(user_id) -> UserClass:
         return UserClass(user_id)
 
     login_manager.init_app(running_app)

@@ -377,7 +377,7 @@ TaskWorkLabel.propTypes = {
 
 class TaskEpicLabel extends React.Component {
   static propTypes = {
-    color: PropTypes.string.isRequired,
+    color: PropTypes.string,
     epic: PropTypes.string.isRequired
   }
 
@@ -498,7 +498,7 @@ class TaskContainerSprint extends React.Component {
     estimate: PropTypes.number,
     update: PropTypes.func,
     click: PropTypes.func,
-    deadline: PropTypes.object,
+    deadline: PropTypes.string,
     scheduler: PropTypes.bool
   }
 
@@ -511,21 +511,19 @@ class TaskContainerSprint extends React.Component {
     }
   }
 
-  click () {
-    this.props.click()
-  }
-
   render () {
     let scheduled
+    let scheduledClass = ''
     if (this.props.scheduler && this.props.deadline) {
-      scheduled = <div className="row">
+      scheduled = <div className="container">
           <TaskEstimateLabel estimate={this.props.estimate} />
-            Due: {this.props.deadline}</div>
+          <div className="small-2">Due: {this.props.deadline}</div></div>
     } else if (this.props.scheduler) {
-      scheduled = <div className="row">
+      scheduled = <div className="container">
           <TaskEstimateLabel estimate={this.props.estimate} />
         No Due Date</div>
     } else {
+      scheduledClass = 'scheduled'
       scheduled = (
         <div className="grid-x">
           <TaskScheduleHours
@@ -536,17 +534,19 @@ class TaskContainerSprint extends React.Component {
           />
           <TaskScheduleNote
             scheduleNote={this.state.scheduleNote}
-            update={(v, c) => this.handleClick('status_note', v, c)}
+            update={(v, c) => this.handleUpdate('status_note', v, c)}
+            onClick={(target) => this.handleClick(target)}
           />
           <TaskWorkButton
             scheduleWork={this.state.scheduleWork}
-            update={(v, c) => this.handleClick('schedule_work', v, c)}
+            update={(v, c) => this.handleUpdate('schedule_work', v, c)}
+            onClick={(target) => this.handleClick(target)}
             />
         </div>
       )
     }
     return (
-      <div className="task-container container" onClick={() => this.click()}>
+      <div className={`task-container container ${scheduledClass}`} onClick={(target) => this.handleClick(target)}>
         <div className="grid-x">
           <TaskEpicLabel
             epic={this.props.epic} color={this.props.color}
@@ -560,7 +560,8 @@ class TaskContainerSprint extends React.Component {
           />
           <TaskStatusButton
             status={this.state.status}
-            update={(v, c) => this.handleClick('status', v, c)}
+            update={(v, c) => this.handleUpdate('status', v, c)}
+            onClick={(target) => this.handleClick(target)}
           />
         </div>
           {scheduled}
@@ -568,7 +569,16 @@ class TaskContainerSprint extends React.Component {
     )
   }
 
-  handleClick (target, newValue, callback) {
+  handleClick (target) {
+    console.log('handle click')
+    console.dir(target)
+    this.props.click()
+    /* if (target === 'container') {
+       this.props.click()
+    } */
+  }
+
+  handleUpdate (target, newValue, callback) {
     this.props.update(target, newValue, callback)
   }
 }

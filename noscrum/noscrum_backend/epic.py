@@ -1,7 +1,7 @@
 """
 Handler for backend of Epic API for Noscrum
 """
-from noscrum_backend.db import get_db, Epic
+from noscrum_backend.db import get_db, Epic  # type: ignore - it's there
 
 
 def get_epics(current_user, sprint_view=False, sprint_id=None):
@@ -15,13 +15,15 @@ def get_epics(current_user, sprint_view=False, sprint_id=None):
     return app_db.session.execute(  # pylint: disable=no-member
         "SELECT epic.id, "
         + "CASE WHEN epic.epic == 'NULL' THEN 'No Epic' ELSE epic.epic END as epic, "
-        + "color, epic.deadline, "
+        + "color,"
+        + "epic.deadline, "
         + "sum(coalesce(estimate,0)) as estimate, count(task.id) as tasks, "
         + "COUNT(DISTINCT CASE WHEN task.status <> 'Done' THEN task.id ELSE NULL END) "
         + "as active_tasks, "
         + "COUNT(DISTINCT CASE WHEN task.estimate IS NULL THEN task.id ELSE NULL END) "
         + "as unestimated_tasks, "
-        + "SUM(CASE WHEN task.status <> 'Done' THEN task.estimate - coalesce(task.actual,0)"
+        + "SUM(CASE WHEN task.status <> 'Done' "
+        + "THEN task.estimate - coalesce(task.actual,0)"
         + " ELSE 0 END) AS rem_estimate "
         + "FROM epic "
         + "LEFT OUTER JOIN story ON story.epic_id = epic.id "

@@ -3,6 +3,7 @@ Sprint View and Database Interaction Module
 """
 from datetime import date, timedelta, datetime
 import logging
+from typing import Optional
 from flask_openapi3 import APIBlueprint as Blueprint
 from flask import flash, redirect, request, url_for, abort
 from flask_login import current_user, login_required
@@ -131,9 +132,12 @@ def schedule(path: SprintPath):
     """
     sprint_id = path.sprint_id
     sprint = backend.get_sprint(current_user, sprint_id)
-    req = request.form
-    if request.get_json() is not None:
-        req = request.get_json()
+    req: dict = request.form
+    if request.get_json(silent=True) is not None:
+        json_req = request.get_json()
+        if not isinstance(json_req, dict):
+            abort(400, "JSON is invalid for reqeust")
+        req = json_req
     schedule_id = req.get("schedule_id", None)
     schedule_record = (
         None if schedule_id is None else backend.get_schedule(current_user, schedule_id)
@@ -217,9 +221,12 @@ def del_schedule(path: SprintPath):
     Delete schedule with a given schedule_id for a given sprint
     """
     logger.info("%s and %s", request.method, request.method == "DELETE")
-    req = request.form
-    if request.get_json() is not None:
-        req = request.get_json()
+    req: dict = request.form
+    if request.get_json(silent=True) is not None:
+        json_req = request.get_json()
+        if not isinstance(json_req, dict):
+            abort(400, "JSON in request is invalid for delete schedule")
+        req = json_req
     schedule_id = req.get("schedule_id", None)
     sprint_id = path.sprint_id
     if req.get("recurring", 0) == 1:
@@ -253,7 +260,10 @@ def create_next():
     error = None
     last_sprint = backend.get_last_sprint(current_user)
     if last_sprint is None:
-        error = "No sprint found for user. Next sprint can only be created after initial sprint"
+        error = (
+            "No sprint found for user. "
+            + "Next sprint can only be created after initial sprint"
+        )
     if error is None:
         (start_date,) = last_sprint.end_date + timedelta(1)
         end_date = last_sprint.end_date + timedelta(8)
@@ -289,7 +299,7 @@ def get_create():
 class SprintQuery(BaseModel):
     start_date: str
     end_date: str
-    force_create: bool = None
+    force_create: Optional[bool] = None
 
 
 @bp.post("/create")

@@ -266,7 +266,8 @@ def list_for_epic(path: EpicPath, query: NoscrumBaseQuery):
             flash(error, "error")
             return redirect(url_for("sprint.active"))
     if is_json:
-        dict_work_items = [x.to_dict() for x in work_items]
+        # SQLAlchemy is doing the __iter__ magic here
+        dict_work_items = [x.to_dict() for x in work_items]  # type: ignore
         return {"Success": True, "work_items": dict_work_items}
     return render_template(
         "work/list.html", key="Epic " + epic["epic"], tasks=tasks, work_items=work_items

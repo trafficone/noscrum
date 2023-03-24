@@ -2,13 +2,19 @@
 Backend components for Noscrum Story Model
 """
 import logging
+from typing import Optional
 from noscrum_backend.db import get_db, Story, TagStory, Tag, Task
 from noscrum_backend.epic import get_null_epic
 
 logger = logging.getLogger()
 
 
-def get_stories(current_user, sprint_view=False, sprint_id=None, closed: bool = None):
+def get_stories(
+    current_user,
+    sprint_view: bool = False,
+    sprint_id: Optional[int] = None,
+    closed: bool = False,
+):
     """
     Get story records with calculated metadata
     @sprint_view True if querying for a sprint
@@ -22,21 +28,25 @@ def get_stories(current_user, sprint_view=False, sprint_id=None, closed: bool = 
         elif not closed:
             logger.info(closed, "<- and also here")
             # pylint(singleton-comparison)
-            query = query.filter(Story.closure_state == None)
+            query = query.filter(Story.closure_state == "")
         else:
-            query = query.filter(Story.closure_state != None)
+            query = query.filter(Story.closure_state != "")
+        print("YEE HAW ", query.count())
         return query.all()
     return app_db.session.execute(  # pylint: disable=no-member
         "SELECT story.id, "
         + "CASE WHEN story = 'NULL' THEN 'No Story' ELSE story END as story, "
-        + "epic_id, prioritization, story.deadline, "
+        + "epic_id,"
+        + "prioritization,"
+        + "story.deadline, "
         + "sum(coalesce(estimate,0)) as estimate, "
         + "count(task.id) as tasks, "
         + "COUNT(DISTINCT CASE WHEN task.status <> 'Done' THEN task.id ELSE NULL END) "
         + "as active_tasks, "
         + "COUNT(DISTINCT CASE WHEN task.estimate IS NULL THEN task.id ELSE NULL END) "
         + "as unestimated_tasks, "
-        + "SUM(CASE WHEN task.status <> 'Done' THEN task.estimate - coalesce(task.actual,0) ELSE 0 "
+        + "SUM(CASE WHEN task.status <> 'Done'"
+        + "THEN task.estimate - coalesce(task.actual,0) ELSE 0 "
         + "END) AS rem_estimate "
         + "FROM story "
         + "LEFT OUTER JOIN task on task.story_id = story.id "
@@ -132,6 +142,7 @@ def create_story(current_user, epic_id, story, prioritization, deadline):
             prioritization=prioritization,
             deadline=deadline,
             user_id=current_user.id,
+            closure_state="",
         )
     app_db.session.add(new_story)  # pylint: disable=no-member
     app_db.session.commit()  # pylint: disable=no-member
@@ -178,6 +189,7 @@ def close_story_update(current_user, story_id, closure_state):
     task_closure_state = closure_state
     if closure_state is None:
         task_closure_state = "To-Do"
+        closure_state = ""
     for task in story.one().tasks:
         if task.status != "Done":
             # task.update({"status":closure_state})

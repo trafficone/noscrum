@@ -40,9 +40,10 @@ def create():
     """
     # FIXME: Validate input somewhat
     form = flask.request.form
+    insecure_password: str = form.get("password", "")
     user_properties = {
         "username": form.get("username"),
-        "insecure_password": bytes(form.get("password"), "utf-8"),
+        "insecure_password": bytes(insecure_password, "utf-8"),
         "email": form.get("email"),
         "first_name": form.get("firstname", form.get("username")),
         "last_name": form.get("lastname"),

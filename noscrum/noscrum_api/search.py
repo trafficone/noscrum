@@ -10,6 +10,7 @@ from noscrum_api.template_friendly import friendly_render as render_template
 bp = Blueprint("search", __name__, url_prefix="/search")
 
 
+@login_required
 def search_db(search_term: str):
     """
     Search DB for objects that contain the search_term
@@ -35,7 +36,7 @@ def query():
     Execute search of db for term
     and return list of items in db with that term
     """
-    search_term = request.args.get("s")
+    search_term: str = request.args.get("s", "")
     if not query:
         abort(401)
     else:

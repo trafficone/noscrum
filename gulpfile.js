@@ -43,12 +43,13 @@ function css () {
 
 if (process.env.NODE_ENV === 'production') {
   exports.build = gulp.series(clean, gulp.parallel(buildJSX, css))
+} else if (process.env.WSL) {
+  console.log('Dev Build Active -- WSL Mode')
+  exports.build = gulp.series(clean, gulp.parallel(buildJSX, css))
 } else {
-  exports.build = function () {
-    console.log('Dev Build Active -- watching')
-    gulp.watch('jsx/',
-      gulp.series(clean, gulp.parallel(buildJSX, css))
-    )
-  }
+  console.log('Dev Build Active -- watching')
+  exports.build = gulp.watch('jsx/',
+    gulp.series(clean, gulp.parallel(buildJSX, css))
+  )
 }
 exports.default = exports.build

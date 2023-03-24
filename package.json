@@ -11,6 +11,7 @@
     "lint:js": "eslint --ext jsx,js jsx/*.jsx",
     "bosslint:js": "eslint --ext jsx,js,html --fix jsx/*.jsx templates/**/*",
     "build-dev": "cross-env NODE_ENV=dev gulp",
+    "build-dev-wsl": "cross-env NODE_ENV=dev WSL=true gulp",
     "build": "cross-env NODE_ENV=production gulp"
   },
   "browserify": {

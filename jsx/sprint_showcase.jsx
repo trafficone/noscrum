@@ -12,7 +12,7 @@ const AjaxDelete = app.AjaxDelete
 
 function NoTask (props) {
   return (
-    <div className="Unscheduled-container container scheduled ui-droppable"
+    <div className="Unscheduled-container container ui-droppable"
       onClick={props.click}>
       <div>No Task Scheduled - click to schedule</div>
       <div>&nbsp;</div>
@@ -26,10 +26,10 @@ NoTask.propTypes = {
 class SprintDayContainer extends React.Component {
   static propTypes = {
     ikey: PropTypes.number.isRequired,
-    date: PropTypes.object.isRequired,
+    date: PropTypes.string.isRequired,
     scheduledHours: PropTypes.number,
-    tasks: PropTypes.object,
-    schedule: PropTypes.object,
+    tasks: PropTypes.array,
+    schedule: PropTypes.array,
     update: PropTypes.func,
     openScheduler: PropTypes.func
   }
@@ -93,23 +93,33 @@ class SprintLabel extends React.Component {
 
 class SprintShowcase extends React.Component {
   static propTypes = {
-    oTasks: PropTypes.object,
-    oSchedule: PropTypes.object,
+    oTasks: PropTypes.array,
+    oSchedule: PropTypes.array,
     sprint: PropTypes.object.isRequired
   }
 
   constructor (props) {
     super(props)
-    const isStatic = (new URLSearchParams(window.location.search)).get('static').toLowerCase() !== 'false'
+    let isStatic
+    if (window.location.pathname === '/sprint/active') {
+      isStatic = false
+    } else {
+      const searchParams = new URLSearchParams(window.location.search)
+      isStatic = true
+      if (searchParams && searchParams.get('static')) {
+        isStatic = searchParams.get('static').toLowerCase() !== 'false'
+      }
+    }
     this.state = {
       static: isStatic,
       tasks: props.oTasks,
       schedule: props.oSchedule ? props.oSchedule : [],
       schedulerOpen: false,
       schedulerConfirm: false,
-      scheduleTask: 0,
+      scheduleTaskId: 0,
       scheduleDay: 0,
-      scheduleHour: 0
+      scheduleHour: 0,
+      schedulingTaskObject: {}
     }
   }
 
@@ -125,16 +135,12 @@ class SprintShowcase extends React.Component {
     return dates
   }
 
-  render () {
-    const days = this.getSprintDates()
-    const schedule = this.state.schedule
-    const tasks = this.state.tasks
-    const caller = this
+  getSprintDayComponents (days, schedule, tasks, caller) {
     let totalScheduled = 0
     const dayComponents = days.map(function (day, dindex) {
       let dayScheduled = 0
       let daySchedule = []
-      const dayString = day.toLocaleDateString('ja-JP').replaceAll('/', '-')
+      const dayString = day.toISOString().split('T')[0]
       if (schedule !== undefined) {
         daySchedule = schedule.filter((sched) => { return sched.sprint_day === dayString })
         daySchedule = daySchedule
@@ -151,7 +157,7 @@ class SprintShowcase extends React.Component {
         <SprintDayContainer
           key={dindex}
           ikey={dindex}
-          date={`${day.getFullYear()}-${day.getMonth() + 1}-${day.getDate()}`}
+          date={dayString}
           scheduledHours={dayScheduled}
           tasks={tasks}
           schedule={daySchedule}
@@ -160,6 +166,15 @@ class SprintShowcase extends React.Component {
           />
       )
     })
+    return { dayComponents, totalScheduled }
+  }
+
+  render () {
+    const days = this.getSprintDates()
+    const schedule = this.state.schedule
+    const tasks = this.state.tasks
+    const caller = this
+    const { dayComponents, totalScheduled } = this.getSprintDayComponents(days, schedule, tasks, caller)
     return (
       <div>
         <SchedulerModal
@@ -171,7 +186,7 @@ class SprintShowcase extends React.Component {
           close={() => this.setState({ ...this.state, schedulerOpen: false })}/>
         <SchedulerConfirm
           open={this.state.schedulerConfirm}
-          task={this.state.scheduleTask}
+          task={this.state.schedulingTaskObject}
           update={(plan, callback) => this.scheduleTask(plan, callback)}
           close={() => this.setState({ ...this.state, schedulerConfirm: false })}/>
         <SprintLabel scheduledHours={totalScheduled} />
@@ -188,7 +203,7 @@ class SprintShowcase extends React.Component {
     const hour = this.state.scheduleHour
     const parentObject = this
     if (!(this.state.schedulerOpen && day && hour)) {
-      console.log('Cannot unschedule task: no schedule element selected')
+      console.error('Erorr: Cannot unschedule task: no schedule element selected')
       return
     }
     console.dir(day)
@@ -196,7 +211,7 @@ class SprintShowcase extends React.Component {
     console.dir(this.state.schedule)
     const scheduleItem = this.state.schedule.filter((sched) => { return (sched.sprint_day === day && sched.sprint_hour === hour) })[0]
     if (scheduleItem === undefined) {
-      console.log(`cannot find schedule item with day ${day} and hour slot ${hour}`)
+      console.error(`Error: cannot find schedule item with day ${day} and hour slot ${hour}`)
       return
     }
     AjaxDelete(GetUpdateURL('sprint/schedule', this.props.sprint.id),
@@ -204,7 +219,7 @@ class SprintShowcase extends React.Component {
         schedule_id: scheduleItem.id
       }, (resp) => {
         if (!Object.prototype.hasOwnProperty.call(resp.data, 'Success') || !resp.data.Success) {
-          console.log('Request failed')
+          console.error('Error: Update request failed')
           console.dir(resp)
           return
         }
@@ -224,11 +239,11 @@ class SprintShowcase extends React.Component {
     if (this.state.schedulerOpen) {
       return
     }
-    day = day.toLocaleString('ja-JP').replaceAll('/', '-').substring(0, 10)
+    const schedDay = day.toISOString().split('T')[0]
     this.setState({
       ...this.state,
       schedulerOpen: true,
-      scheduleDay: day,
+      scheduleDay: schedDay,
       scheduleHour: hour
     })
   }
@@ -237,11 +252,16 @@ class SprintShowcase extends React.Component {
     if (this.state.static) {
       return
     }
+    const schedulingTaskObject = this.state.tasks.filter((t) => t.id === taskId)[0]
+    if (schedulingTaskObject === undefined) {
+      throw Error('Tried to schedule task with invalid ID')
+    }
     this.setState({
       ...this.state,
       schedulerOpen: false,
       schedulerConfirm: true,
-      scheduleTask: this.state.tasks.filter((t) => { return t.id === taskId })[0]
+      scheduleTaskId: taskId,
+      schedulingTaskObject
     })
     callback()
   }
@@ -259,7 +279,7 @@ class SprintShowcase extends React.Component {
     const parentObject = this
     AjaxUpdateProperty(GetUpdateURL('sprint/schedule', this.props.sprint.id),
       {
-        task_id: parentObject.state.scheduleTask.id,
+        task_id: parentObject.state.scheduleTaskId,
         sprint_day: parentObject.state.scheduleDay,
         sprint_hour: parentObject.state.scheduleHour,
         schedule_time: plan
@@ -268,7 +288,7 @@ class SprintShowcase extends React.Component {
         const oldSchedule = parentObject.state.schedule ? parentObject.state.schedule : []
         const newSchedule = [...oldSchedule]
         if (!Object.prototype.hasOwnProperty.call(resp.data, 'Success') || !resp.data.Success) {
-          console.log('Request failed')
+          console.error('Error: Request to update schedule failed')
           console.dir(resp)
           return
         }
@@ -276,7 +296,7 @@ class SprintShowcase extends React.Component {
           sprint_day: parentObject.state.scheduleDay,
           sprint_hour: parentObject.state.scheduleHour,
           schedule_time: Number(plan),
-          task_id: parentObject.state.scheduleTask.id,
+          task_id: parentObject.state.scheduleTaskId,
           work: 0,
           note: '',
           id: resp.data.schedule_task.id

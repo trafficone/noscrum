@@ -40,9 +40,9 @@ module.exports = {
   getTestObj () { return taskSC.noscrumObj },
   TaskShowcase,
   PrettyAlert,
-  renderTaskShowcase (showcaseId) {
+  renderTaskShowcase (showcaseId, isArchive) {
     const root = ReactDOM.createRoot(document.getElementById(showcaseId))
-    root.render(<TaskShowcase />)
+    root.render(<TaskShowcase isArchive={isArchive} />)
   },
 
   renderSprintShowcase (showcaseId, sprintId) {

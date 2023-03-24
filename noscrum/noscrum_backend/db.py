@@ -25,7 +25,7 @@ logger = logging.getLogger()
         UserRoles,  # pylint: disable=unused-import
         ScheduleTask,  # pylint: disable=unused-import
     )
-"""
+"""  # noqa: E501
 
 get_db = get_db_instance
 
@@ -60,15 +60,15 @@ class DictableModel:
         return ret
 
     @classmethod
-    def from_dict(cls, input_dict):
+    def from_dict(cls, input_dict: dict):
         """
         Coerce dict object into table.
         """
-        if set(input_dict.keys()) != {c.name for c in cls.__table__.columns}:
+        if set(input_dict.keys()) != {c.name for c in cls.__table__.columns}:  # type: ignore  # noqa: E501
             raise ValueError(
                 f'Input dictionary not compatible with class "{cls.__name__}"'
             )
-        return cls(input_dict)
+        return cls(input_dict)  # type: ignore
 
 
 class Work(get_db().Model):
@@ -121,9 +121,11 @@ class User(get_db().Model):
     """
 
     __tablename__ = "user"
-    id = sa.Column(sa.Integer(), primary_key=True)
-    username = sa.Column(sa.String(100), nullable=False, unique=True)
-    active = sa.Column("is_active", sa.Boolean(), nullable=False, server_default="1")
+    id: sa.Column = sa.Column(sa.Integer(), primary_key=True)
+    username: sa.Column = sa.Column(sa.String(100), nullable=False, unique=True)
+    active: sa.Column = sa.Column(
+        "is_active", sa.Boolean(), nullable=False, server_default="1"
+    )
 
     # User auth information.
     # User authentication information. The collation='NOCASE' is required
@@ -131,7 +133,7 @@ class User(get_db().Model):
     email = sa.Column(sa.String(255, collation="NOCASE"), nullable=True, unique=True)
     email_confirmed_at = sa.Column(sa.DateTime())
     email_opt_in = sa.Column(sa.Boolean(), nullable=False, server_default="0")
-    password = sa.Column(sa.String(255), nullable=False, server_default="")
+    password: sa.Column = sa.Column(sa.String(255), nullable=False, server_default="")
     # User personal information
     first_name = sa.Column(
         sa.String(100, collation="NOCASE"), nullable=False, server_default=""

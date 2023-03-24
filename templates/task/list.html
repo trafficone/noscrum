@@ -11,7 +11,7 @@
 <script>
 // {% block jquery %}
     const app = require('app');
-    app.renderTaskShowcase('reactComponents');
+    app.renderTaskShowcase('reactComponents', {{ 'true' if archive else 'false' }});
 //{% if not archive %}
 //{% endif %}
     $(".close-story").click( function () {

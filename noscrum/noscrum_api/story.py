@@ -51,9 +51,12 @@ def create(path: EpicPath, query: NoscrumBaseQuery):
     if epic is None:
         flash(f'Epic with ID "{epic_id}" Not found.', "error")
         return redirect(url_for("story.list_all"))
-    req = request.form
-    if request.get_json() is not None:
-        req = request.get_json()
+    req: dict = request.form
+    if request.get_json(silent=True) is not None:
+        json_req = request.get_json()
+        if not isinstance(json_req, dict):
+            abort(400, "JSON is invalid for create story")
+        req = json_req
     story = req.get("story", None)
     prioritization = req.get("prioritization", None)
     deadline = req.get("deadline", None)

@@ -320,8 +320,12 @@ def get_sprint_details(current_user, sprint_id):
     epics = get_epics(current_user, sprint_view=True, sprint_id=sprint_id)
     tasks = app_db.session.execute(  # pylint: disable=no-member
         "SELECT task.id, task, estimate, status, story_id, "
-        + "epic_id, actual, task.deadline, task.recurring, coalesce(hours_worked,0) hours_worked, "
-        + "coalesce(sum_sched,0) sum_sched, "
+        + "epic_id,"
+        + "actual,"
+        + "task.deadline,"
+        + "task.recurring,"
+        + "coalesce(hours_worked,0) hours_worked,"
+        + "coalesce(sum_sched,0) sum_sched,"
         + "(task.sprint_ID = sched.sprint_id) single_sprint_task "
         + "FROM task "
         + "JOIN story ON task.story_id = story.id "
@@ -333,7 +337,8 @@ def get_sprint_details(current_user, sprint_id):
         + "ON task.id = sched.task_id AND sched.sprint_id = :sprint_id "
         + "WHERE task.user_id = :user_id "
         + "AND (task.sprint_ID = :sprint_id or coalesce(task.recurring,0) = 1 or "
-        + "task.id in (select task_id from schedule_task where sprint_id = :sprint_id)) "
+        + "task.id in "
+        + "(select task_id from schedule_task where sprint_id = :sprint_id)) "
         + "ORDER BY coalesce(task.deadline,'2222-12-22') ASC ",
         {"sprint_id": sprint_id, "user_id": current_user.id},
     ).fetchall()
@@ -342,7 +347,7 @@ def get_sprint_details(current_user, sprint_id):
         Task.query.filter(Task.user_id == current_user.id)
         .filter(
             or_(
-                Task.sprint_id == None, Task.sprint_id != sprint_id
+                Task.sprint_id == None, Task.sprint_id != sprint_id  # noqa: E711
             )  # pylint: disable:singleton-comparison
         )
         .all()

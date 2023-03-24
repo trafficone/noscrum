@@ -157,7 +157,7 @@ class StoryPriorityLabel extends React.Component {
 class StoryArchiveButton extends React.Component {
   static propTypes = {
     archive: PropTypes.bool,
-    update: PropTypes.func
+    close: PropTypes.func
   }
 
   render () {
@@ -172,8 +172,8 @@ class StoryArchiveButton extends React.Component {
   }
 
   handleArchive () {
-    // TODO: Handle Archive
-    console.log('Not Ipmelemented Yet')
+    // TODO: Archive Confirmation
+    this.props.close(!this.props.archive, () => {})
   }
 }
 
@@ -208,7 +208,8 @@ class StorySummaryContainer extends React.Component {
     incomplete: PropTypes.number,
     deadline: PropTypes.string,
     update: PropTypes.func,
-    archive: PropTypes.bool
+    isArchive: PropTypes.bool,
+    close: PropTypes.func
   }
 
   render () {
@@ -225,7 +226,7 @@ class StorySummaryContainer extends React.Component {
             })
           }}
         />
-        <StoryArchiveButton update={this.props.update} />
+        <StoryArchiveButton close={this.props.close} archive={this.props.isArchive}/>
       </div>
     )
   }
@@ -269,7 +270,9 @@ class StoryContainerTShowcase extends React.Component {
     deadline: PropTypes.string,
     tasks: PropTypes.array,
     update: PropTypes.func,
-    updateTask: PropTypes.func
+    close: PropTypes.func,
+    updateTask: PropTypes.func,
+    isArchive: PropTypes.bool
   }
 
   constructor (props) {
@@ -319,7 +322,8 @@ class StoryContainerTShowcase extends React.Component {
             incomplete={incompleteTasks}
             deadline={this.props.deadline}
             update={(v, c) => this.props.update('deadline', v, c)}
-            archive={true}
+            close={(v, c) => this.props.close(v, c)}
+            isArchive={this.props.isArchive}
           />
 
           <div className=" cell large-10">

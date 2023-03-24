@@ -3,11 +3,14 @@ User backend handler for Noscrum
 """
 import time
 import logging
+from typing import Optional
 import bcrypt
 from flask_login import UserMixin
 
 # imports for JWT + FastAPI
 import jwt
+from pydantic import BaseModel
+from sqlalchemy import Column
 
 # from fastapi import Depends
 # from fastapi.security import OAuth2PasswordBearer
@@ -54,11 +57,14 @@ class UserToken:
         self.username = username
 
 
-class UserClass(UserMixin):
+class UserClass(UserMixin, BaseModel):
     """
     UserManager class for Noscrum
     handles all login/authentication actions
     """
+
+    id: Optional[int]
+    user: Optional[User]
 
     def __init__(self, user_id: str):
         super().__init__()
@@ -76,7 +82,7 @@ class UserClass(UserMixin):
         is_active property, which is from database is_active
         is used to determine spaces where blocked users may not go
         """
-        if self.user is None:
+        if not isinstance(self.user, User) or not isinstance(self.user.active, bool):
             return False
         return self.user.active
 
@@ -86,7 +92,9 @@ class UserClass(UserMixin):
         property used to determine if a user is currently
         authenticated or not. Defaults to False, is set to True by logging in
         """
-        print(self)
+        # print(self)
+        if not isinstance(self._is_authenticated, bool):
+            return False
         return self._is_authenticated
 
     @property
@@ -94,24 +102,32 @@ class UserClass(UserMixin):
         """
         username property to simplify accessing user object username
         """
+        if not isinstance(self.user, User) or not isinstance(self.user.username, str):
+            raise Exception("Cannot get Username: User is None")
         return self.user.username
 
     def get_id(self) -> int:
         """
         Returns User ID value, used in current_user.id
         """
+        if not isinstance(self.id, int):
+            raise Exception("Cannot get ID: ID is NULL")
         return self.id
 
-    def authenticate(self, password: str) -> bool:
+    def authenticate(self, input_pw: str) -> bool:
         """
         Authenticate a user given a certain password.
         uses bcrypt.checkpw to securely(ish) check password
         against database
         """
-        password = bytes(password, "utf-8")
-        user_password = self.user.password
+        password = bytes(input_pw, "utf-8")
+        if not isinstance(self.user, User) or not isinstance(
+            self.user.password, Column
+        ):
+            return False
+        user_password = self.user.password  # type: ignore
         if not isinstance(user_password, bytes):
-            user_password = bytes(user_password, "utf-8")
+            user_password = bytes(user_password, "utf-8")  # type: ignore
         self._is_authenticated = bcrypt.checkpw(password, user_password)
         return self.is_authenticated
 
@@ -121,9 +137,11 @@ class UserClass(UserMixin):
         Creates new salted password hash using bcrypt
         incorporates new salt as well.
         """
-        if not self.is_authenticated:
+        if not self.is_authenticated or not isinstance(password, str):
             return
-        self.user.password = bcrypt.hashpw(password, bcrypt.gensalt())
+        hashed_pw: bytes = bcrypt.hashpw(bytes(password, "utf-8"), bcrypt.gensalt())
+        self.user.password = hashed_pw  # type: ignore (SQLAlchemy is doing stuff here)
+        return
 
     @staticmethod
     def create_user(**user_properties):
@@ -137,8 +155,10 @@ class UserClass(UserMixin):
             prop: user_properties.get(prop) for prop in user_specific_properties
         }
         insecure_password = user_properties.get("insecure_password")
-        if not isinstance(insecure_password, bytes):
+        if isinstance(insecure_password, str):
             insecure_password = bytes(insecure_password, "utf-8")
+        elif not isinstance(insecure_password, bytes) or len(insecure_password) == 0:
+            raise Exception("Cannot create user without password")
         user_values["password"] = bcrypt.hashpw(insecure_password, bcrypt.gensalt())
         app_db = get_db()
         if get_user_by_username(user_properties.get("username")) is not None:
@@ -153,7 +173,7 @@ class UserClass(UserMixin):
         except Exception as database_error:
             logger.error(database_error)
             raise ValueError("Could not create user with the parameters given")
-        return UserClass(new_user.id)
+        return UserClass(new_user.id)  # type: ignore
 
     @staticmethod
     async def get_user_token(
@@ -180,6 +200,6 @@ class UserClass(UserMixin):
             "iat": time.time(),
             "expires": time.time() + ACCESS_TOKEN_EXPIRE_MINUTES * 60,
         }
-        token = jwt.encode(payload, SECRET, algorithm=JWT_ALGORITHM)
+        token = jwt.encode(payload, str(SECRET), algorithm=JWT_ALGORITHM)
 
         return {"access_token": token}

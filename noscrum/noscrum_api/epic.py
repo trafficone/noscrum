@@ -33,9 +33,12 @@ def create(query: NoscrumBaseQuery):
     """
     is_asc = query.is_asc
     is_json = query.is_json
-    req = request.form
-    if request.get_json() is not None:
-        req = request.get_json()
+    req: dict = request.form
+    if request.get_json(silent=True) is not None:
+        json_req = request.get_json()
+        if not isinstance(json_req, dict):
+            abort(400, "Request JSON was not valid")
+        req = json_req
     epic = req.get("epic", None)
     color = req.get("color", None)
     deadline = req.get("deadline", None)

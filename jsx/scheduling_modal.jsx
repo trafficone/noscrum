@@ -5,8 +5,8 @@ import { TaskContainerSprint } from './task.jsx'
 
 class SchedulerModal extends React.Component {
   static propTypes = {
-    tasks: PropTypes.object.isRequired,
-    schedule: PropTypes.object,
+    tasks: PropTypes.array.isRequired,
+    schedule: PropTypes.array,
     update: PropTypes.func,
     unschedule: PropTypes.func,
     open: PropTypes.bool,
@@ -33,12 +33,12 @@ class SchedulerModal extends React.Component {
               id="unschedule-task"
               title="Unschedule Task Clicked (if any)"
               onClick={() => {
-                console.log('Unschedule Clicked')
+                // console.log('Unschedule Clicked')
                 this.props.unschedule()
               }}
-              data-close>Unschedule Task</button>
+              data-close="">Unschedule Task</button>
       <button className="button" id="unplanned-task" title="Create or Add Task to Sprint" data-open="UnplannedTask">Add Unplanned Task</button>
-      <ul className="tabs" data-tabs id="task-tabs">
+      <ul className="tabs" data-tabs="" id="task-tabs">
         <li className="tabs-title is-active">
           <button aria-selected="true" className="button" onClick={() => this.setState({ ...this.state, recurring: false })}>Planned Tasks</button>
         </li>
@@ -53,7 +53,7 @@ class SchedulerModal extends React.Component {
           update={(taskId, callback) => this.props.update(taskId, callback)}
           recurring={this.state.recurring}/>
       </div>
-      <button className="close-button" data-close aria-label="Close" onClick={() => this.props.close()} > <span aria-hidden="true">&times;</span></button>
+      <button className="close-button" data-close="" aria-label="Close" onClick={() => this.props.close()} > <span aria-hidden="true">&times;</span></button>
       </div>
     </ReactModal>
     )
@@ -62,7 +62,7 @@ class SchedulerModal extends React.Component {
 
 class PlanTaskForm extends React.Component {
   static propTypes = {
-    tasks: PropTypes.object.isRequired,
+    tasks: PropTypes.array.isRequired,
     update: PropTypes.func,
     recurring: PropTypes.bool
   }
@@ -84,15 +84,21 @@ class PlanTaskForm extends React.Component {
             scheduleHours={0}
             deadline={t.deadline}
             scheduler={true}
-            click={() => this.props.update(t.id, () => {})}
+            click={() => this.props.update(t.id, () => { console.log('Scheduling ' + t.id) })}
            />
         )
       })
+    if (tasksFiltered === []) {
+      return (
+        <div>
+          <span>No {this.props.recurring ? 'Recurring' : ''} Tasks in sprint.</span>
+        </div>
+      )
+    }
 
     return (
       <div>
         {tasksFiltered}
-
       </div>
     )
   }
@@ -115,6 +121,9 @@ class SchedulerConfirm extends React.Component {
 
   render () {
     const task = this.props.task
+    if (task === {} || task === undefined) {
+      return
+    }
     return (
       <ReactModal isOpen={this.props.open}
         style={{
