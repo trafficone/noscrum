@@ -2,7 +2,6 @@ Babel==2.9.1
 bcrypt==3.2.0
 blinker==1.4
 boto3>=1.24.0
-cffi==1.15.0
 click==7.1.2
 cryptography==36.0.1
 dnspython==2.2.0
@@ -35,6 +34,5 @@ bs4
 pytest
 pytest-playwright
 coverage==5.0.3
-openapi3-fuzzer
 adal==1.2.2
 schemathesis
