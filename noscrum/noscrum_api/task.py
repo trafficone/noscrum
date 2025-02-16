@@ -1,6 +1,7 @@
 """
 Task View and Database Interaction Module
 """
+
 import logging
 import json
 from datetime import datetime
@@ -10,13 +11,17 @@ from pydantic import BaseModel, Field
 from flask import abort, flash, redirect, request, url_for
 from flask_login import current_user, login_required
 from flask_openapi3 import APIBlueprint as Blueprint
-import noscrum_backend.task as backend
-from noscrum_api.story import StoryPath
-from noscrum_api.template_friendly import NoscrumBaseQuery
-from noscrum_api.template_friendly import friendly_render as render_template
-from noscrum_backend.epic import get_epic, get_epics
-from noscrum_backend.sprint import get_current_sprint, get_sprint, get_sprints
-from noscrum_backend.story import get_null_story_for_epic, get_stories, get_story
+import noscrum.noscrum_backend.task as backend
+from noscrum.noscrum_api.story import StoryPath
+from noscrum.noscrum_api.template_friendly import NoscrumBaseQuery
+from noscrum.noscrum_api.template_friendly import friendly_render as render_template
+from noscrum.noscrum_backend.epic import get_epic, get_epics
+from noscrum.noscrum_backend.sprint import get_current_sprint, get_sprint, get_sprints
+from noscrum.noscrum_backend.story import (
+    get_null_story_for_epic,
+    get_stories,
+    get_story,
+)
 
 logger = logging.getLogger()
 bp = Blueprint("task", __name__, url_prefix="/task")

@@ -1,10 +1,11 @@
 """
 Backend components for Noscrum Story Model
 """
+
 import logging
 from typing import Optional
-from noscrum_backend.db import get_db, Story, TagStory, Tag, Task
-from noscrum_backend.epic import get_null_epic
+from noscrum.noscrum_backend.db import get_db, Story, TagStory, Tag, Task
+from noscrum.noscrum_backend.epic import get_null_epic
 
 logger = logging.getLogger()
 
@@ -31,7 +32,6 @@ def get_stories(
             query = query.filter(Story.closure_state == "")
         else:
             query = query.filter(Story.closure_state != "")
-        print("YEE HAW ", query.count())
         return query.all()
     return app_db.session.execute(  # pylint: disable=no-member
         "SELECT story.id, "

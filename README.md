@@ -15,10 +15,10 @@ Currently the installation "process" is to
 
 - install nginx unit
 - clone the repository
-- create a venv
-- install the requirements.txt
+- run `npm install` and `npm run build` to build the static components
+- use uv to install Python 
 - create a .env file for the necessary environment variables
-- use `flask run` (which is both slow and insecure)
+- use `uv run flask run` to run dev server
 
 ``` bash
 cd /path/to/app/
@@ -27,8 +27,8 @@ cd noscrum
 python -m venv venv
 source venv/bin/activate #may be different depending on your environment
 cat << EOF > .env
-FLASK_ENV=dev
-FLASK_APP=MyNoscrumApp
+FLASK_DEBUG=1
+FLASK_APP=noscrum.noscrum_api
 FLASK_SECRET_KEY=changeme
 EOF
 python -m pip install --upgrade pip wheel

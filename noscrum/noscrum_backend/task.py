@@ -1,7 +1,8 @@
 """
 Backend component of Task API
 """
-from noscrum_backend.db import get_db, Task  # type: ignore
+
+from noscrum.noscrum_backend.db import get_db, Task  # type: ignore
 
 
 def get_tasks(current_user):
@@ -64,9 +65,7 @@ def get_story_summary(current_user):
         app_db.session.query(
             Task.story_id,
             app_db.func.sum(Task.estimate).label("est"),  # pylint: disable=no-member
-            app_db.func.count(Task.id)
-            .filter(Task.estimate is None)
-            .label("unest"),  # pylint: disable=no-member
+            app_db.func.count(Task.id).filter(Task.estimate is None).label("unest"),  # pylint: disable=no-member
             app_db.func.count(Task.id)  # pylint: disable=no-member
             .filter(Task.status != "Done")
             .label("incomplete"),

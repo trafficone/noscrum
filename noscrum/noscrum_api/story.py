@@ -1,21 +1,22 @@
 """
 To handle Story Model controller and views
 """
+
 from datetime import datetime
 import logging
 from flask_openapi3 import APIBlueprint as Blueprint
 from flask import flash, redirect, request, url_for, abort
 from flask_login import current_user, login_required
 from pydantic import BaseModel, Field
-from noscrum_api.template_friendly import (
+from noscrum.noscrum_api.template_friendly import (
     friendly_render as render_template,
     NoscrumBaseQuery,
 )
-from noscrum_api.epic import EpicPath
-import noscrum_backend.story as backend
-from noscrum_backend.epic import get_epic, get_epics
-from noscrum_backend.db import Story
-from noscrum_backend.tag import get_tags_for_story
+from noscrum.noscrum_api.epic import EpicPath
+import noscrum.noscrum_backend.story as backend
+from noscrum.noscrum_backend.epic import get_epic, get_epics
+from noscrum.noscrum_backend.db import Story
+from noscrum.noscrum_backend.tag import get_tags_for_story
 
 logger = logging.getLogger()
 bp = Blueprint("story", __name__, url_prefix="/story")

@@ -1,12 +1,13 @@
 """
 Noscrum API Handler for Sprint (and sprint schedule) components
 """
+
 from datetime import timedelta, datetime
 import logging
 from sqlalchemy import or_
-from noscrum_backend.epic import get_epics
-from noscrum_backend.story import get_stories
-from noscrum_backend.db import get_db, Sprint, Task, ScheduleTask
+from noscrum.noscrum_backend.epic import get_epics
+from noscrum.noscrum_backend.story import get_stories
+from noscrum.noscrum_backend.db import get_db, Sprint, Task, ScheduleTask
 
 logger = logging.getLogger()
 statuses = ["To-Do", "In Progress", "Done"]
@@ -347,7 +348,8 @@ def get_sprint_details(current_user, sprint_id):
         Task.query.filter(Task.user_id == current_user.id)
         .filter(
             or_(
-                Task.sprint_id == None, Task.sprint_id != sprint_id  # noqa: E711
+                Task.sprint_id == None,
+                Task.sprint_id != sprint_id,  # noqa: E711
             )  # pylint: disable:singleton-comparison
         )
         .all()

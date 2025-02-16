@@ -1,6 +1,7 @@
 """
 User backend handler for Noscrum
 """
+
 import time
 import logging
 from typing import Optional
@@ -15,7 +16,7 @@ from sqlalchemy import Column
 # from fastapi import Depends
 # from fastapi.security import OAuth2PasswordBearer
 # from typing import Optional, Dict
-from noscrum_backend.config import (
+from noscrum.noscrum_backend.config import (
     SECRET,
     JWT_ALGORITHM,
     JWT_AUDIENCE,
@@ -23,7 +24,7 @@ from noscrum_backend.config import (
 )
 
 # oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/users/login/token")
-from noscrum_backend.db import User, UserPreference, get_db
+from noscrum.noscrum_backend.db import User, UserPreference, get_db
 
 logger = logging.getLogger()
 
@@ -65,13 +66,17 @@ class UserClass(UserMixin, BaseModel):
 
     id: Optional[int]
     user: Optional[User]
+    is_auth: bool = False
+
+    class Config:
+        arbitrary_types_allowed = True
 
     def __init__(self, user_id: str):
         super().__init__()
         self.user = _get_user(user_id)
-        self._is_authenticated = super().is_authenticated
+        self.is_auth = super().is_authenticated
         if self.user is None:
-            self._is_authenticated = False
+            self.is_auth = False
             self.id = None
         else:
             self.id = int(self.user.id)
@@ -93,9 +98,9 @@ class UserClass(UserMixin, BaseModel):
         authenticated or not. Defaults to False, is set to True by logging in
         """
         # print(self)
-        if not isinstance(self._is_authenticated, bool):
+        if not isinstance(self.is_auth, bool):
             return False
-        return self._is_authenticated
+        return self.is_auth
 
     @property
     def username(self) -> str:
@@ -128,7 +133,7 @@ class UserClass(UserMixin, BaseModel):
         user_password = self.user.password  # type: ignore
         if not isinstance(user_password, bytes):
             user_password = bytes(user_password, "utf-8")  # type: ignore
-        self._is_authenticated = bcrypt.checkpw(password, user_password)
+        self.is_auth = bcrypt.checkpw(password, user_password)
         return self.is_authenticated
 
     def set_password(self, password: str) -> None:

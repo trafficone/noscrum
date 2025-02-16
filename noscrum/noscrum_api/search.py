@@ -1,11 +1,12 @@
 """
 Handle search logic
 """
+
 from flask_openapi3 import APIBlueprint as Blueprint
 from flask import request, abort, current_app
 from flask_login import current_user, login_required
-from noscrum_backend.db import get_db
-from noscrum_api.template_friendly import friendly_render as render_template
+from noscrum.noscrum_backend.db import get_db
+from noscrum.noscrum_api.template_friendly import friendly_render as render_template
 
 bp = Blueprint("search", __name__, url_prefix="/search")
 

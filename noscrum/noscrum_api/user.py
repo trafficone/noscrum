@@ -1,11 +1,12 @@
 """
 User view controller
 """
+
 import logging
 import flask
 from flask_openapi3 import APIBlueprint as Blueprint
 from flask_login import current_user, login_required, login_user, logout_user, UserMixin
-import noscrum_backend.user as backend
+import noscrum.noscrum_backend.user as backend
 
 logger = logging.getLogger()
 bp = Blueprint("user", __name__, url_prefix="/user")

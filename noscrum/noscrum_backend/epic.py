@@ -1,7 +1,8 @@
 """
 Handler for backend of Epic API for Noscrum
 """
-from noscrum_backend.db import get_db, Epic  # type: ignore - it's there
+
+from noscrum.noscrum_backend.db import get_db, Epic  # type: ignore - it's there
 
 
 def get_epics(current_user, sprint_view=False, sprint_id=None):

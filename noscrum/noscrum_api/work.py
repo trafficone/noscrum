@@ -1,26 +1,27 @@
 """
 Data handler for work view and controller
 """
+
 from datetime import date, datetime
 import logging
 from flask_openapi3 import APIBlueprint as Blueprint
 from flask import redirect, request, url_for, abort, flash
 from flask_login import current_user, login_required
 from pydantic import BaseModel
-from noscrum_api.template_friendly import friendly_render as render_template
-from noscrum_api.task import TaskPath
-from noscrum_api.story import StoryPath
-from noscrum_api.epic import EpicPath
-from noscrum_api.template_friendly import NoscrumBaseQuery
-import noscrum_backend.work as backend
-from noscrum_backend.task import (
+from noscrum.noscrum_api.template_friendly import friendly_render as render_template
+from noscrum.noscrum_api.task import TaskPath
+from noscrum.noscrum_api.story import StoryPath
+from noscrum.noscrum_api.epic import EpicPath
+from noscrum.noscrum_api.template_friendly import NoscrumBaseQuery
+import noscrum.noscrum_backend.work as backend
+from noscrum.noscrum_backend.task import (
     get_task,
     get_tasks_for_story,
     get_tasks_for_epic,
     get_tasks,
 )
-from noscrum_backend.story import get_story
-from noscrum_backend.epic import get_epic
+from noscrum.noscrum_backend.story import get_story
+from noscrum.noscrum_backend.epic import get_epic
 
 logger = logging.getLogger()
 

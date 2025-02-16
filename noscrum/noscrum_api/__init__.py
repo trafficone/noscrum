@@ -2,6 +2,7 @@
 NoScrum Scheduling Application
 See README.md for full details.
 """
+
 import os
 
 import logging
@@ -12,7 +13,7 @@ from flask_openapi3 import OpenAPI
 
 from flask_login import LoginManager
 from flask_foundation import Foundation
-from noscrum_backend.db_instance import get_db_instance
+from noscrum.noscrum_backend.db_instance import get_db_instance
 
 
 logger = logging.getLogger()
@@ -92,7 +93,7 @@ def create_app(test_config=None):
 
     # These need app to exist before they can be imported
     # UserManager(running_app, APP_DB, User)
-    from noscrum_backend.user import UserClass
+    from noscrum.noscrum_backend.user import UserClass
 
     login_manager = LoginManager()
 
@@ -103,15 +104,15 @@ def create_app(test_config=None):
     login_manager.init_app(running_app)
 
     # pylint: disable=import-outside-toplevel
-    from noscrum_api.epic import bp as epicbp
-    from noscrum_api.story import bp as storybp
-    from noscrum_api.task import bp as taskbp
-    from noscrum_api.sprint import bp as sprintbp
-    from noscrum_api.tag import bp as tagbp
-    from noscrum_api.work import bp as workbp
-    from noscrum_api.user import bp as userbp
-    from noscrum_api.semi_static import bp as semi_staticbp
-    from noscrum_api.search import bp as searchbp
+    from noscrum.noscrum_api.epic import bp as epicbp
+    from noscrum.noscrum_api.story import bp as storybp
+    from noscrum.noscrum_api.task import bp as taskbp
+    from noscrum.noscrum_api.sprint import bp as sprintbp
+    from noscrum.noscrum_api.tag import bp as tagbp
+    from noscrum.noscrum_api.work import bp as workbp
+    from noscrum.noscrum_api.user import bp as userbp
+    from noscrum.noscrum_api.semi_static import bp as semi_staticbp
+    from noscrum.noscrum_api.search import bp as searchbp
 
     running_app.register_api(epicbp)
     running_app.register_api(storybp)

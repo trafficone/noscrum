@@ -1,18 +1,19 @@
 """
 Database Models and Controller (not much to do, thanks SQLAlchemy!)
 """
+
 # pylint: disable=too-few-public-methods
 import logging
 from datetime import date
 from collections.abc import Hashable, Iterable
 import sqlalchemy as sa
 from sqlalchemy.orm import relationship
-from noscrum_backend.db_instance import get_db_instance
+from noscrum.noscrum_backend.db_instance import get_db_instance
 
 logger = logging.getLogger()
 """
     # TODO: Unused Import is implicitly used by DB, but this prevents import cycle
-    from noscrum_backend.db import (  # pylint: disable=unused-import,import-outside-toplevel
+    from noscrum.noscrum_backend.db import (  # pylint: disable=unused-import,import-outside-toplevel
         User,  # pylint: disable=unused-import
         Role,  # pylint: disable=unused-import
         Task,  # pylint: disable=unused-import
@@ -144,6 +145,9 @@ class User(get_db().Model):
     # Define the relationship to Role via UserRoles
     roles = relationship("Role", "user_roles")
     preferences = relationship("UserPreference")
+
+    class Config:
+        arbitrary_types_allowed = True
 
     def __str__(self):
         """

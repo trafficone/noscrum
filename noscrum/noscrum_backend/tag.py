@@ -1,7 +1,8 @@
 """
 Handle backend components to Noscrum Tag API
 """
-from noscrum_backend.db import get_db, Tag
+
+from noscrum.noscrum_backend.db import get_db, Tag
 
 
 def get_tags(

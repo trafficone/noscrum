@@ -1,6 +1,7 @@
 """
 Configuration object for Noscrum Backend
 """
+
 from starlette.config import Config
 from starlette.datastructures import Secret
 

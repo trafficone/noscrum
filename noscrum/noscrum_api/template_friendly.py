@@ -1,6 +1,7 @@
 """
 Classes and methods to simplify templating for NoScrum pages
 """
+
 from flask import render_template
 from pydantic import BaseModel, Field
 
