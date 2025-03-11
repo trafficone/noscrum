@@ -59,13 +59,14 @@ class UserClass(UserMixin):
     UserManager class for Noscrum
     handles all login/authentication actions
     """
+    is__authenticated: bool = False
 
     def __init__(self, user_id: str):
         super().__init__()
-        self._is_authenticated = super().is_authenticated
+        self.is__authenticated = super().is_authenticated
         self.user = _get_user(user_id)
         if self.user is None:
-            self._is_authenticated = False
+            self.is__authenticated = False
             self.id = None
         else:
             self.id = int(self.user.id)
@@ -76,16 +77,16 @@ class UserClass(UserMixin):
         is_active property, which is from database is_active && is_authenticated
         is used to determine spaces where blocked users may not go
         """
-        is_auth = self.is_authenticated
+        is_auth = self.authenticated
         return is_auth and self.user.active
 
     @property
-    def is_authenticated(self) -> bool:
+    def authenticated(self) -> bool:
         """
         property used to determine if a user is currently
         authenticated or not. Defaults to False, is set to True by logging in
         """
-        return self._is_authenticated
+        return self.is__authenticated
 
     @property
     def username(self) -> str:
@@ -110,8 +111,8 @@ class UserClass(UserMixin):
         user_password = self.user.password
         if not isinstance(user_password, bytes):
             user_password = bytes(user_password, "utf-8")
-        self._is_authenticated = bcrypt.checkpw(password, user_password)
-        return self.is_authenticated
+        self.is__authenticated = bcrypt.checkpw(password, user_password)
+        return self.authenticated
 
     def set_password(self, password: str) -> None:
         """
@@ -119,7 +120,7 @@ class UserClass(UserMixin):
         Creates new salted password hash using bcrypt
         incorporates new salt as well.
         """
-        if not self.is_authenticated:
+        if not self.authenticated:
             return
         self.user.password = bcrypt.hashpw(password, bcrypt.gensalt())
 

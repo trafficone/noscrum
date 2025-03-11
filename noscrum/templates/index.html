@@ -5,7 +5,7 @@
 {% endblock %}
 
 {% block content %}
-{% if current_user.is_authenticated %}
+{% if current_user.authenticated %}
 <h4>Welcome Back {{ current_user.username }}</h4>
 Here are Today's Tasks ({{ today }}):
 {% for task in todays_tasks %}

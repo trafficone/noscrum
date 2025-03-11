@@ -18,7 +18,7 @@ def index():
     """
     Render the application's main landing page
     """
-    if not current_user.is_authenticated:
+    if not current_user.authenticated:
         return render_template("index.html", current_user=current_user)
     current_sprint = get_current_sprint(current_user)
     print(date.today())

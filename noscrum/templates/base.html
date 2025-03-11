@@ -13,7 +13,7 @@
     <div class="top-bar-right">
     <form method="get" action="{{ url_for('search.query')}}">
     <ul class="menu">
-        {% if current_user.is_authenticated %}
+        {% if current_user.authenticated %}
         <li><a href="{{ url_for('task.list_all') }}">Task Board</a></li>
         <li><a href="{{ url_for('sprint.active') }}">Active Sprint</a></li>
         <li><a href="{{ url_for('sprint.list_all') }}">All Sprints</a></li>
@@ -26,7 +26,7 @@
     </ul>
     </form>
         <div class="float-right">
-            {% if current_user.is_authenticated %}
+            {% if current_user.authenticated %}
                 <a href="{{ url_for('user.profile') }}">{{ current_user.user.first_name or current_user.user.username or current_user.user.email }}</a>
                 &nbsp; | &nbsp;
                 <a href="{{ url_for('user.logout') }}">Sign out</a>
