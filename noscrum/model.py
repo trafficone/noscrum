@@ -2,14 +2,13 @@
 """
 Database Models and Controller (not much to do, thanks SQLAlchemy!)
 """
+import uuid
 from datetime import date
-from typing import List, Optional
 
-from fastapi_users.models import BaseUserDB
+from fastapi_users.db import SQLAlchemyBaseUserTableUUID, SQLAlchemyUserDatabase
 from sqlmodel import Field, Relationship, SQLModel
 
 # from flask_login import UserMixin
-
 
 class UserRoles(SQLModel, table=True):
     """
@@ -17,28 +16,30 @@ class UserRoles(SQLModel, table=True):
     """
 
     __tablename__ = "user_roles"
-    id: Optional[int] = Field(default=None, primary_key=True)
+    id: int | None = Field(default=None, primary_key=True)
     user_id: int = Field(default=None, foreign_key="user.id", primary_key=True)
     role_id: int = Field(default=None, foreign_key="role.id", primary_key=True)
 
 
 # Define the UserRoles association table
-class User(BaseUserDB,SQLModel, table=True):
+class User(SQLModel, table=True):
     """
     User model. Contains all properties for a user.
     """
-    #email: str = Field(primary_key=True, index=True)
-    #hashed_password: str
-    #is_active: bool = True
-    #is_superuser: bool = False
-    #is_verified: bool = False
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    #arbitrary_types_allowed=True
+    email: str = Field(primary_key=True, index=True)
+    hashed_password: str
+    is_active: bool = True
+    is_superuser: bool = False
+    is_verified: bool = False
     username: str = Field(primary_key=True)
     email_opt_in: bool = False
     # User personal information
     first_name: str = Field(default="")
     last_name: str = Field(default="")
     # Define the relationship to Role via UserRoles
-    roles: List["Role"] = Relationship(back_populates="users", link_model=UserRoles)
+    roles: list["Role"] = Relationship(back_populates="users", link_model=UserRoles)
 
     def __str__(self):
         """
@@ -55,9 +56,9 @@ class Role(SQLModel, table=True):
     Currently unused.
     """
 
-    id: Optional[int] = Field(default=None, primary_key=True)
+    id: int | None = Field(default=None, primary_key=True)
     name: str = Field(primary_key=True)
-    users: List["User"] = Relationship(back_populates="roles", link_model=UserRoles)
+    users: list["User"] = Relationship(back_populates="roles", link_model=UserRoles)
 
 
 class TagStory(SQLModel, table=True):
@@ -66,9 +67,9 @@ class TagStory(SQLModel, table=True):
     """
 
     __tablename__ = "tag_story"
-    id: Optional[int] = Field(default=None, primary_key=True)
-    tag_id: Optional[int] = Field(default=None, foreign_key="tag.id", primary_key=True)
-    story_id: Optional[int] = Field(
+    id: int | None = Field(default=None, primary_key=True)
+    tag_id: int | None = Field(default=None, foreign_key="tag.id", primary_key=True)
+    story_id: int | None = Field(
         default=None, foreign_key="story.id", primary_key=True
     )
 
@@ -78,16 +79,16 @@ class Story(SQLModel, table=True):
     Story model between Epic and Task
     """
 
-    id: Optional[int] = Field(default=None, primary_key=True)
+    id: int | None = Field(default=None, primary_key=True)
     story: str = Field(primary_key=True)
     epic_id: int = Field(foreign_key="epic.id")
     epic: "Epic" = Relationship(back_populates="stories")
     prioritization: int = Field(default=1)
-    deadline: Optional[date]
+    deadline: date | None
     user_id: int = Field(foreign_key="user.id")
-    tasks: List["Task"] = Relationship(back_populates="story")
-    tags: List["Tag"] = Relationship(back_populates="stories", link_model=TagStory)
-    #sprints: List["Sprint"] = Relationship(back_populates="stories", link_model="Task")
+    tasks: list["Task"] = Relationship(back_populates="story")
+    tags: list["Tag"] = Relationship(back_populates="stories", link_model=TagStory)
+    #sprints: list["Sprint"] = Relationship(back_populates="stories", link_model="Task")
 
 
 class Tag(SQLModel, table=True):
@@ -96,11 +97,11 @@ class Tag(SQLModel, table=True):
     Just an additional string to group stories differently from Epic.
     """
 
-    __tablename__ = "tag"
-    id: Optional[int] = Field(default=None, primary_key=True)
+    #__tablename__ = "tag"
+    id: int | None = Field(default=None, primary_key=True)
     tag: str
     user_id: int = Field(foreign_key="user.id")
-    stories: List[Story] = Relationship(back_populates="tags",link_model=TagStory)
+    stories: list[Story] = Relationship(back_populates="tags",link_model=TagStory)
 
 
 class Task(SQLModel, table=True):
@@ -110,21 +111,21 @@ class Task(SQLModel, table=True):
     such as status, sprint, deadline, etc.
     """
 
-    __tablename__ = "task"
-    id: Optional[int] = Field(default=None, primary_key=True)
+    #__tablename__ = "task"
+    id: int | None = Field(default=None, primary_key=True)
     task: str
     story_id: int = Field(default=None, foreign_key="story.id")
     story: Story = Relationship(back_populates="tasks")
-    sprint_id: Optional[int] = Field(default=None, foreign_key="sprint.id")
+    sprint_id: int | None = Field(default=None, foreign_key="sprint.id")
     sprint: "Sprint" = Relationship(back_populates="tasks")
-    estimate: Optional[float]
-    actual: Optional[float]
-    deadline: Optional[date]
+    estimate: float | None
+    actual: float | None
+    deadline: date | None
     recurring: bool = Field(default=False, nullable=False)
     status: str = Field(default="To-Do")
     user_id: int = Field(foreign_key="user.id")
-    work_items: List["Work"] = Relationship(back_populates="task")
-    schedules: List["ScheduleTask"] = Relationship(back_populates="scheduletask")
+    work_items: list["Work"] = Relationship(back_populates="task")
+    schedules: list["ScheduleTask"] = Relationship(back_populates="scheduletask")
 
 
 class Work(SQLModel, table=True):
@@ -134,14 +135,14 @@ class Work(SQLModel, table=True):
     """
 
     # __tablename__ = "work"
-    id: Optional[int] = Field(default=None, primary_key=True)
+    id: int | None = Field(default=None, primary_key=True)
     work_date: date
     hours_worked: int
     task_id: int = Field(default=None, foreign_key="task.id")
     task: Task = Relationship(back_populates="work_items")
     status: str = Field(default="To-Do", nullable=True)
     user_id: int = Field(default=None, foreign_key="user.id")
-    #story: List["Story"] = Relationship(link_model=Task)
+    #story: list["Story"] = Relationship(link_model=Task)
 
 
 class Epic(SQLModel, table=True):
@@ -149,14 +150,14 @@ class Epic(SQLModel, table=True):
     Epic model which defines the top level of project planning.
     """
 
-    __tablename__ = "epic"
-    id: Optional[int] = Field(default=None, primary_key=True)
+    #__tablename__ = "epic"
+    id: int | None = Field(default=None, primary_key=True)
     epic: str
-    color: Optional[str]
-    deadline: Optional[date]
+    color: str | None
+    deadline: date | None
     user_id: int = Field(foreign_key="user.id")
-    stories: List["Story"] = Relationship(back_populates="epic")
-    # tasks: List[Task] = Relationship(back_populates='task', 'story',
+    stories: list["Story"] = Relationship(back_populates="epic")
+    # tasks: list[Task] = Relationship(back_populates='task', 'story',
     #                     primaryjoin=Story.epic_id == id,
     #                     secondaryjoin=Task.story_id == Story.id)
     # tags = relationship('Tag','story')
@@ -169,15 +170,15 @@ class Sprint(SQLModel, table=True):
     is populated with tasks via Task.sprint_id
     """
 
-    __tablename__ = "sprint"
-    id: Optional[int] = Field(default=None, primary_key=True)
+    #__tablename__ = "sprint"
+    id: int | None = Field(default=None, primary_key=True)
     start_date: date
     end_date: date
     user_id: int = Field(foreign_key="user.id")
-    tasks: List[Task] = Relationship(back_populates="sprint")
-    #stories: List[Story] = Relationship(link_model=Task)
+    tasks: list[Task] = Relationship(back_populates="sprint")
+    #stories: list[Story] = Relationship(link_model=Task)
     # epics = relationship('epic',secondary='story',tertiary='task')
-    schedule: List["ScheduleTask"] = Relationship(back_populates="schedulesprint")
+    schedule: list["ScheduleTask"] = Relationship(back_populates="schedulesprint")
 
 
 class ScheduleTask(SQLModel, table=True):
@@ -189,7 +190,7 @@ class ScheduleTask(SQLModel, table=True):
     """
 
     __tablename__ = "schedule_task"
-    id: Optional[int] = Field(default=None, primary_key=True)
+    id: int | None = Field(default=None, primary_key=True)
     task_id: int = Field(foreign_key="task.id")
     scheduletask: Task = Relationship(back_populates="schedules")
     sprint_id: int = Field(foreign_key="sprint.id")
@@ -197,7 +198,7 @@ class ScheduleTask(SQLModel, table=True):
     user_id: int = Field(foreign_key="user.id")
     sprint_day: date
     sprint_hour: int
-    note: Optional[str]
+    note: str | None
 
     def to_dict(self):
         """

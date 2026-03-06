@@ -59,7 +59,7 @@ auth_backend = user.auth_backend
 running_app.include_router(
     fastapi_users.get_auth_router(auth_backend), prefix="/auth/jwt", tags=["auth"]
 )
-running_app.include_router(fastapi_users.get_register_router(),
+running_app.include_router(fastapi_users.get_register_router(user.UserRead, user.UserCreate),
  prefix="/auth",
  tags=["auth"])
 running_app.include_router(
@@ -68,11 +68,11 @@ running_app.include_router(
     tags=["auth"],
 )
 running_app.include_router(
-    fastapi_users.get_verify_router(),
+    fastapi_users.get_verify_router(user.UserRead),
     prefix="/auth",
     tags=["auth"]
 )
-running_app.include_router(fastapi_users.get_users_router(), prefix="/users", tags=["users"])
+running_app.include_router(fastapi_users.get_users_router(user.UserRead, user.UserUpdate), prefix="/users", tags=["users"])
 
 
 @running_app.get("/authenticated-route")

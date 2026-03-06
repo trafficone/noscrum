@@ -2,13 +2,13 @@
 User view and database controller
 """
 import os
-from typing import Optional
+import uuid
 
 import dotenv
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
-from fastapi_users import BaseUserManager, FastAPIUsers, models
+from fastapi_users import BaseUserManager, FastAPIUsers, schemas
 from fastapi_users.authentication import (
     AuthenticationBackend,
     BearerTransport,
@@ -25,24 +25,30 @@ dotenv.load_dotenv()
 
 SECRET = os.environ["PASSWORD_SECRET"]
 
-class UserCreate(models.BaseUserCreate):
+class UserRead(schemas.BaseUser[uuid.UUID]):
+    pass
+
+class UserUpdate(schemas.BaseUserUpdate):
+    pass
+
+class UserCreate(schemas.BaseUserCreate):
     username: str
 
-class UserManager(BaseUserManager[UserCreate, User]):
+class UserManager(BaseUserManager[User, uuid.UUID]):
     user_db_model = User
     reset_password_token_secret = SECRET
     verification_token_secret = SECRET
 
-    async def on_after_register(self, user: User, request: Optional[Request] = None):
+    async def on_after_register(self, user: User, request: Request | None = None):
         print(f"User {user.id} has registered.")
 
     async def on_after_forgot_password(
-        self, user: User, token: str, request: Optional[Request] = None
+        self, user: User, token: str, request: Request | None = None
     ):
         print(f"User {user.id} has forgotten their password. Reset token: {token}")
 
     async def on_after_request_verify(
-        self, user: User, token: str, request: Optional[Request] = None
+        self, user: User, token: str, request: Request | None = None
     ):
         print(f"Verification requested for user {user.id}. Verification token: {token}")
 
@@ -50,12 +56,12 @@ async def get_user_manager(user_db: SQLAlchemyUserDatabase = Depends(get_db)):
     yield UserManager(user_db)
 
 bearer_transport = BearerTransport(tokenUrl="auth/jwt/login")
-def get_jwt_strategy() -> JWTStrategy:
+def get_jwt_strategy_noscrum() -> JWTStrategy:
     return JWTStrategy(secret=SECRET, lifetime_seconds=3600)
 auth_backend = AuthenticationBackend(
-    name="jwt", transport=bearer_transport, get_strategy=get_jwt_strategy
+    name="jwt", transport=bearer_transport, get_strategy=get_jwt_strategy_noscrum
 )
-fastapi_users = FastAPIUsers(get_user_manager, [auth_backend], User, UserCreate, User, User)
+fastapi_users = FastAPIUsers[User, uuid.UUID](get_user_manager, [auth_backend])
 current_active_user = fastapi_users.current_user(active=True)
 current_user = current_active_user
 
@@ -76,14 +82,14 @@ def get_user_by_username(username):
     """
     Return user record given a username request
     """
-    return User.query.filter(User.username == username).first()
+    return User.where(User.username == username).first()
 
 
 def get_current_user():
     """
     Get the record for a currently active user
     """
-    return User.query.filter(User.id == current_user.id).first()
+    return User.where(User.id == current_user.id).first()
 
 
 def authenticate_user(username, credential):
