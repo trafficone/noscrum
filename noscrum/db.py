@@ -1,11 +1,13 @@
 from typing import AsyncGenerator
+
 from fastapi import Depends
 from fastapi_users.db import SQLAlchemyUserDatabase
-from sqlmodel import SQLModel
-from sqlmodel.orm.session import Session
-from sqlmodel.ext.asyncio.session import AsyncSession
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.orm import sessionmaker
+from sqlmodel import SQLModel
+from sqlmodel.ext.asyncio.session import AsyncSession
+from sqlmodel.orm.session import Session
+
 from noscrum.model import User
 
 engine = create_async_engine("sqlite+aiosqlite:///testing.db")

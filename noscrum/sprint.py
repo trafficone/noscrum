@@ -1,18 +1,18 @@
 """
 Sprint View and Database Interaction Module
 """
-from datetime import date, timedelta, datetime
 import json
+from datetime import date, datetime, timedelta
 
-from sqlalchemy import or_
 from fastapi import APIRouter
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
+from sqlalchemy import or_
 
 from noscrum.db import get_db
-from noscrum.model import Sprint, Task, ScheduleTask
 from noscrum.epic import get_epics
+from noscrum.model import ScheduleTask, Sprint, Task
 from noscrum.story import get_stories
 from noscrum.user import current_user
 

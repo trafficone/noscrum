@@ -3,20 +3,21 @@ User view and database controller
 """
 import os
 from typing import Optional
+
 import dotenv
-from fastapi import Depends, Request, APIRouter
+from fastapi import APIRouter, Depends, Request
 from fastapi.responses import RedirectResponse
-from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
+from fastapi.templating import Jinja2Templates
 from fastapi_users import BaseUserManager, FastAPIUsers, models
-from fastapi_users_db_sqlalchemy import SQLAlchemyUserDatabase
 from fastapi_users.authentication import (
     AuthenticationBackend,
     BearerTransport,
     JWTStrategy,
 )
-from fastapi.templating import Jinja2Templates
-from noscrum.model import User
+from fastapi_users_db_sqlalchemy import SQLAlchemyUserDatabase
+
 from noscrum.db import get_db
+from noscrum.model import User
 
 UserDB = get_db()
 

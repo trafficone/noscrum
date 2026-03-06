@@ -2,13 +2,15 @@
 Story Tag controller/view logic of NoScrum
 """
 import json
+
 from fastapi import APIRouter
-from fastapi.responses import JSONResponse, HTMLResponse, RedirectResponse
 from fastapi.encoders import jsonable_encoder
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
-from noscrum.user import current_user
-from noscrum.model import Tag
+
 from noscrum.db import get_db
+from noscrum.model import Tag
+from noscrum.user import current_user
 
 
 def get_tags():

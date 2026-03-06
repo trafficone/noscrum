@@ -2,23 +2,23 @@
 Data handler for work view and controller
 """
 from datetime import date
+
 from fastapi import APIRouter
-from fastapi.responses import JSONResponse, HTMLResponse, RedirectResponse
 from fastapi.encoders import jsonable_encoder
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
-
+from noscrum.db import get_db
+from noscrum.epic import get_epic
 from noscrum.model import Work
+from noscrum.story import get_story
 from noscrum.task import (
     get_task,
-    update_task,
-    get_tasks_for_story,
-    get_tasks_for_epic,
     get_tasks,
+    get_tasks_for_epic,
+    get_tasks_for_story,
+    update_task,
 )
-from noscrum.story import get_story
-from noscrum.epic import get_epic
-from noscrum.db import get_db
 from noscrum.user import current_user
 
 

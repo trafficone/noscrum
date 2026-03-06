@@ -3,15 +3,15 @@ Handler for epic creation, read, and etc.
 """
 
 import json
+
 from fastapi import APIRouter
 from fastapi.encoders import jsonable_encoder
-from fastapi.responses import JSONResponse, HTMLResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 
-
+from noscrum.db import get_db
 from noscrum.model import Epic
 from noscrum.user import current_user
-from noscrum.db import get_db
 
 
 def get_epics(sprint_view=False, sprint_id=None):

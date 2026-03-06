@@ -5,11 +5,13 @@ See README.md for full details.
 import os
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, Depends
+from fastapi import Depends, FastAPI
 from fastapi.staticfiles import StaticFiles
+
+from noscrum import epic, semi_static, sprint, story, tag, task, user, work
 from noscrum.db import create_db_and_tables
 from noscrum.model import User
-from noscrum import epic, story, task, sprint, tag, work, user, semi_static
+
 
 class ConfigClass:
     """Flask application config"""

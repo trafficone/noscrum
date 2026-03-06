@@ -2,11 +2,11 @@
 """
 Database Models and Controller (not much to do, thanks SQLAlchemy!)
 """
-from turtle import back
-from typing import Optional, List
 from datetime import date
-from sqlmodel import Field, SQLModel, Relationship
+from typing import List, Optional
+
 from fastapi_users.models import BaseUserDB
+from sqlmodel import Field, Relationship, SQLModel
 
 # from flask_login import UserMixin
 

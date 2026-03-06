@@ -2,14 +2,15 @@
 To handle Story Model controller and views
 """
 import json
-from fastapi import APIRouter
-from fastapi.responses import JSONResponse, RedirectResponse, HTMLResponse
-from fastapi.templating import Jinja2Templates
-from fastapi.encoders import jsonable_encoder
 
-from noscrum.model import Story, TagStory, Tag
+from fastapi import APIRouter
+from fastapi.encoders import jsonable_encoder
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
+from fastapi.templating import Jinja2Templates
+
 from noscrum.db import get_db
 from noscrum.epic import get_epic, get_epics, get_null_epic
+from noscrum.model import Story, Tag, TagStory
 from noscrum.tag import get_tags_for_story
 from noscrum.user import current_user
 

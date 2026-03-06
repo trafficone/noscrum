@@ -2,21 +2,22 @@
 Task View and Database Interaction Module
 """
 import json
+
 from fastapi import APIRouter
-from fastapi.responses import JSONResponse, HTMLResponse
 from fastapi.encoders import jsonable_encoder
+from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 
-from noscrum.story import get_story, get_stories, get_null_story_for_epic
+from noscrum.db import get_db
 from noscrum.epic import get_epics, get_null_epic
+from noscrum.model import Task
 from noscrum.sprint import (
     get_current_sprint,
+    get_next_sprint,
     get_sprint,
     get_sprint_number_for_user,
-    get_next_sprint,
 )
-from noscrum.model import Task
-from noscrum.db import get_db
+from noscrum.story import get_null_story_for_epic, get_stories, get_story
 from noscrum.user import current_user
 
 
