@@ -19,7 +19,7 @@ Flask-Testing
 Flask-WTF==1.0.0
 idna==3.3
 itsdangerous==1.1.0
-Jinja2==2.11.3
+Jinja2==3.1.6
 MarkupSafe==1.1.1
 passlib==1.7.4
 pycparser==2.21
