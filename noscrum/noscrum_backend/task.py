@@ -1,7 +1,9 @@
 """
 Backend component of Task API
 """
-from noscrum.noscrum_backend.db import get_db, Task
+from sqlalchemy import select, text
+
+from noscrum.noscrum_backend.db import Task, get_db
 
 
 def get_tasks(current_user):
@@ -10,7 +12,7 @@ def get_tasks(current_user):
     """
     app_db = get_db()
     return app_db.session.execute(  # pylint: disable=no-member
-        "SELECT task.id, task, estimate, status, story_id, "
+        text("SELECT task.id, task, estimate, status, story_id, "
         + "epic_id, actual, task.deadline, task.recurring, "
         + "coalesce(hours_worked,0) hours_worked, "
         + "coalesce(sum_sched,0) sum_sched, "
@@ -26,7 +28,7 @@ def get_tasks(current_user):
         + "FROM schedule_task group by task_id, sprint_id) sched "
         + "ON task.id = sched.task_id "
         + "WHERE task.user_id = :user_id "
-        + "ORDER BY task.status, coalesce(task.deadline,'2222-12-22') ASC ",
+        + "ORDER BY task.status, coalesce(task.deadline,'2222-12-22') ASC "),
         {"user_id": current_user.id},
     )  # pylint: disable=no-member
 
@@ -36,6 +38,7 @@ def get_task(current_user, task_id):
     Task record for user for identifier number
     @task_id task record identification number
     """
+    app_db = get_db()
     return (
         Task.query.filter(Task.id == task_id)
         .filter(Task.user_id == current_user.id)
@@ -48,9 +51,10 @@ def get_tasks_for_story(current_user, story_id):
     Get all task records for the current story
     @param story_id asked Story identification
     """
+    app_db = get_db()
     return (
-        Task.query.filter(Task.story_id == story_id)
-        .filter(Task.user_id == current_user.id)
+        app_db.session.execute(select(Task).filter(Task.story_id == story_id)
+        .filter(Task.user_id == current_user.id))
         .all()
     )
 
@@ -83,9 +87,10 @@ def get_tasks_for_epic(current_user, epic_id):
     Get all task records for a certain epic id
     @param epic_id Epic record identity number
     """
+    app_db = get_db()
     return (
-        Task.query.filter(Task.stories.epic_id == epic_id)
-        .filter(Task.user_id == current_user.id)
+        app_db.session.execute(select(Task).filter(Task.stories.epic_id == epic_id)
+        .filter(Task.user_id == current_user.id))
         .all()
     )
 
@@ -96,11 +101,12 @@ def get_task_by_name(current_user, task, story_id):
     @param task Name of task being queried for
     @param story_id Identification for a story
     """
+    app_db = get_db()
     return (
-        Task.query.filter(Task.story_id == story_id)
+        app_db.session.execute(select(Task).filter(Task.story_id == story_id)
         .filter(Task.task == task)
-        .filter(Task.user_id == current_user.id)
-        .first()
+        .filter(Task.user_id == current_user.id))
+        .scalar_one_or_none()
     )
 
 
@@ -152,7 +158,7 @@ def update_task(
     """
     app_db = get_db()
     data = {}
-    query = Task.query.filter(Task.id == task_id).filter(
+    query = select(Task).filter(Task.id == task_id).filter(
         Task.user_id == current_user.id
     )
     if task is not None:
@@ -176,7 +182,10 @@ def update_task(
             recurring = False
         recurring = bool(recurring)
         data["recurring"] = recurring
-    query.update(data, synchronize_session="fetch")
+    old_task = app_db.session.execute(query).scalar_one_or_none()
+    if old_task is None:
+        raise ValueError("No Task found with that ID")
+    old_task.update(data)
     app_db.session.commit()
     return get_task(current_user, task_id)
 

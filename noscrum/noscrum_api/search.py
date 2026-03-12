@@ -1,11 +1,14 @@
 """
 Handle search logic
 """
-from flask_openapi3 import APIBlueprint as Blueprint
-from flask import request, abort
+from flask import abort, request
 from flask_login import current_user, login_required
+from flask_openapi3.blueprint import APIBlueprint as Blueprint
+from sqlalchemy import text
+
+from noscrum.noscrum_api.template_friendly import \
+    friendly_render as render_template
 from noscrum.noscrum_backend.db import get_db
-from noscrum.noscrum_api.template_friendly import friendly_render as render_template
 
 bp = Blueprint("search", __name__, url_prefix="/search")
 
@@ -23,8 +26,8 @@ def search_db(search_term: str):
         f"SELECT * from ({alltext}) WHERE lower(value) "
         + "LIKE '%'||lower(:query)||'%' and user_id == :user_id"
     )
-    return app_db.session.execute(  # pylint: disable=no-member
-        magic_search, {"user_id": current_user.id, "query": search_term}
+    return app_db.session().execute(  # pylint: disable=no-member
+        text(magic_search), {"user_id": current_user.id, "query": search_term}
     )
 
 
@@ -36,7 +39,7 @@ def query():
     and return list of items in db with that term
     """
     search_term = request.args.get("s")
-    if not query:
+    if not query or not search_term:
         abort(401)
     else:
         results = search_db(search_term)

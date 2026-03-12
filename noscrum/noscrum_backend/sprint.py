@@ -1,12 +1,14 @@
 """
 Noscrum API Handler for Sprint (and sprint schedule) components
 """
-from datetime import timedelta, datetime
 import logging
-from sqlalchemy import or_
+from datetime import datetime, timedelta
+
+from sqlalchemy import or_, select, text
+
+from noscrum.noscrum_backend.db import ScheduleTask, Sprint, Task, get_db
 from noscrum.noscrum_backend.epic import get_epics
 from noscrum.noscrum_backend.story import get_stories
-from noscrum.noscrum_backend.db import get_db, Sprint, Task, ScheduleTask
 
 logger = logging.getLogger()
 statuses = ["To-Do", "In Progress", "Done"]
@@ -19,14 +21,14 @@ def get_work_for_sprint(current_user, sprint_id):
     """
     app_db = get_db()
     return app_db.session.execute(  # pylint: disable=no-member
-        "SELECT work.task_id||work_date as id, work.task_id, "
+        text("SELECT work.task_id||work_date as id, work.task_id, "
         + "work_date, sum(hours_worked) as hours_worked FROM work "
         + "join schedule_task st ON work.task_id = st.task_id "
         + "AND work.work_date = st.sprint_day "
         + "AND work.user_id = st.user_id "
         + "WHERE st.sprint_id = :sprint_id "
         + "AND st.user_id = :user_id "
-        + "GROUP BY work.task_id, work_date",
+        + "GROUP BY work.task_id, work_date"),
         {"sprint_id": sprint_id, "user_id": current_user.id},
     ).fetchall()
 
@@ -58,9 +60,11 @@ def get_sprints(
     """
     Return all sprint records for current user.
     """
+    app_db = get_db()
     return (
-        Sprint.query.filter(Sprint.user_id == current_user.id)
-        .order_by(Sprint.start_date.desc())
+        app_db.session.execute(select(Sprint)
+            .filter(Sprint.user_id == current_user.id)
+            .order_by(Sprint.start_date.desc()))
         .all()
     )
 
@@ -69,10 +73,11 @@ def get_sprint(current_user, sprint_id):
     """
     Return Sprint record @param sprint_id for current user
     """
+    app_db = get_db()
     return (
-        Sprint.query.filter(Sprint.id == sprint_id)
+        app_db.session.execute(select(Sprint).filter(Sprint.id == sprint_id)
         .filter(Sprint.user_id == current_user.id)
-        .order_by(Sprint.start_date)
+        .order_by(Sprint.start_date))
         .first()
     )
 
@@ -85,7 +90,8 @@ def get_sprint_by_date(current_user, start_date=None, end_date=None, middle_date
     @param end_date Date when sprint then ends
     @param middle_date Any day within a sprint
     """
-    query = Sprint.query.filter(Sprint.start_date != "1969-12-31").filter(
+    app_db = get_db()
+    query = select(Sprint).filter(Sprint.start_date != "1969-12-31").filter(
         Sprint.user_id == current_user.id
     )
     filter_vars = []
@@ -102,7 +108,7 @@ def get_sprint_by_date(current_user, start_date=None, end_date=None, middle_date
         filter_vars.append(middle_date)
     if len(filter_vars) == 0:
         raise Exception("No criteria entered for get_sprint_by_date")
-    return query.first()
+    return app_db.session.execute(query).first()
 
 
 def get_current_sprint(current_user):
@@ -119,9 +125,10 @@ def get_last_sprint(
     """
     Returns the last(final date) sprint record
     """
+    app_db = get_db()
     return (
-        Sprint.query.filter(Sprint.user_id == current_user.id)
-        .order_by(Sprint.end_date)
+        app_db.session.execute(select(Sprint).filter(Sprint.user_id == current_user.id)
+        .order_by(Sprint.end_date))
         .first()
     )
 
@@ -147,9 +154,14 @@ def update_sprint(current_user, sprint_id, start_date, end_date):
     Update the start or end date of the sprint
     """
     app_db = get_db()
-    Sprint.query.filter(Sprint.id == sprint_id).filter(
-        Sprint.user_id == current_user.id
-    ).update({start_date: start_date, end_date: end_date}, synchronize_session="fetch")
+    old_sprint = app_db.session.execute(
+        select(Sprint).filter(Sprint.id == sprint_id).filter(
+        Sprint.user_id == current_user.id)
+    ).scalar_one_or_none()
+    if old_sprint is None:
+        raise ValueError("No Sprint found with provided ID")
+    old_sprint.start_date = start_date
+    old_sprint.end_date = end_date
     app_db.session.commit()  # pylint: disable=no-member
     return get_sprint(current_user, sprint_id)
 
@@ -159,9 +171,12 @@ def delete_sprint(current_user, sprint_id):
     Delete a sprint with a given sprint_id
     """
     app_db = get_db()
-    Sprint.query.filter(Sprint.id == sprint_id).filter(
+    old_sprint = app_db.session.execute(select(Sprint).filter(Sprint.id == sprint_id).filter(
         Sprint.user_id == current_user.id
-    ).delete()
+    )).scalar_one_or_none()
+    if old_sprint is None:
+        return sprint_id
+    app_db.session.delete(old_sprint)
     app_db.session.commit()  # pylint: disable=no-member
     return sprint_id
 
@@ -171,9 +186,10 @@ def get_schedules_for_sprint(current_user, sprint_id):
     Get ScheduleTasks having a sprint_id value
     @param sprint_id the queried sprint ID val
     """
+    app_db = get_db()
     return (
-        ScheduleTask.query.filter(ScheduleTask.sprint_id == sprint_id)
-        .filter(ScheduleTask.user_id == current_user.id)
+        app_db.session.execute(select(ScheduleTask).filter(ScheduleTask.sprint_id == sprint_id)
+        .filter(ScheduleTask.user_id == current_user.id))
         .all()
     )
 
@@ -187,7 +203,8 @@ def get_schedule_tasks_filtered(
     @param sprint_day the day for the schedule
     @param sprint_hour the schedule time value
     """
-    query = ScheduleTask.query.filter(ScheduleTask.sprint_id == sprint_id)
+    app_db = get_db()
+    query = select(ScheduleTask).filter(ScheduleTask.sprint_id == sprint_id)
     query = query.filter(ScheduleTask.user_id == current_user.id)
     if task_id is not None:
         query = query.filter(ScheduleTask.task_id == task_id)
@@ -195,7 +212,7 @@ def get_schedule_tasks_filtered(
         query = query.filter(ScheduleTask.sprint_day == sprint_day)
     if sprint_hour is not None:
         query = query.filter(ScheduleTask.sprint_hour == sprint_hour)
-    return query.all()
+    return app_db.session.execute(query).all()
 
 
 def get_schedule(current_user, sched_id):
@@ -204,9 +221,10 @@ def get_schedule(current_user, sched_id):
     @param sched_id ScheduleTask ID you desire
     """
 
+    app_db = get_db()
     return (
-        ScheduleTask.query.filter(ScheduleTask.id == sched_id)
-        .filter(ScheduleTask.user_id == current_user.id)
+        app_db.session.execute(select(ScheduleTask).filter(ScheduleTask.id == sched_id)
+        .filter(ScheduleTask.user_id == current_user.id))
         .first()
     )
 
@@ -217,7 +235,8 @@ def get_schedules(
     """
     Get all ScheduleTasks for a user
     """
-    return ScheduleTask.query.filter(ScheduleTask.user_id == current_user.id).all()
+    app_db = get_db()
+    return app_db.session.execute(select(ScheduleTask).filter(ScheduleTask.user_id == current_user.id)).all()
 
 
 def get_schedule_by_time(
@@ -234,15 +253,16 @@ def get_schedule_by_time(
     @param sprint_hour the schedule time value
     """
 
+    app_db = get_db()
     query = (
-        ScheduleTask.query.filter(ScheduleTask.user_id == current_user.id)
+        select(ScheduleTask).filter(ScheduleTask.user_id == current_user.id)
         .filter(ScheduleTask.sprint_day == sprint_day)
         .filter(ScheduleTask.sprint_hour == sprint_hour)
         .filter(ScheduleTask.sprint_id == sprint_id)
     )
     if schedule_id is not None:
         query.filter(ScheduleTask.id != schedule_id)
-    return query.first()
+    return app_db.session.execute(query).first()
 
 
 def create_schedule(
@@ -283,18 +303,18 @@ def update_schedule(
     @param sprint_hour the schedule time value
     @param note Free field for clarifying time
     """
-    ScheduleTask.query.filter(ScheduleTask.user_id == current_user.id).filter(
+    app_db = get_db()
+    sched_task = app_db.session.execute(select(ScheduleTask).filter(ScheduleTask.user_id == current_user.id).filter(
         ScheduleTask.id == sched_id
-    ).update(
-        {
-            task_id: task_id,
-            sprint_day: sprint_day,
-            sprint_hour: sprint_hour,
-            schedule_time: schedule_time,
-            note: note,
-        },
-        synchronize_session="fetch",
-    )
+    )).scalar_one_or_none()
+    if sched_task is None:
+        raise ValueError("No Schedule Task with that ID")
+    sched_task.task_id = task_id
+    sched_task.sprint_day = sprint_day
+    sched_task.sprint_hour = sprint_hour
+    sched_task.schedule_time = schedule_time
+    sched_task.note = note
+    app_db.session.commit()
     return get_schedule(current_user, sched_id)
 
 
@@ -304,10 +324,14 @@ def delete_schedule(current_user, sched_id):
     @sched_id ScheduleTask chosen for deletion
     """
     app_db = get_db()
-    ScheduleTask.query.filter(ScheduleTask.id == sched_id).filter(
+    sched_task = app_db.session.execute(select(ScheduleTask).filter(ScheduleTask.id == sched_id).filter(
         ScheduleTask.user_id == current_user.id
-    ).delete()
+    )).scalar_one_or_none()
+    if sched_task is None:
+        return sched_id
+    app_db.session.delete(sched_task)
     app_db.session.commit()  # pylint: disable=no-member
+    return sched_id
 
 
 def get_sprint_details(current_user, sprint_id):
@@ -319,7 +343,7 @@ def get_sprint_details(current_user, sprint_id):
     stories = get_stories(current_user, sprint_view=True, sprint_id=sprint_id)
     epics = get_epics(current_user, sprint_view=True, sprint_id=sprint_id)
     tasks = app_db.session.execute(  # pylint: disable=no-member
-        "SELECT task.id, task, estimate, status, story_id, "
+        text("SELECT task.id, task, estimate, status, story_id, "
         + "epic_id, actual, task.deadline, task.recurring, coalesce(hours_worked,0) hours_worked, "
         + "coalesce(sum_sched,0) sum_sched, "
         + "(task.sprint_ID = sched.sprint_id) single_sprint_task "
@@ -334,29 +358,29 @@ def get_sprint_details(current_user, sprint_id):
         + "WHERE task.user_id = :user_id "
         + "AND (task.sprint_ID = :sprint_id or coalesce(task.recurring,0) = 1 or "
         + "task.id in (select task_id from schedule_task where sprint_id = :sprint_id)) "
-        + "ORDER BY coalesce(task.deadline,'2222-12-22') ASC ",
+        + "ORDER BY coalesce(task.deadline,'2222-12-22') ASC "),
         {"sprint_id": sprint_id, "user_id": current_user.id},
     ).fetchall()
     unplanned_tasks = (
         # This weird comparison is used because of how SQLAlchemy works (I think?)
-        Task.query.filter(Task.user_id == current_user.id)
+        app_db.session.execute(select(Task).filter(Task.user_id == current_user.id)
         .filter(
             or_(
                 Task.sprint_id == None, Task.sprint_id != sprint_id
             )  # pylint: disable:singleton-comparison
-        )
+        ))
         .all()
     )
     sprint_days = (
-        Sprint.query.filter(Sprint.id == sprint_id)
-        .filter(Sprint.user_id == current_user.id)
-        .first()
+        app_db.session.execute(select(Sprint).filter(Sprint.id == sprint_id)
+        .filter(Sprint.user_id == current_user.id))
+        .scalar_one_or_none()
     )
-    schedule_records_std = (
-        ScheduleTask.query.filter(ScheduleTask.sprint_id == sprint_id)
+    if sprint_days is None:
+        raise ValueError("Sprint Start Day is None")
+    schedule_records_std = app_db.session.execute(select(ScheduleTask).filter(ScheduleTask.sprint_id == sprint_id)
         .filter(ScheduleTask.user_id == current_user.id)
-        .filter(ScheduleTask.sprint_hour >= 0)
-    )
+        .filter(ScheduleTask.sprint_hour >= 0)).all()
     work = get_work_for_sprint(current_user, sprint_id)
     work = {x.id: x for x in work}
     schedule_records_dict = {}

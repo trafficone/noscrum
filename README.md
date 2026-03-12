@@ -13,10 +13,9 @@ versatile enough to meet my needs, without the overhead of managing all my proje
 
 Currently the installation "process" is to
 
-- install nginx unit
+- install nginx unit, and uv
 - clone the repository
-- create a venv
-- install the requirements.txt
+- sync the environment
 - create a .env file for the necessary environment variables
 - use `flask run` (which is both slow and insecure)
 
@@ -24,19 +23,16 @@ Currently the installation "process" is to
 cd /path/to/app/
 git clone git@github.com:trafficone/noscrum.git
 cd noscrum
-python -m venv venv
-source venv/bin/activate #may be different depending on your environment
 cat << EOF > .env
 FLASK_ENV=dev
 FLASK_APP=MyNoscrumApp
 FLASK_SECRET_KEY=changeme
 EOF
-python -m pip install --upgrade pip wheel
-python -m pip install -r requirements.txt
-flask run
+uv sync
+uv run flask run
 ```
 
-Then install the Foundation platform along with jquery to the noscrum/static directory, such that
+Then install the Foundation platform along with jQuery to the noscrum/static directory, such that
 you have the following files:
 
 - css/foundation-float.css

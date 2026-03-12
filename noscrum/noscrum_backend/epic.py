@@ -1,7 +1,9 @@
 """
 Handler for backend of Epic API for Noscrum
 """
-from noscrum.noscrum_backend.db import get_db, Epic
+from sqlalchemy import select, text
+
+from noscrum.noscrum_backend.db import Epic, get_db
 
 
 def get_epics(current_user, sprint_view=False, sprint_id=None):
@@ -10,10 +12,10 @@ def get_epics(current_user, sprint_view=False, sprint_id=None):
     """
     app_db = get_db()
     if not sprint_view:
-        return Epic.query.filter(Epic.user_id == current_user.id).all()
+        return app_db.session.execute(select(Epic).filter(Epic.user_id == current_user.id)).all()
 
     return app_db.session.execute(  # pylint: disable=no-member
-        "SELECT epic.id, "
+        text("SELECT epic.id, "
         + "CASE WHEN epic.epic == 'NULL' THEN 'No Epic' ELSE epic.epic END as epic, "
         + "color, epic.deadline, "
         + "sum(coalesce(estimate,0)) as estimate, count(task.id) as tasks, "
@@ -30,7 +32,7 @@ def get_epics(current_user, sprint_view=False, sprint_id=None):
         + "AND task.sprint_id = :sprint_id "
         + "AND task.user_id = :user_id "
         + "WHERE epic.user_id = :user_id "
-        + "GROUP BY epic.epic, epic.id, epic.color",
+        + "GROUP BY epic.epic, epic.id, epic.color"),
         {"user_id": current_user.id, "sprint_id": sprint_id},
     ).fetchall()
 
@@ -40,10 +42,11 @@ def get_epic_by_name(current_user, epic_name):
     Return the epic given the name of the epic
     @param epic the requsted epic name queried
     """
+    app_db = get_db()
     return (
-        Epic.query.filter(Epic.epic == epic_name)
-        .filter(Epic.user_id == current_user.id)
-        .first()
+        app_db.session.execute(select(Epic).filter(Epic.epic == epic_name)
+        .filter(Epic.user_id == current_user.id))
+        .scalar_one_or_none()
     )
 
 
@@ -52,10 +55,11 @@ def get_epic(current_user, epic_id):
     Returns an epic given the specific epic_id
     @param epic_id the identifier for the epic
     """
+    app_db = get_db()
     return (
-        Epic.query.filter(Epic.id == epic_id)
-        .filter(Epic.user_id == current_user.id)
-        .first()
+        app_db.session.execute(select(Epic).filter(Epic.id == epic_id)
+        .filter(Epic.user_id == current_user.id))
+        .scalar_one_or_none()
     )
 
 
@@ -63,10 +67,11 @@ def get_null_epic(current_user):
     """
     Returns the special null "story" record
     """
+    app_db = get_db()
     epic = (
-        Epic.query.filter(Epic.epic == "NULL")
-        .filter(Epic.user_id == current_user.id)
-        .first()
+        app_db.session.execute(select(Epic).filter(Epic.epic == "NULL")
+        .filter(Epic.user_id == current_user.id))
+        .scalar_one_or_none()
     )
     if epic is None:
         epic = create_epic(current_user, "NULL", None, None)
@@ -95,9 +100,11 @@ def update_epic(current_user, epic_id, epic, color, deadline):
     @param deadline (optional) planned end day
     """
     app_db = get_db()
-    Epic.query.filter(Epic.id == epic_id).update(
-        {"epic": epic, "color": color, "deadline": deadline},
-        synchronize_session="fetch",
-    )
-    app_db.session.commit()  # pylint: disable=no-member
+    old_epic = app_db.session.execute(select(Epic).filter(Epic.id == epic_id).limit(1)).first()
+    if old_epic is None:
+        raise ValueError("No Epic found with that ID")
+    old_epic.epic = epic
+    old_epic.color = color
+    old_epic.deadline = deadline
+    app_db.session.commit()
     return get_epic(current_user, epic_id)

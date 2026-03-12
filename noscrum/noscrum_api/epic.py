@@ -4,13 +4,15 @@ Handler for epic creation, read, and etc.
 
 from datetime import datetime
 
-from flask_openapi3 import APIBlueprint as Blueprint
-from flask import flash, redirect, request, url_for, abort
+from flask import abort, flash, redirect, request, url_for
 from flask_login import current_user, login_required
+from flask_openapi3.blueprint import APIBlueprint as Blueprint
 from pydantic import BaseModel
-from noscrum.noscrum_api.template_friendly import friendly_render as render_template
+
 import noscrum.noscrum_backend.epic as backend
 from noscrum.noscrum_api.template_friendly import NoscrumBaseQuery
+from noscrum.noscrum_api.template_friendly import \
+    friendly_render as render_template
 
 bp = Blueprint("epic", __name__, url_prefix="/epic")
 

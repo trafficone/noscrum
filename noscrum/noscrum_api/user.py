@@ -1,9 +1,11 @@
 """
 User view controller
 """
-from flask_openapi3 import APIBlueprint as Blueprint
 import flask
-from flask_login import current_user, login_required, login_user, logout_user, UserMixin
+from flask_login import (UserMixin, current_user, login_required, login_user,
+                         logout_user)
+from flask_openapi3.blueprint import APIBlueprint as Blueprint
+
 import noscrum.noscrum_backend.user as backend
 
 bp = Blueprint("user", __name__, url_prefix="/user")
@@ -38,9 +40,13 @@ def create():
     """
     # FIXME: Validate input somewhat
     form = flask.request.form
+    pw_str = form.get("password")
+    if pw_str is None:
+        flask.flash("Could not create user without password")
+        return flask.redirect(flask.url_for("user.get_create"))
     user_properties = {
         "username": form.get("username"),
-        "insecure_password": bytes(form.get("password"), "utf-8"),
+        "insecure_password": bytes(pw_str, "utf-8"),
         "email": form.get("email"),
         "first_name": form.get("firstname", form.get("username")),
         "last_name": form.get("lastname"),
@@ -48,7 +54,7 @@ def create():
     try:
         new_user = backend.UserClass.create_user(**user_properties)
     except ValueError as error_message:
-        flask.flash("Could not create user %s", error_message)
+        flask.flash("Could not create user %s", repr(error_message))
         return flask.redirect(flask.url_for("user.get_create"))
     login_user(new_user)
     return flask.redirect(flask.url_for("semi_static.index"))

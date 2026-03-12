@@ -1,24 +1,20 @@
 """
 User backend handler for Noscrum
 """
-import time
 import logging
-import bcrypt
-from flask_login import UserMixin
+import time
 
+import bcrypt
 # imports for JWT + FastAPI
 import jwt
+from flask_login import UserMixin
+from sqlalchemy import select
 
 # from fastapi import Depends
 # from fastapi.security import OAuth2PasswordBearer
 # from typing import Optional, Dict
-from noscrum.noscrum_api.config import (
-    SECRET,
-    JWT_ALGORITHM,
-    JWT_AUDIENCE,
-    ACCESS_TOKEN_EXPIRE_MINUTES,
-)
-
+from noscrum.noscrum_api.config import (ACCESS_TOKEN_EXPIRE_MINUTES,
+                                        JWT_ALGORITHM, JWT_AUDIENCE, SECRET)
 # oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/users/login/token")
 from noscrum.noscrum_backend.db import User, UserPreference, get_db
 
@@ -30,21 +26,24 @@ def _get_user(user_id):
     Return user record given an identity value
     @param user_id user's identification value
     """
-    return User.query.filter(User.id == user_id).first()
+    app_db = get_db()
+    return app_db.session.execute(select(User).filter(User.id == user_id)).scalar_one_or_none()
 
 
 def get_user_by_username(username):
     """
     Return user record given a username request
     """
-    return User.query.filter(User.username == username).first()
+    app_db = get_db()
+    return app_db.session.execute(select(User).filter(User.username == username)).scalar_one_or_none()
 
 
 def get_preferences(user_id):
     """
     Get the preferences of the current user
     """
-    return UserPreference.query.filter(UserPreference.user_id == user_id).all()
+    app_db = get_db()
+    return app_db.session.execute(select(UserPreference).filter(UserPreference.user_id == user_id)).all()
 
 
 class UserToken:
@@ -101,13 +100,13 @@ class UserClass(UserMixin):
         """
         return self.id
 
-    def authenticate(self, password: str) -> bool:
+    def authenticate(self, password_str: str) -> bool:
         """
         Authenticate a user given a certain password.
         uses bcrypt.checkpw to securely(ish) check password
         against database
         """
-        password = bytes(password, "utf-8")
+        password = bytes(password_str, "utf-8")
         user_password = self.user.password
         if not isinstance(user_password, bytes):
             user_password = bytes(user_password, "utf-8")

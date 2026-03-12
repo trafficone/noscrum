@@ -2,18 +2,16 @@
 NoScrum Scheduling Application
 See README.md for full details.
 """
+import logging
 import os
 
-import logging
 from dotenv import load_dotenv
-from flask_babelex import Babel
-from flask_sqlalchemy import SQLAlchemy
-from flask_openapi3 import Info
-from flask_openapi3 import OpenAPI
-
-from flask_login import LoginManager
+#from flask_babelex import Babel
 from flask_foundation import Foundation
-
+from flask_login import LoginManager
+from flask_openapi3.models.info import Info
+from flask_openapi3.openapi import OpenAPI
+from flask_sqlalchemy import SQLAlchemy
 
 logger = logging.getLogger()
 
@@ -70,7 +68,7 @@ def create_app(test_config=None):
     )
     running_app.config.from_object(__name__ + ".ConfigClass")
     # Init Flask-BabelEx
-    Babel(running_app)
+    #Babel(running_app)
     Foundation(running_app)
 
     if test_config is not None:
@@ -88,7 +86,7 @@ def create_app(test_config=None):
     logger.info("Populating Database")
     from noscrum.noscrum_backend.db import db
 
-    db.create_all()
+#    db.create_all()
 
     # These need app to exist before they can be imported
     # UserManager(running_app, APP_DB, User)
@@ -104,14 +102,14 @@ def create_app(test_config=None):
 
     # pylint: disable=import-outside-toplevel
     from noscrum.noscrum_api.epic import bp as epicbp
-    from noscrum.noscrum_api.story import bp as storybp
-    from noscrum.noscrum_api.task import bp as taskbp
-    from noscrum.noscrum_api.sprint import bp as sprintbp
-    from noscrum.noscrum_api.tag import bp as tagbp
-    from noscrum.noscrum_api.work import bp as workbp
-    from noscrum.noscrum_api.user import bp as userbp
-    from noscrum.noscrum_api.semi_static import bp as semi_staticbp
     from noscrum.noscrum_api.search import bp as searchbp
+    from noscrum.noscrum_api.semi_static import bp as semi_staticbp
+    from noscrum.noscrum_api.sprint import bp as sprintbp
+    from noscrum.noscrum_api.story import bp as storybp
+    from noscrum.noscrum_api.tag import bp as tagbp
+    from noscrum.noscrum_api.task import bp as taskbp
+    from noscrum.noscrum_api.user import bp as userbp
+    from noscrum.noscrum_api.work import bp as workbp
 
     running_app.register_api(epicbp)
     running_app.register_api(storybp)

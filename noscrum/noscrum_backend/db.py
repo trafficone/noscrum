@@ -3,10 +3,13 @@ Database Models and Controller (not much to do, thanks SQLAlchemy!)
 """
 # pylint: disable=too-few-public-methods
 import logging
-from datetime import date
 from collections.abc import Hashable, Iterable
+from datetime import date
+
 import sqlalchemy as sa
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import DeclarativeBase, relationship
+from sqlalchemy.orm import Mapped
+
 from noscrum.noscrum_api import APP_DB
 
 logger = logging.getLogger()
@@ -27,7 +30,8 @@ logger = logging.getLogger()
     )
 """
 db = APP_DB
-
+class Base(DeclarativeBase):
+    pass
 if db is not None:
 
     def get_db():
@@ -36,7 +40,7 @@ if db is not None:
         """
         return db
 
-    class DictableModel:
+    class DictableModel(DeclarativeBase):
         """
         Interface class - any DB Model which can be converted
         to a dict by implementing to_dict()
@@ -74,9 +78,9 @@ if db is not None:
                 raise ValueError(
                     f'Input dictionary not compatible with class "{cls.__name__}"'
                 )
-            return cls(input_dict)
+            return cls(**input_dict)
 
-    class Work(db.Model):
+    class Work(Base):
         """
         Model class for task work objects.
         Tracks the number of hours worked on a specific task.
@@ -117,9 +121,9 @@ if db is not None:
             if set(input_dict.keys()) != set(cls.__table__.columns.keys()):
                 raise ValueError('Invalid Input dict of type "Work"')
             _ = input_dict.pop("story_id")
-            return cls(input_dict)
+            return cls(**input_dict)
 
-    class User(db.Model):
+    class User(Base):
         """
         User model. Contains all properties for a user.
         """
@@ -149,7 +153,7 @@ if db is not None:
         )
         # Define the relationship to Role via UserRoles
         roles = relationship("Role", "user_roles")
-        preferences = relationship("UserPreference")
+        preferences: Mapped["UserPreference"] = relationship(back_populates="user")
 
         def __str__(self):
             """
@@ -158,7 +162,7 @@ if db is not None:
             """
             return f"User(id={self.id})"
 
-    class UserPreference(db.Model, DictableModel):
+    class UserPreference(DictableModel):
         """
         User Preferences - generic key-value store
         """
@@ -173,7 +177,7 @@ if db is not None:
         value = sa.Column(sa.String(5000))
 
     # Define the Role data-model
-    class Role(db.Model):
+    class Role(Base):
         """
         Role Model for App roles.
         Currently unused.
@@ -185,7 +189,7 @@ if db is not None:
 
     # Define the UserRoles association table
 
-    class UserRoles(db.Model):
+    class UserRoles(Base):
         """
         UserRoles model which joins User to Role.
         """
@@ -195,7 +199,7 @@ if db is not None:
         user_id = sa.Column(sa.Integer(), sa.ForeignKey("user.id", ondelete="CASCADE"))
         role_id = sa.Column(sa.Integer(), sa.ForeignKey("roles.id", ondelete="CASCADE"))
 
-    class Task(db.Model, DictableModel):
+    class Task(DictableModel):
         """
         Task model for Task objects which contain
         Task descriptions as well as task metadata
@@ -229,7 +233,13 @@ if db is not None:
         def __gt__(self, other):
             return not self < other
 
-    class Tag(db.Model, DictableModel):
+        def update(self, update_params: dict):
+            for k,v in update_params.items():
+                if k in ['id','user_id']:
+                    continue
+                self.__setattr__(k,v)
+
+    class Tag(DictableModel):
         """
         Tag model for story tags.
         Just an additional string to group stories differently from Epic.
@@ -241,7 +251,7 @@ if db is not None:
         user_id = sa.Column(sa.Integer, sa.ForeignKey("user.id"), nullable=False)
         stories = relationship("Story", "tag_story")
 
-    class Story(db.Model, DictableModel):
+    class Story(DictableModel):
         """
         Story model for the Story object.
         Project object between Epic and Task level
@@ -294,17 +304,18 @@ if db is not None:
         def __gt__(self, other):
             return not self < other
 
-    class TagStory(db.Model):
+    class TagStory(Base):
         """
         TagStory model which joins Story to Tag.
         """
 
         __tablename__ = "tag_story"
         id = sa.Column(sa.Integer(), primary_key=True)
+        user_id = sa.Column(sa.Integer, sa.ForeignKey("user.id"))
         tag_id = sa.Column(sa.Integer(), sa.ForeignKey("tag.id"))
         story_id = sa.Column(sa.Integer(), sa.ForeignKey("story.id"))
 
-    class Epic(db.Model, DictableModel):
+    class Epic(DictableModel):
         """
         Epic model which defines the top level of project planning.
         """
@@ -324,7 +335,7 @@ if db is not None:
         )
         # tags = relationship('Tag','story')
 
-    class Sprint(db.Model, DictableModel):
+    class Sprint(DictableModel):
         """
         Sprint model for the sprint object which has
         a start date, end date, and
@@ -347,7 +358,7 @@ if db is not None:
                 for c in self.__table__.columns  # pylint: disable=no-member
             }  # pylint: disable=no-member
 
-    class ScheduleTask(db.Model):
+    class ScheduleTask(Base):
         """
         Scheduling model which associates Tasks with
         particular day/time in a given sprint.

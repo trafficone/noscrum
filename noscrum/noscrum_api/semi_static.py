@@ -2,13 +2,14 @@
 Semi-static page handler (eg about index)
 """
 from datetime import date
-from flask_openapi3 import APIBlueprint as Blueprint
+
 from flask_login import current_user
-from noscrum.noscrum_backend.sprint import (
-    get_current_sprint,
-    get_schedule_tasks_filtered,
-)
-from noscrum.noscrum_api.template_friendly import friendly_render as render_template
+from flask_openapi3.blueprint import APIBlueprint as Blueprint
+
+from noscrum.noscrum_api.template_friendly import \
+    friendly_render as render_template
+from noscrum.noscrum_backend.sprint import (get_current_sprint,
+                                            get_schedule_tasks_filtered)
 
 bp = Blueprint("semi_static", __name__, url_prefix="/")
 
@@ -18,7 +19,7 @@ def index():
     """
     Render the application's main landing page
     """
-    if not current_user.authenticated:
+    if not current_user.is_authenticated:
         return render_template("index.html", current_user=current_user)
     current_sprint = get_current_sprint(current_user)
     print(date.today())

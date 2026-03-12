@@ -1,27 +1,24 @@
 """
 Task View and Database Interaction Module
 """
-from datetime import datetime
 import logging
+from datetime import datetime
 
-from flask_openapi3 import APIBlueprint as Blueprint
-from flask import redirect, request, url_for, abort, flash
+from flask import abort, flash, redirect, request, url_for
 from flask_login import current_user, login_required
+from flask_openapi3.blueprint import APIBlueprint as Blueprint
 from pydantic import BaseModel, Field
 
 import noscrum.noscrum_backend.task as backend
-from noscrum.noscrum_backend.story import (
-    get_null_story_for_epic,
-    get_story,
-    get_stories,
-)
-from noscrum.noscrum_backend.epic import get_epic, get_epics
-from noscrum.noscrum_backend.sprint import get_current_sprint, get_sprint, get_sprints
-from noscrum.noscrum_api.template_friendly import (
-    friendly_render as render_template,
-    NoscrumBaseQuery,
-)
 from noscrum.noscrum_api.story import StoryPath
+from noscrum.noscrum_api.template_friendly import NoscrumBaseQuery
+from noscrum.noscrum_api.template_friendly import \
+    friendly_render as render_template
+from noscrum.noscrum_backend.epic import get_epic, get_epics
+from noscrum.noscrum_backend.sprint import (get_current_sprint, get_sprint,
+                                            get_sprints)
+from noscrum.noscrum_backend.story import (get_null_story_for_epic,
+                                           get_stories, get_story)
 
 logger = logging.getLogger()
 bp = Blueprint("task", __name__, url_prefix="/task")
@@ -191,7 +188,8 @@ def update(path: TaskPath, query: NoscrumBaseQuery):
     return abort(500, error)
 
 
-rowproxy_to_dict = lambda x: [dict(rowproxy.items()) for rowproxy in x]
+def rowproxy_to_dict(x):
+    return [dict(rowproxy.items()) for rowproxy in x]
 
 
 @bp.get("/")

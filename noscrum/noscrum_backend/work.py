@@ -1,8 +1,11 @@
 """
 Backend components to Noscrum Work API
 """
-from noscrum.noscrum_backend.db import get_db, Work, ScheduleTask
+from sqlalchemy import select, text
+
+from noscrum.noscrum_backend.db import ScheduleTask, Work, get_db
 from noscrum.noscrum_backend.task import update_task
+
 
 # pylint: disable-next=too-many-arguments
 def create_work(
@@ -19,10 +22,10 @@ def create_work(
     """
     app_db = get_db()
     work_schedule = (
-        ScheduleTask.query.filter(ScheduleTask.sprint_day == work_date)
+        app_db.session.execute(select(ScheduleTask).filter(ScheduleTask.sprint_day == work_date)
         .filter(ScheduleTask.task_id == task_id)
-        .filter(ScheduleTask.user_id == current_user.id)
-        .first()
+        .filter(ScheduleTask.user_id == current_user.id))
+        .scalar_one_or_none()
     )
     if work_schedule is None:
         raise Exception("Cannot log work on unscheduled task")
@@ -55,7 +58,8 @@ def get_all_work(current_user):
     Get work record from identification number
     @param work_id work record identity number
     """
-    return Work.query.filter(Work.user_id == current_user.id).first()
+    app_db = get_db()
+    return app_db.session.execute(select(Work).filter(Work.user_id == current_user.id)).all()
 
 
 def get_work(current_user, work_id):
@@ -63,10 +67,11 @@ def get_work(current_user, work_id):
     Get work record from identification number
     @param work_id work record identity number
     """
+    app_db = get_db()
     return (
-        Work.query.filter(Work.id == work_id)
-        .filter(Work.user_id == current_user.id)
-        .first()
+        app_db.session.execute(select(Work).filter(Work.id == work_id)
+        .filter(Work.user_id == current_user.id))
+        .scalar_one_or_none()
     )
 
 
@@ -75,9 +80,10 @@ def get_work_for_task(current_user, task_id):
     Get the work records given the task record
     @param task_id task record work is queried
     """
+    app_db = get_db()
     return (
-        Work.query.filter(Work.task_id == task_id)
-        .filter(Work.user_id == current_user.id)
+        app_db.session.execute(select(Work).filter(Work.task_id == task_id)
+        .filter(Work.user_id == current_user.id))
         .all()
     )
 
@@ -87,9 +93,10 @@ def get_work_for_story(current_user, story_id):
     Get the work for a particular story record
     @param story_id a Story record locator val
     """
+    app_db = get_db()
     return (
-        Work.query.filter(Work.story.id == story_id)
-        .filter(Work.user_id == current_user.id)
+        app_db.session.execute(select(Work).filter(Work.story.id == story_id)
+        .filter(Work.user_id == current_user.id))
         .all()
     )
 
@@ -102,11 +109,11 @@ def get_work_for_epic(current_user, epic_id):
     app_db = get_db()
     return Work(
         *app_db.session.execute(  # pylint: disable=no-member
-            "SELECT work.id, task_id, work_date, hours_worked, status "
+            text("SELECT work.id, task_id, work_date, hours_worked, status "
             + "FROM work JOIN task on work.task_id = task.id "
             + "JOIN story ON task.story_id = story.id "
             + " WHERE story.epic_id = ? "
-            + " AND story.user_id = ? ORDER BY work_date",
+            + " AND story.user_id = ? ORDER BY work_date"),
             (epic_id, current_user),
         ).fetchall()
     )
@@ -118,10 +125,11 @@ def get_work_by_dates(current_user, start_date, end_date):
     @param start_date date request lower limit
     @param end_date date requested upper limit
     """
+    app_db = get_db()
     return (
-        Work.query.filter(Work.work_date >= start_date)
+        app_db.session.execute(select(Work).filter(Work.work_date >= start_date)
         .filter(Work.work_date <= end_date)
-        .filter(Work.user_id == current_user.id)
+        .filter(Work.user_id == current_user.id))
         .all()
     )
 
@@ -133,8 +141,6 @@ def delete_work(current_user, work_id):
     """
     app_db = get_db()
     work = get_work(current_user, work_id)
-    Work.query.filter(Work.id == work_id).filter(
-        Work.user_id == current_user.id
-    ).delete()
+    app_db.session.delete(work)
     app_db.session.commit()  # pylint: disable=no-member
-    return work.id
+    return work_id

@@ -2,7 +2,10 @@
 Backend components for Noscrum Story Model
 """
 import logging
-from noscrum.noscrum_backend.db import get_db, Story, TagStory, Tag, Task
+
+from sqlalchemy import select, text
+
+from noscrum.noscrum_backend.db import Story, Tag, TagStory, get_db
 from noscrum.noscrum_backend.epic import get_null_epic
 
 logger = logging.getLogger()
@@ -16,7 +19,7 @@ def get_stories(current_user, sprint_view=False, sprint_id=None, closed: bool = 
     """
     app_db = get_db()
     if not sprint_view:
-        query = Story.query.filter(Story.user_id == current_user.id)
+        query = select(Story).filter(Story.user_id == current_user.id)
         if closed is None:
             pass
         elif not closed:
@@ -25,9 +28,9 @@ def get_stories(current_user, sprint_view=False, sprint_id=None, closed: bool = 
             query = query.filter(Story.closure_state == None)
         else:
             query = query.filter(Story.closure_state != None)
-        return query.all()
+        return app_db.session.execute(query).all()
     return app_db.session.execute(  # pylint: disable=no-member
-        "SELECT story.id, "
+        text("SELECT story.id, "
         + "CASE WHEN story = 'NULL' THEN 'No Story' ELSE story END as story, "
         + "epic_id, prioritization, story.deadline, "
         + "sum(coalesce(estimate,0)) as estimate, "
@@ -43,7 +46,7 @@ def get_stories(current_user, sprint_view=False, sprint_id=None, closed: bool = 
         + "AND task.user_id = :user_id "
         + "AND task.sprint_id = :sprint_id "
         + "GROUP BY story.id, story.story, story.epic_id, story.prioritization "
-        + "ORDER BY prioritization DESC",
+        + "ORDER BY prioritization DESC"),
         {"user_id": current_user.id, "sprint_id": sprint_id},
     ).fetchall()
 
@@ -53,10 +56,10 @@ def get_stories_by_epic(current_user, epic_id):
     Return queried stories faor the given epic
     @param epic_id Identity of epic being used
     """
-    query = Story.query.filter(Story.epic_id == epic_id).filter(
+    app_db = get_db()
+    return app_db.session.execute(select(Story).filter(Story.epic_id == epic_id).filter(
         Story.user_id == current_user.id
-    )
-    return query.all()
+    )).all()
 
 
 def get_story_by_name(current_user, story, epic_id):
@@ -65,11 +68,12 @@ def get_story_by_name(current_user, story, epic_id):
     @param story Story name (unique per users)
     @param epic_id Identity of epic being used
     """
+    app_db = get_db()
     return (
-        Story.query.filter(Story.story == story)
+        app_db.session.execute(select(Story).filter(Story.story == story)
         .filter(Story.epic_id == epic_id)
-        .filter(Story.user_id == current_user.id)
-        .first()
+        .filter(Story.user_id == current_user.id))
+        .scalar_one_or_none()
     )
 
 
@@ -82,11 +86,12 @@ def get_story(current_user, story_id, exclude_nostory=True):
     """
     if story_id == 0:
         return get_null_story_for_epic(current_user, 0)
-    query = Story.query.filter(Story.id == story_id)
+    app_db = get_db()
+    query = select(Story).filter(Story.id == story_id)
     if exclude_nostory:
         query = query.filter(Story.story is not None)
     query = query.filter(Story.user_id == current_user.id)
-    return query.first()
+    return app_db.session.execute(query).scalar_one_or_none()
 
 
 def get_null_story_for_epic(current_user, epic_id):
@@ -96,11 +101,12 @@ def get_null_story_for_epic(current_user, epic_id):
     if epic_id == 0:
         epic_id = get_null_epic(current_user).id
     logger.info("Story thinks null epic id is %s", epic_id)
+    app_db = get_db()
     story = (
-        Story.query.filter(Story.story == "NULL")
+        app_db.session.execute(select(Story).filter(Story.story == "NULL")
         .filter(Story.epic_id == epic_id)
-        .filter(Story.user_id == current_user.id)
-        .first()
+        .filter(Story.user_id == current_user.id))
+        .scalar_one_or_none()
     )
     if story is None:
         logger.info(
@@ -149,17 +155,16 @@ def update_story(current_user, story_id, story, epic_id, prioritization, deadlin
     @param deadline date the story will be due
     """
     app_db = get_db()
-    Story.query.filter(Story.id == story_id).filter(
+    story_record = app_db.session.execute(select(Story).filter(Story.id == story_id).filter(
         Story.user_id == current_user.id
-    ).update(
-        {
-            "story": story,
-            "epic_id": epic_id,
-            "prioritization": prioritization,
-            "deadline": deadline,
-        },
-        synchronize_session="fetch",
-    )
+    )).scalar_one_or_none()
+    if story_record is None:
+        raise ValueError("No story for given ID")
+    
+    story_record.story = story
+    story_record.epic_id = epic_id
+    story_record.prioritization = prioritization
+    story_record.deadline = deadline
     app_db.session.commit()  # pylint: disable=no-member
     return get_story(current_user, story_id)
 
@@ -172,19 +177,21 @@ def close_story_update(current_user, story_id, closure_state):
     @param closure_state state which closed in
     """
     app_db = get_db()
-    story = Story.query.filter(Story.id == story_id).filter(
+    story = app_db.session.execute(select(Story).filter(Story.id == story_id).filter(
         Story.user_id == current_user.id
-    )
+    )).scalar_one_or_none()
+    if story is None:
+        raise ValueError("No stories found with that ID")
     task_closure_state = closure_state
     if closure_state is None:
         task_closure_state = "To-Do"
-    for task in story.one().tasks:
+    for task in story.tasks:
         if task.status != "Done":
             # task.update({"status":closure_state})
-            Task.query.filter(Task.id == task.id).update({"status": task_closure_state})
-    story.update({"closure_state": closure_state})
+            task.status = task_closure_state
+    story.closure_state = closure_state
     app_db.session.commit()  # pylint: disable=no-member
-    return story.one()
+    return story
 
 
 def get_tag_story(current_user, story_id, tag_id):
@@ -193,12 +200,13 @@ def get_tag_story(current_user, story_id, tag_id):
     @param story_id story identification value
     @param tag_id tag record identifier number
     """
+    app_db = get_db()
     story = get_story(current_user, story_id)
     return (
-        Tag.query.filter(Tag.stories.contains(story))
+        app_db.session.execute(select(Tag).filter(Tag.stories.contains(story))
         .filter(Tag.user_id == current_user.id)
-        .filter(Tag.id == tag_id)
-        .first()
+        .filter(Tag.id == tag_id))
+        .scalar_one_or_none()
     )
 
 
@@ -222,7 +230,8 @@ def delete_tag_story(current_user, story_id, tag_id):
     @param tag_id tag record identifier number
     """
     app_db = get_db()
-    TagStory.query.filter(TagStory.story_id == story_id).filter(
+    tag_to_delete = app_db.session.execute(select(TagStory).filter(TagStory.story_id == story_id).filter(
         TagStory.tag_id == tag_id
-    ).filter(TagStory.user_id == current_user.id).delete()
+    ).filter(TagStory.user_id == current_user.id)).scalar_one_or_none()
+    app_db.session.delete(tag_to_delete)
     app_db.session.commit()  # pylint: disable=no-member

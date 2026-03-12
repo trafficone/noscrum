@@ -1,14 +1,18 @@
 """
 Sprint View and Database Interaction Module
 """
-from datetime import date, timedelta, datetime
 import logging
-from flask_openapi3 import APIBlueprint as Blueprint
-from flask import flash, redirect, request, url_for, abort
+from datetime import date, datetime, timedelta
+
+from flask import abort, flash, redirect, request, url_for
 from flask_login import current_user, login_required
+from flask_openapi3.blueprint import APIBlueprint as Blueprint
 from pydantic import BaseModel, Field
-from noscrum.noscrum_api.template_friendly import friendly_render as render_template
+
 import noscrum.noscrum_backend.sprint as backend
+from noscrum.noscrum_api.template_friendly import \
+    friendly_render as render_template
+from noscrum.noscrum_backend.db import ScheduleTask
 from noscrum.noscrum_backend.task import get_task
 
 logger = logging.getLogger()
@@ -124,7 +128,7 @@ def schedule(path: SprintPath):
     sprint_id = path.sprint_id
     sprint = backend.get_sprint(current_user, sprint_id)
     schedule_id = request.form.get("schedule_id", None)
-    schedule_record = (
+    schedule_record: ScheduleTask | None = (
         None if schedule_id is None else backend.get_schedule(current_user, schedule_id)
     )
     task_id = request.form.get("task_id", None)
@@ -136,9 +140,11 @@ def schedule(path: SprintPath):
     )
     sprint_hour = request.form.get("sprint_hour", None)
     schedule_time = request.form.get("schedule_time", 0)
-    if schedule_time in (None, 0, "") and schedule_record is None:
-        return {"Success": "False", "Error": "Cannot schedule 0 time"}
-    schedule_time = schedule_record.schedule_time
+    if schedule_time in (None, 0, ""):
+        if schedule_record is None:
+            return {"Success": "False", "Error": "Cannot schedule 0 time"}
+        elif isinstance(schedule_record, ScheduleTask):
+            schedule_time = schedule_record.schedule_time
     note = request.form.get("note")
     recurring = request.form.get("recurring", 0)
     error = None
@@ -343,8 +349,9 @@ def show(sprint_id):
     @param sprint_id identity for sprint board
     """
     is_json = request.args.get("is_json", False)
-    is_static = request.args.get("static", "True")
-    if is_static.lower() == "false":
+    is_static_str = request.args.get("static", "True")
+    is_static = True
+    if is_static_str.lower() == "false":
         is_static = False
     sprint = backend.get_sprint(current_user, sprint_id)
     if not sprint:
