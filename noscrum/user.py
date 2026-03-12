@@ -6,15 +6,17 @@ import uuid
 
 import dotenv
 from fastapi import APIRouter, Depends, Request
-from fastapi.responses import RedirectResponse
+from fastapi.responses import RedirectResponse, HTMLResponse
 from fastapi.templating import Jinja2Templates
-from fastapi_users import BaseUserManager, FastAPIUsers, schemas
+from fastapi_users import BaseUserManager, FastAPIUsers, schemas, models
 from fastapi_users.authentication import (
     AuthenticationBackend,
-    BearerTransport,
+    CookieTransport,
     JWTStrategy,
 )
 from fastapi_users_db_sqlalchemy import SQLAlchemyUserDatabase
+#from fasthtml import FastHTML
+#import fasthtml.common as fh
 
 from noscrum.db import get_db
 from noscrum.model import User
@@ -55,18 +57,21 @@ class UserManager(BaseUserManager[User, uuid.UUID]):
 async def get_user_manager(user_db: SQLAlchemyUserDatabase = Depends(get_db)):
     yield UserManager(user_db)
 
-bearer_transport = BearerTransport(tokenUrl="auth/jwt/login")
-def get_jwt_strategy_noscrum() -> JWTStrategy:
+bearer_transport = CookieTransport()#tokenUrl="auth/jwt/login")
+#bearer_transport = BearerTransport(tokenUrl="auth/jwt/login")
+def get_jwt_strategy() -> JWTStrategy:#[models.UP, models.ID]:
     return JWTStrategy(secret=SECRET, lifetime_seconds=3600)
+
 auth_backend = AuthenticationBackend(
-    name="jwt", transport=bearer_transport, get_strategy=get_jwt_strategy_noscrum
+    name="jwt",
+    transport=bearer_transport,
+    get_strategy=get_jwt_strategy,
 )
+
 fastapi_users = FastAPIUsers[User, uuid.UUID](get_user_manager, [auth_backend])
 current_active_user = fastapi_users.current_user(active=True)
 current_user = current_active_user
 
-def get_jwt_strategy() -> JWTStrategy:
-    return JWTStrategy(secret=SECRET, lifetime_seconds=3600)
 
 def get_user(db, username: str):
     """
@@ -103,7 +108,9 @@ def authenticate_user(username, credential):
         return user
 
 
-router = APIRouter(prefix="/user", tags=["users"])
+router = APIRouter(prefix="/api/user", tags=["users"])
+#web = FastHTML()
+#web_router = web.route
 templates = Jinja2Templates(directory="templates")
 
 @router.get("/")
@@ -119,8 +126,9 @@ async def profile():
     return await current_user().username
 
 @router.get("/login")
-def login(request: Request):
+def login(request: Request):#_redirect(_):
     return templates.TemplateResponse("/users/login.html",{"request":request,"current_user":current_user})
+
 @router.get("/logout")
 def logout(request: Request):
     return templates.TemplateResponse("/users/logout.html",{"request":request,"current_user":current_user})

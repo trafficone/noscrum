@@ -4,9 +4,11 @@ See README.md for full details.
 """
 import os
 
+from contextlib import asynccontextmanager
 from dotenv import load_dotenv
 from fastapi import Depends, FastAPI
 from fastapi.staticfiles import StaticFiles
+#from fasthtml import FastHTML
 
 from noscrum import epic, semi_static, sprint, story, tag, task, user, work
 from noscrum.db import create_db_and_tables
@@ -42,10 +44,20 @@ class ConfigClass:
         return str(self.get_dict())
 
 load_dotenv()
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """
+    Creates the FastAPI application for NoScrum.
+    """
+    await create_db_and_tables()
+    yield
 # Create and Configure the app
-running_app = FastAPI()
+running_app = FastAPI(lifespan=lifespan)
+#fasthtml_app = FastHTML()
 
 running_app.mount('/static',StaticFiles(directory="static"),name="static")
+#running_app.mount('/frontend',fasthtml_app)
 running_app.include_router(epic.router)
 running_app.include_router(story.router)
 running_app.include_router(task.router)
@@ -78,10 +90,3 @@ running_app.include_router(fastapi_users.get_users_router(user.UserRead, user.Us
 @running_app.get("/authenticated-route")
 async def authenticated_route(user: User = Depends(user.current_active_user)):
     return {"message": f"Hello {user.email}!"}
-
-@running_app.on_event("startup")
-async def on_startup():
-    """
-    Creates the FastAPI application for NoScrum.
-    """
-    await create_db_and_tables()

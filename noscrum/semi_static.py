@@ -6,7 +6,7 @@ from fastapi.templating import Jinja2Templates
 
 from noscrum.user import current_user
 
-router = APIRouter(prefix="")
+router = APIRouter()
 templates = Jinja2Templates(directory="templates")
 
 
@@ -15,4 +15,4 @@ def index(request: Request):
     """
     Render the application's main landing page
     """
-    return templates.TemplateResponse("index.html", {"request":request, "current_user":current_user})
+    return templates.TemplateResponse("/index.html", {"request":request, "current_user":current_user})
