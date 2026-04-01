@@ -6,11 +6,11 @@
 
 {% block content %}
 {% if has_current_sprint %}
-    <form method="post" action="{{url_for('sprint.create_next')}}" class="inline">
+    <form method="post" action="{{url_for('sprint_create_next')}}" class="inline">
         No current sprint, <button type="submit" class="button small-2">create it now!</button>
     </form>
 {% else %}
-    <a href="{{url_for('sprint.active')}}">Go to Current Sprint</a>
+    <a href="{{url_for('sprint_active')}}">Go to Current Sprint</a>
 {% endif %}
 {% for sprint in sprints %}
 <div class="box">
@@ -19,7 +19,7 @@
         <h3>Sprint {{ sprint_numbers[sprint['id']] }}</h3>
         Start Date {{ sprint['start_date'] }}<br>
         End Date {{ sprint['end_date'] }}<br>
-        <a class="button" href="{{ url_for('sprint.show', sprint_id=sprint['id']) }}">View Sprint</a>
+        <a class="button" href="{{ url_for('sprint_show', sprint_id=sprint['id']) }}">View Sprint</a>
     </div>
     <div class="column">
         <h4>Sprint Summary:</h4>

@@ -5,11 +5,25 @@
 {% endblock %}
 
 {% block content %}
-Wow, it looks so awful! But it works, dammit!
-<form action="/auth/register" method="POST">
-    <input type="text" name="email" />
-    <input type="text" name="username" />
-    <input type="password" name="password" />
-    <input class="button" type="submit" value="Create New User"/>
-</form>
+    <form action="/user/auth/register" method="dialog" x-data="{ email: '', username: '', password: '', is_active: true, is_superuser: false, is_verified: false}">
+        <input type="text" name="email" placeholder="user@acme.com" x-model="email"/>
+        <input type="text" name="username" placeholder="username" x-model="username"/>
+        <input type="password" name="password" placeholder="secure" x-model="password"/>
+        <!--input class="button" type="submit" value="Create New User"/-->
+        <button class="button" @click="register_user($data)">Register</button>
+    </form>
+{% endblock %}
+
+{% block vanillajs %}
+    function register_user(user_data) {
+    const register_headers = new Headers();
+    register_headers.set("Content-Type", "application/json");
+    register_headers.set("Accept", "application/json")
+    fetch(new Request("/user/auth/register", {
+        headers: register_headers,
+        method: "POST",
+        body: JSON.stringify(user_data)
+    })).then((response) => response.blob())
+    .then((response) => console.log(response))
+    }
 {% endblock %}

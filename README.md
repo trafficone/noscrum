@@ -11,39 +11,28 @@ versatile enough to meet my needs, without the overhead of managing all my proje
 
 **WARNING: This is a Beta release, use at your own risk!**
 
-Currently the installation "process" is to
+Use UV to set up a dev build
 
-- install nginx unit
 - clone the repository
-- create a venv
-- install the requirements.txt
+- uv sync
 - create a .env file for the necessary environment variables
-- use `flask run` (which is both slow and insecure)
+- run the asgi 
+  - for dev use `uv fastapi dev noscrum/main.py` (which is both slow and insecure)
+  - for prod, see [FastAPI Deployment docs](https://fastapi.tiangolo.com/deployment/)
+  - 
 
 ``` bash
-cd /path/to/app/
+# Quickstart
 git clone git@github.com:trafficone/noscrum.git
 cd noscrum
-python -m venv venv
-source venv/bin/activate #may be different depending on your environment
+uv sync
 cat << EOF > .env
 FLASK_ENV=dev
 FLASK_APP=MyNoscrumApp
 FLASK_SECRET_KEY=changeme
 EOF
-python -m pip install --upgrade pip wheel
-python -m pip install -r requirements.txt
-flask run
+uv run fastapi dev noscrum/main.py
 ```
-
-Then install the Foundation platform along with jquery to the noscrum/static directory, such that
-you have the following files:
-
-- css/foundation-float.css
-- js/vendor/foundation.js
-- js/vendor/what-input.js
-
-A proper deployment process is in the backlog.
 
 ## Usage
 

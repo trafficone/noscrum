@@ -2,17 +2,20 @@
 NoScrum Scheduling Application
 See README.md for full details.
 """
-import os
 
+import os
+import sys
 from contextlib import asynccontextmanager
+
 from dotenv import load_dotenv
 from fastapi import Depends, FastAPI
 from fastapi.staticfiles import StaticFiles
-#from fasthtml import FastHTML
+from loguru import logger as log
 
 from noscrum import epic, semi_static, sprint, story, tag, task, user, work
 from noscrum.db import create_db_and_tables
 from noscrum.model import User
+from noscrum.user import router as user_router
 
 
 class ConfigClass:
@@ -43,7 +46,11 @@ class ConfigClass:
     def __str__(self):
         return str(self.get_dict())
 
+
 load_dotenv()
+log.remove(0)
+log.add(sys.stderr, level=os.environ.get("LOG_LEVEL", "INFO"))
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -52,25 +59,29 @@ async def lifespan(app: FastAPI):
     """
     await create_db_and_tables()
     yield
-# Create and Configure the app
-running_app = FastAPI(lifespan=lifespan)
-#fasthtml_app = FastHTML()
 
-running_app.mount('/static',StaticFiles(directory="static"),name="static")
-#running_app.mount('/frontend',fasthtml_app)
+
+debug = True if os.environ.get("DEBUG", "False") == "True" else False
+
+# Create and Configure the app
+running_app = FastAPI(
+    title="NoScrum Fast",
+    description="FastAPI Implementation of the NoScrum WebApp",
+    summary="Personalized project management, however you need it.",
+    debug=debug,
+    lifespan=lifespan,
+)
+
+running_app.mount("/static", StaticFiles(directory="static"), name="static")
 running_app.include_router(epic.router)
 running_app.include_router(story.router)
 running_app.include_router(task.router)
 running_app.include_router(sprint.router)
 running_app.include_router(tag.router)
 running_app.include_router(work.router)
-running_app.include_router(user.router)
+running_app.include_router(user_router)
 running_app.include_router(semi_static.router)
-fastapi_users = user.fastapi_users
-auth_backend = user.auth_backend
-running_app.include_router(
-    fastapi_users.get_auth_router(auth_backend), prefix="/auth/jwt", tags=["auth"]
-)
+"""
 running_app.include_router(fastapi_users.get_register_router(user.UserRead, user.UserCreate),
  prefix="/auth",
  tags=["auth"])
@@ -85,6 +96,7 @@ running_app.include_router(
     tags=["auth"]
 )
 running_app.include_router(fastapi_users.get_users_router(user.UserRead, user.UserUpdate), prefix="/users", tags=["users"])
+"""
 
 
 @running_app.get("/authenticated-route")

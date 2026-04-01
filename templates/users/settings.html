@@ -1,0 +1,12 @@
+{% extends 'base.html' %}
+
+{% block header %}
+    <h2>{% block title %}User Settings{% endblock %}</h2>
+{% endblock %}
+{% block content %}
+    <h3>Currently, users do not have settings.</h3>
+    <ul>
+      <li>username: {{ current_user.username }}</li>
+      <li>email: {{ current_user.email }}</li>
+    </ul>
+{% endblock %}

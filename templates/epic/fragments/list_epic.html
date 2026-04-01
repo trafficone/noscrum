@@ -1,0 +1,21 @@
+<div class="epic {{ epic.color }}">
+  <div class="row">
+    <h3>{{epic.id}}{{ epic.epic if epic.epic != 'NULL' else 'No Epic' }}</h3>
+      <div class="columns small-3">Estimate: {{ epic.estimate }}</div>
+      <div class="columns small-3">Unestimated : {{ epic.unestimated_tasks|length }}</div>
+        <div class="columns small-3">Total Tasks: {{ epic.tasks|length }}</div>
+        <div class="columns small-3">Active: {{ epic.active_tasks|length }}</div>
+  </div>
+  {% if stories %}
+  {% for story in stories if story.epic_id == epic.id %}
+    {% include 'story/fragments/list_story.html' %}
+  {% endfor %}
+  {% else %}
+    <div class="row" x-data="{ story_list_url: '{{url_for('fe_list_stories_for_epic',epic_id=epic.id)}}' }">
+        <button class="button" @click="load_target_url($root, story_list_url)">Load Stories</button>
+    </div>
+  {% endif %}
+  <div class="row" x-data="{create_form_url:'{{ url_for('fe_story_creation_template', epic_id=epic.id).include_query_params(is_asc=True) }}'}">
+      <button class="button create create-story" @click="load_create_form($el, $data)">Create Story</button><div></div>
+  </div>
+</div>

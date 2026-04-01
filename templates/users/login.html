@@ -5,10 +5,26 @@
 {% endblock %}
 
 {% block content %}
-Wow, it looks so awful! But it works, dammit!
-<form action="/auth/jwt/login" method="POST">
-    <label>Email or Username: <input type="text" name="username" /></label>
-    <input type="password" name="password" />
-    <input class="button" type="submit" value="Login"/>
+    <form action="auth/jwt/login" method="dialog" x-data="{username: '', password: ''}">
+    <label>Email or Username: <input type="text" x-model="username" /></label>
+    <input type="password" x-model="password" />
+    <!--input class="button" type="submit" value="Login"/-->
+    <button class="button" @click="login_user($data)">Login</button>
 </form>
+{% endblock %}
+
+{% block vanillajs %}
+    function login_user(user_data) {
+        const login_form = new FormData();
+        login_form.append("username", String(user_data.username));
+        login_form.append("password", String(user_data.password));
+        fetch(new Request("/user/auth/jwt/login", {
+            method: "POST",
+            body: login_form
+        })).then((response) => {
+            if (response.status == 204) {
+                document.location.replace(document.location.protocol+"//" + document.location.host + "/")
+            }
+        });
+    };
 {% endblock %}

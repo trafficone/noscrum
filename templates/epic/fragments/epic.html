@@ -1,0 +1,22 @@
+<div class="grid-x grid-padding-x large-8 medium-8 cell epic {{ epic.color }}">
+<h3>{{ epic.epic }} - {{ epic.id }}</h3>
+<button class="button">Rename Epic</button>
+<h4>Stories in Epic</h4>
+    {% if asc and stories %}
+        {% for story in stories %}
+            <div class="row">
+                <div class="columns"><h4>{{ story.story }}</h4></div>
+                <div class="columns">
+                Priority {{ story.prioritization }}<br>
+                Tasks {{ story.active_tasks }}/{{ story.tasks }} ({{ story.unestimated_tasks }} Unest.)<br>
+                Estimated Time: {{ story.rem_estimate }}<br>
+                </div>
+  </div>
+        {% endfor %}
+    {% else %}
+    <div class="row" x-data="{ story_list_url: '{{url_for('list_stories_for_epic',epic_id=epic.id)}}' }">
+        <button class="button" @click="load_target_url($root, story_list_url)">Load Stories</button>
+    </div>
+    {% endif %}
+    <a class="button" href="{{ url_for('story_create', epic_id=epic.id) }}">Create Story</a>
+</div>

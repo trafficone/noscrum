@@ -5,5 +5,6 @@
 {% endblock %}
 
 {% block content %}
-{{ task.task }}[{{ task.id }}] - {{ task.estimate }} ({{ task.status }})
+    <h2>{{ task.id }}</h2>
+    {% include 'task/fragments/list_task.html' %}
 {% endblock %}

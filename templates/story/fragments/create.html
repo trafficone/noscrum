@@ -1,0 +1,50 @@
+{% if not asc %}
+{% extends 'base.html' %}
+
+{% block header %}
+    <h1>{% block title %}Story for Epic: {{ epic.epic }}{% endblock %}'</h1>
+{% endblock %}
+{% endif %}
+
+{% block content %}
+<div class="post" x-data="{
+    action: '{{ url_for('story_create',epic_id=epic.id) }}',
+    epic_id: '{{epic.id}}',
+    form: {
+        story: '',
+        prioritization: 1,
+        }
+    }">
+    <form method="dialog" action="" data-abide novalidate>
+        <div class="cell">
+            <label >Story
+                <input type="text" aria-describedby="exampleHelpStory" x-model="form.story" data-abide-ignore required>
+            </label>
+            <p class="help-text" id="exampleHelpStory">Name of Story You are Creating.</p>
+        </div>
+        <div class="cell medium-6">
+            <label for="prioritization">
+                Prioritization
+                <select id="prioritization" name="prioritization" x-model="form.prioritization" required>
+                    <option value="5">5 - Critical</option>
+                    <option value="4">4 - High</option>
+                    <option value="3">3 - Medium</option>
+                    <option value="2">2 - Low</option>
+                    <option value="1">1 - No Priority</option>
+                </select>
+            </label>
+        </div> 
+        <div>
+            <button class="button float-left" @click="fetch( action+'?storyname='+form.story+'&prioritization='+form.prioritization
+                , {method:'PUT'})
+                .then((response) => response.json().then((new_story) => console.log(new_story)))">Create</button>
+        {% if asc %}<button type="button" class="button float-right cancel" @click="$root.outerHTML=createButton.outerHTML;">Cancel</button>{% endif %}
+        </div>
+    </form>
+</div>
+{% if asc %}
+<script>
+</script>
+{% endif %}
+
+{% endblock %}

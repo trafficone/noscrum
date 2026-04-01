@@ -14,7 +14,7 @@
         task="{{ task }}" 
         story="{{ tasks[task].story_id }}" 
         id="{{ 'task_%d'%task }}" 
-        update_url="{{ url_for('task.show',task_id=task,is_json=True) }}""
+        update_url="{{ url_for('task_show',task_id=task,is_json=True) }}""
         recurring="{{tasks[task].recurring}}"
         unestimated_time="{{ 2 if not tasks[task].estimate else tasks[task].estimate - tasks[task].sum_sched }}">
         <div class="row task-header">
@@ -109,7 +109,7 @@
                     id="{{ 'task_%d_%d'%(schedule.task_id,schedule.id) }}" 
                     schedule_id="{{ schedule.id }}"
                     recurring="{{ schedule.recurring_schedule }}"
-                    update_url="{{ url_for('task.show',task_id=schedule.task_id,is_json=True) }}">
+                    update_url="{{ url_for('task_show',task_id=schedule.task_id,is_json=True) }}">
                     <div class="row">
                         <div class="small-2 columns epic-label">{{ epics[tasks[schedule.task_id].epic_id].epic }}</div>
                         <div class="small-6 columns story-label">{{ stories[tasks[schedule.task_id].story_id].story }}</div>
@@ -164,7 +164,7 @@
         if (source.hasClass('unscheduled-container')) {
             return;
         }
-        update_url = "{{url_for('sprint.schedule',sprint_id=sprint_id)}}?is_json=True";
+        update_url = "{{url_for('sprint_schedule',sprint_id=sprint_id)}}?is_json=True";
         hour = source.attr('hour');
         day = source.attr('day');
         index_day = source.attr('index_day');
@@ -219,7 +219,7 @@
         } else { 
             var ajax_data = {task_id:task_id,sprint_day:day,sprint_hour:hour};
         }
-        update_url = "{{url_for('sprint.schedule',sprint_id=sprint_id)}}?is_json=True";
+        update_url = "{{url_for('sprint_schedule',sprint_id=sprint_id)}}?is_json=True";
         //console.log({task_id:task_id,sprint_day:day,sprint_hour:hour})
         return $.ajax({
             url: update_url,
@@ -269,7 +269,7 @@
         source_id = source.attr('id');
         var source_hour = source.attr('hour');
         source_day = source.attr('day');
-        update_url = "{{url_for('sprint.schedule',sprint_id=sprint_id)}}?is_json=True";
+        update_url = "{{url_for('sprint_schedule',sprint_id=sprint_id)}}?is_json=True";
         console.log('Bumping task '+task_id+'! to position of '+source_id+'(hour)'+source_hour);
         if (!source.hasClass('unscheduled-container')){
             var row = source.parent();
@@ -296,7 +296,7 @@
     };
 
     update_note = function(submit_json,note) {
-        update_url = "{{url_for('sprint.schedule',sprint_id=sprint_id)}}?is_json=True";
+        update_url = "{{url_for('sprint_schedule',sprint_id=sprint_id)}}?is_json=True";
         submit_json.note = note;
         return $.ajax({
             url: update_url,

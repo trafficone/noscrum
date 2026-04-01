@@ -25,6 +25,7 @@
             libz
             gcc
             stdenv.cc.cc.lib
+            sqlite-interactive
           ];
 
           # synchronize the environment on entry, change this to rye if not upgraded to uv

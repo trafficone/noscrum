@@ -1,0 +1,39 @@
+<div class="row story" update_url="{{ url_for('fe_story_show' ,story_id=story.id).include_query_params(is_json=True) }}">
+    <div class="float-left"><span class="badge {{ colors[story.prioritization] }}">{{ story.prioritization }}</span></div>
+    &nbsp;
+    {% if story.story != 'NULL' %}
+        <h5 id="story_{{story.id}}" class="editable" title="Click to Edit Story" update_key="story">{{ story.story }}</h5>
+    {% else %}
+        <h5 id="story_{{story.id}}" >No Story</h5>
+    {% endif %}
+
+</div>
+<div class="row">
+    <div class="small-2 columns story-label">
+        <div>Hours: {{ story.id.estimate }}</div>
+        <div>Tasks:  story.tasks|length </div>
+        <div>Remain: {{ story.active_tasks|length }}</div>
+        {% if story.story != 'NULL' %}
+            <input id="story_deadline_{{story.id}}_datepicker" name="date" class="datepicker-input" type="hidden" />
+            <span  title="Click to Edit" contentEditable="false" update_url="{{ url_for('fe_story_show', story_id=story.id).include_query_params(is_json=True) }}" update_key="deadline" id="story_deadline_{{story.id}}" class="story-deadline editable deadline">{{ 'No Deadline Set' if not story.deadline else story.deadline }}</span>
+        {% endif %}
+        
+    </div>
+    <div class="large-10 columns" x-data="">
+        {% if tasks %}
+            {% for task in tasks if task.story_id == story.id %}
+                <div>
+                    {% include 'task/fragments/list_task.html' %}
+                </div>
+            {% endfor %}
+        {% else %}
+            <div class="row" x-data="{ task_list_url: '{{url_for('fe_tasks_list_for_story',story_id=story.id)}}' }">
+                <button class="button" @click="load_target_url($root, task_list_url)">Load Tasks</button>
+            </div>
+        {% endif %}
+        <div x-data="{create_form_url: '{{ url_for('fe_task_creation_template', story_id=story.id).include_query_params(is_asc=True) }}'}">
+            <div></div>
+            <button class="button create" @click="load_create_form($el, $data)">Create Task</button>
+        </div>
+    </div>
+</div>

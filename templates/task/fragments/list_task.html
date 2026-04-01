@@ -1,0 +1,40 @@
+
+<div class="task-container container" x-data="{ 
+    update_url:'{{ url_for('fe_list_task_update',task_id=task.id) }}', 
+    task:{
+        id: '{{task.id}}',
+        task: '{{task.task}}',
+        estimate: {{task.estimate}},
+        status: '{{task.status}}',
+        deadline: '{{task.deadline}}',
+        sprint_id: '{{task.sprint_id}}',
+    },
+    update: false
+    }" 
+    x-init="$watch('update', (value) => fetch(update_url, {method: 'POST', body: JSON.stringify(task)}).then((resp) => resp.text().then((text) => $el.outerHTML = text)))" 
+    t="putAndReplace(value, update_url, $root))">
+      <div class="row task-header">
+        <div class="columns large-6 task-name" ><span class="editable" title="Click to edit Task Name" @click="editable_text($el, 'task.task', update)">{{ task.task }}</span></div>
+        <div class="columns small-4"></div>
+        <div class="columns small-2 label float-right status {{ task.status.lower().replace(' ','-') }}" style="margin-right:1rem;">{{ task.status }}</div><br>
+    </div>
+    <div class="row task-work">
+        <div class="columns small-2">
+            E:&nbsp;<span title="Click to Edit Estimate" class="editable note" update_key="estimate">{{ task.estimate }}</span>
+        </div>
+        <div class="columns small-2"><span class='float-right'>A:{{ task.actual }}</span></div>
+        <div class="columns large-6">
+            <input id="task_deadline_{{task.id}}_datepicker" name="date" class="datepicker-input" type="hidden" />
+            <span  title="Click to Edit" contentEditable="false" update_key="deadline" id="task_deadline_{{task.id}}" class="task-deadline editable deadline">{{ 'No Deadline Set' if not task.deadline else task.deadline }} </span>
+            {% if task.status != 'Done' and task.sprint_id != current_sprint.id %}
+                <button id="task_sprint_btn_{{task.id}}" class="float-right button sprintPlan invisible float-right" style="margin:0.1rem;padding:0.2em 1em;" task="{{task.id}}" sprint="{{current_sprint.id}}">Add to Sprint</button>
+                <span class="float-right" id="task_sprint_status_{{task.id}}"></span>
+            {% elif task.sprint_id == current_sprint_id %}
+                <span class="float-right" id="task_sprint_status_{{task.id}}">In Current Sprint</span>
+            {% elif task.sprint_id %}
+                <span class="float-right" id="task_sprint_status_{{task.id}}">In Sprint {{task.sprint_id}}</span>
+            {% endif %}
+        </div>
+        <div title="Click to Edit" class="columns small-2 label recurring" style="margin-right:1rem;">{% if task.recurring %}Recurring{% else %}One-Time{% endif %}</div>
+    </div>
+</div>

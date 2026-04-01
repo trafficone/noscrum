@@ -7,16 +7,23 @@
 {% endif %}
 
 {% block content %}
-<form method="post" action="{{ url_for('task.create',story_id=story.id) }}" data-abide novalidate>
+<div x-data="{ 
+        action: '{{url_for('task_create',story_id=story.id)}}',
+        story_id: '{{story.id}}',
+        form: {
+        estimate: '',
+        taskname: ''
+        } }">
+<form method="dialog" action="" data-abide novalidate>
     <div data-abide-error class="alert callout" style="display: none;">
         <p><i class="fi-alert"></i> There are some errors in your form.</p>
     </div>
-    <label>Task:<input type="text" name="task" id="task" placeholder="Task Name" aria-describedby="exampleHelpTask" required>
+    <label>Task:<input type="text" placeholder="Task Name" aria-describedby="exampleHelpTask" x-model="form.taskname" required>
     </label>
     <p class="help-text" id="exampleHelpTask">This is the Task Name for a task in the story {{ story.story }}</p>
     <label for="estimate">
         Estimate:
-        <input type="text" name="estimate" pattern="\d+\.?\d*" id="estimate" placeholder="3.5" aria-describedby="exampleHelpEstimate">
+        <input type="text" pattern="\d+\.?\d*" placeholder="3.5" aria-describedby="exampleHelpEstimate" x-model="form.estimate">
         <span class="form-error">
             Expecting a number. Use partial hours to estimate minutes.<br>
             30m = .5, 15m=.25, etc.
@@ -25,17 +32,13 @@
     <p class="help-text" id="exampleHelpEstimate">This is the estimate of number of hours of work</p>
     <input type="hidden" name="story_id" value="{{ story.id }}">
     <div>
-        <button class="button float-left" type="submit" value="Create" value="create-task">Create</button>
-        {% if asc %}<button type="button" story="{{story.id}}" class="button float-right cancel" onclick="">Cancel</button>{% endif %}
+            <button class="button float-left" @click="fetch(action+'?taskname='+form.taskname+(form.estimate ? '&estimate='+form.estimate : ''), {method:'PUT'}).then((response) => response.json().then((new_task) => console.log(new_task)))">Create</button>
+        {% if asc %}<button type="button" story="{{story.id}}" class="button float-right cancel" @click="$root.outerHTML=createButton.outerHTML;">Cancel</button>{% endif %}
     </div>
 </form>
+</div>
 {% if asc %}
 <script>
-$('.cancel').click(function(){
-    story_id = $(this).attr('story');
-    $(this).parent().parent().parent().siblings('button').removeClass('invisible');
-    $(this).parent('div').parent('form').remove();
-})
 </script>
 {% endif %}
 {% endblock %}

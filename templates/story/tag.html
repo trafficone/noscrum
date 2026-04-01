@@ -63,7 +63,7 @@
             }
             $.ajax(
                 {
-                    url: "{{ url_for('story.tag',story_id=story_id, is_json=True) }}",
+                    url: "{{ url_for('story_tag',story_id=story_id, is_json=True) }}",
                     data: {
                         tag_id:ui.helper.attr('tag_id')
                     },
@@ -92,7 +92,7 @@
             }
             $.ajax(
                 {
-                    url: "{{ url_for('story.tag',story_id=story_id, is_json=True) }}",
+                    url: "{{ url_for('story_tag',story_id=story_id, is_json=True) }}",
                     data: {
                         tag_id:ui.helper.attr('tag_id')
                     },

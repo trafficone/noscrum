@@ -1,76 +1,91 @@
 """
 Sprint View and Database Interaction Module
 """
+
 import json
 from datetime import date, datetime, timedelta
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends, Request
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
-from sqlalchemy import or_
+from sqlalchemy import ScalarResult, delete, text
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlmodel import or_, select
 
 from noscrum.db import get_db
 from noscrum.epic import get_epics
-from noscrum.model import ScheduleTask, Sprint, Task
-from noscrum.story import get_stories
+from noscrum.model import Epic, ScheduleTask, Sprint, Story, Task, User
+from noscrum.story import get_stories_sprint_view
 from noscrum.user import current_user
+
+# from noscrum.task import get_task
 
 statuses = ["To-Do", "In Progress", "Done"]
 
 
-def get_task(task_id):
+async def get_task(task_id, current_user: User, app_db: AsyncSession) -> Task:
     """
     Task record for user for identifier number
     @task_id task record identification number
     """
-    return (
-        Task.query.filter(Task.id == task_id)
-        .filter(Task.user_id == current_user.id)
-        .first()
+    if current_user.id is None:
+        raise ValueError("Cannot perform function without User ID")
+    task = await app_db.execute(
+        select(Task).where(Task.id == task_id).where(Task.user_id == current_user.id)
     )
+    return task.scalar_one()
 
 
-def get_sprint_number_for_user(sprint_id):
+async def get_sprint_number_for_user(sprint_id, current_user: User, app_db: AsyncSession) -> int:
     """
     Return the sprint number for a user/sprint
     @sprint_id the Sprint ID's number you want
     """
-    app_db = get_db()
-    sprint_numbers = (
-        app_db.session.query(
+    sprint_numbers = await app_db.execute(
+        select(
             Sprint.id,
             app_db.func.row_number()
             .over(partition_by=Sprint.user_id, order_by=Sprint.id)
             .label("sprint_number"),
         )
-        .filter(Sprint.id <= sprint_id)
-        .filter(Sprint.user_id == current_user.id)
-        .all()
+        .where(Sprint.id <= sprint_id)
+        .where(Sprint.user_id == current_user.id)
     )
-    user_numbers = {x.id: x.sprint_number for x in sprint_numbers}
+    sprints = sprint_numbers.scalars()
+    user_numbers = {x.id: x.sprint_number for x in sprints}
     return user_numbers[sprint_id]
 
 
-def get_sprints():
+async def get_sprints(current_user: User, app_db: AsyncSession) -> ScalarResult[Sprint]:
     """
     Return all sprint records for current user.
     """
-    return Sprint.query.filter(Sprint.user_id == current_user.id).all()
+    if current_user.id is None:
+        raise ValueError("Cannot perform function without User ID")
+    sprints = await app_db.execute(select(Sprint).where(Sprint.user_id == current_user.id))
+    return sprints.scalars()
 
 
-def get_sprint(sprint_id):
+async def get_sprint(sprint_id, current_user: User, app_db: AsyncSession) -> Sprint | None:
     """
     Return Sprint record @param sprint_id for current user
     """
-    return (
-        Sprint.query.filter(Sprint.id == sprint_id)
-        .filter(Sprint.user_id == current_user.id)
-        .first()
+    if current_user.id is None:
+        raise ValueError("Cannot perform function without User ID")
+    sprint = await app_db.execute(
+        select(Sprint).where(Sprint.id == sprint_id).where(Sprint.user_id == current_user.id)
     )
+    return sprint.scalar_one_or_none()
 
 
-def get_sprint_by_date(start_date=None, end_date=None, middle_date=None):
+async def get_sprint_by_date(
+    current_user: User,
+    app_db: AsyncSession,
+    start_date=None,
+    end_date=None,
+    middle_date=None,
+) -> Sprint | None:
     """
     Returns the Sprint object (if exist) given
     provided search criteria for a sprint date
@@ -78,135 +93,180 @@ def get_sprint_by_date(start_date=None, end_date=None, middle_date=None):
     @param end_date Date when sprint then ends
     @param middle_date Any day within a sprint
     """
-    query = Sprint.query.filter(Sprint.start_date != "1969-12-31").filter(
-        Sprint.user_id == current_user.id
+    query = (
+        select(Sprint)
+        .where(Sprint.start_date != "1969-12-31")
+        .where(Sprint.user_id == current_user.id)
     )
     filter_vars = []
     if start_date is not None:
-        query = query.filter(Sprint.start_date == start_date)
+        query = query.where(Sprint.start_date == start_date)
         filter_vars.append(start_date)
     if end_date is not None:
-        query = query.filter(Sprint.end_date == end_date)
+        query = query.where(Sprint.end_date == end_date)
         filter_vars.append(end_date)
     if middle_date is not None:
-        query = query.filter(Sprint.start_date <= middle_date).filter(
-            Sprint.end_date >= middle_date
-        )
+        query = query.where(Sprint.start_date <= middle_date).where(Sprint.end_date >= middle_date)
         filter_vars.append(middle_date)
     if len(filter_vars) == 0:
         raise Exception("No criteria entered for get_sprint_by_date")
-    return query.first()
+    sprint = await app_db.execute(query)
+    return sprint.scalar_one_or_none()
 
 
-def get_current_sprint():
+async def get_current_sprint(current_user: User, app_db: AsyncSession) -> Sprint | None:
     """
     Given a current date returns active sprint
     """
     current_date = datetime.now().date()  # .strftime('%Y-%m-%d')
-    return get_sprint_by_date(middle_date=current_date)
+    return await get_sprint_by_date(current_user, app_db, middle_date=current_date)
 
 
-def get_next_sprint():
-    current_sprint = get_current_sprint()
+async def get_next_sprint(current_user: User, app_db: AsyncSession) -> Sprint | None:
+    current_sprint = await get_current_sprint(current_user, app_db)
     if current_sprint is None:
         return None
-    next_sprint = get_sprint_by_date(start_date=current_sprint.end_date + timedelta(1))
+    next_sprint = await get_sprint_by_date(
+        current_user,
+        app_db,
+        start_date=current_sprint.end_date + timedelta(1),
+    )
     print(next_sprint)
     return next_sprint
 
 
-def get_last_sprint():
+async def get_last_sprint(current_user: User, app_db: AsyncSession) -> Sprint | None:
     """
     Returns the last(final date) sprint record
     """
-    return (
-        Sprint.query.filter(Sprint.user_id == current_user.id)
-        .order_by(Sprint.end_date)
-        .first()
+    sprint = await app_db.execute(
+        select(Sprint).where(Sprint.user_id == current_user.id).order_by(Sprint.end_date)
     )
+    return sprint.scalar_one_or_none()
 
 
-def create_sprint(start_date, end_date):
+async def create_sprint(
+    start_date, end_date, current_user: User, app_db: AsyncSession
+) -> Sprint | None:
     """
     Create new Sprint record having the period
     between @param start_date and the end date
     @param end_date
     """
-    app_db = get_db()
-    new_sprint = Sprint(
-        start_date=start_date, end_date=end_date, user_id=current_user.id
-    )
-    app_db.session.add(new_sprint)
-    app_db.session.commit()
-    return get_sprint_by_date(start_date=start_date, end_date=end_date)
+    if current_user.id is None:
+        raise Exception("Cannot create Sprint without current User ID")
+    new_sprint = Sprint(start_date=start_date, end_date=end_date, user_id=current_user.id)
+    app_db.add(new_sprint)
+    await app_db.commit()
+    return await get_sprint_by_date(current_user, app_db, start_date=start_date, end_date=end_date)
 
 
-def update_sprint(sprint_id, start_date, end_date):
+async def update_sprint(
+    sprint_id,
+    start_date,
+    end_date,
+    current_user: User,
+    app_db: AsyncSession,
+) -> Sprint | None:
     """
     Update the start or end date of the sprint
     """
-    app_db = get_db()
-    Sprint.query.filter(Sprint.id == sprint_id).filter(
-        Sprint.user_id == current_user.id
-    ).update({start_date: start_date, end_date: end_date}, synchronize_session="fetch")
-    app_db.session.commit()
-    return get_sprint(sprint_id)
+    if current_user.id is None:
+        raise Exception("Cannot update Sprint without current User ID")
+    sprint_q = await app_db.execute(
+        select(Sprint).where(Sprint.id == sprint_id).where(Sprint.user_id == current_user.id)
+    )
+    sprint = sprint_q.scalar_one()
+    sprint.start_date = start_date
+    sprint.end_date = end_date
+    await app_db.commit()
+    return await get_sprint(sprint_id, current_user, app_db)
 
-def delete_sprint(sprint_id):
+
+async def delete_sprint(sprint_id: int, current_user: User, app_db: AsyncSession) -> int:
     """
     Delete a sprint (if empty)
     """
-    sprint = get_sprint(sprint_id)
+    if current_user.id is None:
+        raise ValueError("Cannot perform function without User ID")
+    sprint = await get_sprint(sprint_id, current_user, app_db)
+    if sprint is None:
+        # it's either already deleted or never existed
+        return sprint_id
     if len(sprint.tasks) > 0:
         raise Exception("Cannot delete empty sprint")
-    app_db = get_db()
-    Sprint.query.filter(Sprint.id == sprint_id).filter(
-        Sprint.user_id == current_user.id
-    ).delete()
-    app_db.session.commit()
+    await app_db.execute(
+        delete(Sprint).where(Sprint.id == sprint_id).where(Sprint.user_id == current_user.id)
+    )
+    await app_db.commit()
     return sprint_id
 
 
-def get_schedules_for_sprint(sprint_id):
+async def get_schedules_for_sprint(
+    sprint_id: int, current_user: User, app_db: AsyncSession
+) -> ScalarResult[ScheduleTask]:
     """
     Get ScheduleTasks having a sprint_id value
     @param sprint_id the queried sprint ID val
     """
-    return ScheduleTask.query.filter(ScheduleTask.sprint_id == sprint_id).all()
+    if current_user.id is None:
+        raise ValueError("Cannot perform function without User ID")
+    schedules = await app_db.execute(
+        select(ScheduleTask)
+        .where(ScheduleTask.sprint_id == sprint_id)
+        .where(current_user.id == ScheduleTask.user_id)
+    )
+    return schedules.scalars()
 
 
-def get_schedule_tasks_filtered(sprint_id, task_id, sprint_day, sprint_hour):
+async def get_schedule_tasks_filtered(
+    sprint_id: int,
+    task_id: int,
+    sprint_day: date,
+    sprint_hour: int,
+    current_user: User,
+    app_db: AsyncSession,
+) -> ScalarResult[ScheduleTask]:
     """
     Get ScheduleTasks having a sprint_id value
     @param sprint_id the queried sprint ID val
     @param sprint_day the day for the schedule
     @param sprint_hour the schedule time value
     """
-    query = ScheduleTask.query.filter(ScheduleTask.sprint_id == sprint_id)
-    query.filter(ScheduleTask.user_id == current_user.id)
+    query = select(ScheduleTask).where(ScheduleTask.sprint_id == sprint_id)
+    query.where(ScheduleTask.user_id == current_user.id)
     if task_id is not None:
-        query.filter(ScheduleTask.task_id == task_id)
+        query.where(ScheduleTask.task_id == task_id)
     if sprint_day is not None:
-        query.filter(ScheduleTask.sprint_day == sprint_day)
+        query.where(ScheduleTask.sprint_day == sprint_day)
     if sprint_hour is not None:
-        query.filter(ScheduleTask.sprint_hour == sprint_hour)
-    return query.all()
+        query.where(ScheduleTask.sprint_hour == sprint_hour)
+    sched = await app_db.execute(query)
+    return sched.scalars()
 
 
-def get_schedule(sched_id):
+async def get_schedule(sched_id, current_user: User, app_db: AsyncSession) -> ScheduleTask | None:
     """
     Get a ScheduleTask with a certain sched_id
     @param sched_id ScheduleTask ID you desire
     """
 
-    return (
-        ScheduleTask.query.filter(ScheduleTask.id == sched_id)
-        .filter(ScheduleTask.user_id == current_user.id)
-        .first()
+    schedule_task = await app_db.execute(
+        select(ScheduleTask)
+        .where(ScheduleTask.id == sched_id)
+        .where(ScheduleTask.user_id == current_user.id)
     )
+    return schedule_task.scalar_one_or_none()
 
 
-def get_schedule_by_time(sprint_id, sprint_day, sprint_hour, schedule_id=None):
+async def get_schedule_by_time(
+    sprint_id: int,
+    sprint_day: date,
+    sprint_hour: int,
+    current_user: User,
+    app_db: AsyncSession,
+    schedule_id: int | None = None,
+) -> ScheduleTask | None:
     """
     Get single ScheduleTask for a given sprint
     at a certain day on a certain time (with a
@@ -217,19 +277,30 @@ def get_schedule_by_time(sprint_id, sprint_day, sprint_hour, schedule_id=None):
     @param sprint_day the day for the schedule
     @param sprint_hour the schedule time value
     """
-
+    if current_user.id is None:
+        raise ValueError("Cannot perform function without User ID")
     query = (
-        ScheduleTask.query.filter(ScheduleTask.user_id == current_user.id)
-        .filter(ScheduleTask.sprint_day == sprint_day)
-        .filter(ScheduleTask.sprint_hour == sprint_hour)
-        .filter(ScheduleTask.sprint_id == sprint_id)
+        select(ScheduleTask)
+        .where(ScheduleTask.user_id == current_user.id)
+        .where(ScheduleTask.sprint_day == sprint_day)
+        .where(ScheduleTask.sprint_hour == sprint_hour)
+        .where(ScheduleTask.sprint_id == sprint_id)
     )
     if schedule_id is not None:
-        query.filter(ScheduleTask.id != schedule_id)
-    return query.first()
+        query.where(ScheduleTask.id != schedule_id)
+    sched = await app_db.execute(query)
+    return sched.scalar_one_or_none()
 
 
-def create_schedule(sprint_id, task_id, sprint_day, sprint_hour, note):
+async def create_schedule(
+    sprint_id: int,
+    task_id: int,
+    sprint_day: date,
+    sprint_hour: int,
+    note: str,
+    current_user: User,
+    app_db: AsyncSession,
+) -> ScheduleTask:
     """
     Create a new schedule for the task with ID
     @param task_id ID for task being scheduled
@@ -238,7 +309,8 @@ def create_schedule(sprint_id, task_id, sprint_day, sprint_hour, note):
     @param sprint_hour the schedule time value
     @param note Free field for clarifying time
     """
-    app_db = get_db()
+    if current_user.id is None:
+        raise ValueError("Cannot perform function without User ID")
     new_schedule = ScheduleTask(
         sprint_id=sprint_id,
         task_id=task_id,
@@ -246,92 +318,130 @@ def create_schedule(sprint_id, task_id, sprint_day, sprint_hour, note):
         sprint_hour=sprint_hour,
         note=note,
         user_id=current_user.id,
+        recurring=False,
     )
-    app_db.session.add(new_schedule)
-    app_db.session.commit()
-    return get_schedule_by_time(sprint_id, sprint_day, sprint_hour)
-
-
-def update_schedule(sched_id, task_id, sprint_day, sprint_hour, note):
-    """
-    Update a schedule with given ID for sprint
-    @param sched_id a Schedule record identity
-    @param task_id ID for task being scheduled
-    @param sprint_id ScheduleTask in Sprint ID
-    @param sprint_day the day for the schedule
-    @param sprint_hour the schedule time value
-    @param note Free field for clarifying time
-    """
-    ScheduleTask.query.filter(ScheduleTask.user_id == current_user.id).filter(
-        ScheduleTask.id == sched_id
-    ).update(
-        {
-            task_id: task_id,
-            sprint_day: sprint_day,
-            sprint_hour: sprint_hour,
-            note: note,
-        },
-        synchronize_session="fetch",
+    app_db.add(new_schedule)
+    await app_db.commit()
+    schedule_task = await get_schedule_by_time(
+        sprint_id, sprint_day, sprint_hour, current_user, app_db
     )
-    return get_schedule(sched_id)
+    if schedule_task is None:
+        raise Exception("Could not create schedule task. Database connection may be unstable.")
+    return schedule_task
 
 
-def delete_schedule(sched_id):
+async def update_schedule(
+    sched_id: int,
+    task_id: int,
+    sprint_day: date,
+    sprint_hour: int,
+    note: str,
+    current_user: User,
+    app_db: AsyncSession,
+) -> ScheduleTask | None:
+    """
+    Update a schedule with given ID for sprint.
+    @param sched_id a Schedule record identity.
+    @param task_id ID for task being scheduled.
+    @param sprint_id ScheduleTask in Sprint ID.
+    @param sprint_day the day for the schedule.
+    @param sprint_hour the schedule time value.
+    @param note Free field for clarifying time.
+    """
+    if current_user.id is None:
+        raise ValueError("Cannot perform function without User ID")
+    schedule_task_q = await app_db.execute(
+        select(ScheduleTask)
+        .where(ScheduleTask.user_id == current_user.id)
+        .where(ScheduleTask.id == sched_id)
+    )
+    schedule_task = schedule_task_q.scalar_one()
+    schedule_task.task_id = task_id
+    schedule_task.sprint_day = sprint_day
+    schedule_task.sprint_hour = sprint_hour
+    schedule_task.note = note
+    await app_db.commit()
+    return await get_schedule(sched_id, current_user, app_db)
+
+
+async def delete_schedule(sched_id: int, current_user: User, app_db: AsyncSession) -> int:
     """
     Delete a ScheduleTask record with an ident
     @sched_id ScheduleTask chosen for deletion
     """
-    app_db = get_db()
-    ScheduleTask.query.filter(ScheduleTask.id == sched_id).filter(
-        ScheduleTask.user_id == current_user.id
-    ).delete()
-    app_db.session.commit()
+    if current_user.id is None:
+        raise ValueError("Cannot perform function without User ID")
+    await app_db.execute(
+        delete(ScheduleTask)
+        .where(ScheduleTask.id == sched_id)
+        .where(ScheduleTask.user_id == current_user.id)
+    )
+    await app_db.commit()
+    return sched_id
 
 
-def get_sprint_details(sprint_id):
+async def get_sprint_details(
+    sprint_id: int, current_user: User, app_db: AsyncSession
+) -> tuple[
+    ScalarResult[Story],
+    ScalarResult[Epic],
+    ScalarResult[Task],
+    list[ScheduleTask],
+    ScalarResult[ScheduleTask],
+    ScalarResult[Task],
+]:
     """
     Get detailed records for given sprint with
     @param sprint_id sprint details are wanted
+    @return stories, epics, tasks, schedule_list, schedule_records, unplanned_tasks
     """
-    app_db = get_db()
-    stories = get_stories(sprint_view=True, sprint_id=sprint_id)
-    epics = get_epics(sprint_view=True, sprint_id=sprint_id)
-    # tasks = #get_tasks().filter(Task.sprint_id == sprint_id)
-    tasks = app_db.session.execute(
-        "SELECT task.id, task, estimate, status, story_id, "
-        + "epic_id, actual, task.deadline, task.recurring, coalesce(hours_worked,0) hours_worked, "
-        + "coalesce(sum_sched,0) sum_sched, "
-        + "(task.sprint_ID = sched.sprint_id) single_sprint_task "
-        + "FROM task "
-        + "JOIN story ON task.story_id = story.id "
-        + "LEFT OUTER JOIN (SELECT task_id, sum(hours_worked) hours_worked "
-        + "FROM work group by task_id) woik "
-        + "ON woik.task_id = task.id "
-        + "LEFT OUTER JOIN (select task_id, sprint_id, count(1) * 2 sum_sched "
-        + "FROM schedule_task group by task_id, sprint_id) sched "
-        + "ON task.id = sched.task_id AND sched.sprint_id = :sprint_id "
-        + "WHERE task.user_id = :user_id "
-        + "AND (task.sprint_ID = :sprint_id or task.recurring or "
-        + "task.id in (select task_id from schedule_task where sprint_id = sprint_id))",
+    if current_user.id is None:
+        raise ValueError("Cannot perform function without User ID")
+    stories = await get_stories_sprint_view(current_user, app_db, sprint_id=sprint_id)
+    epics = await get_epics(current_user, app_db, sprint_view=True, sprint_id=sprint_id)
+    tasks_q = await app_db.execute(
+        text(
+            "SELECT task.id, task, estimate, status, story_id, "
+            + "epic_id, actual, task.deadline, task.recurring, coalesce(hours_worked,0) hours_worked, "
+            + "coalesce(sum_sched,0) sum_sched, "
+            + "(task.sprint_ID = sched.sprint_id) single_sprint_task "
+            + "FROM task "
+            + "JOIN story ON task.story_id = story.id "
+            + "LEFT OUTER JOIN (SELECT task_id, sum(hours_worked) hours_worked "
+            + "FROM work group by task_id) woik "
+            + "ON woik.task_id = task.id "
+            + "LEFT OUTER JOIN (select task_id, sprint_id, count(1) * 2 sum_sched "
+            + "FROM schedule_task group by task_id, sprint_id) sched "
+            + "ON task.id = sched.task_id AND sched.sprint_id = :sprint_id "
+            + "WHERE task.user_id = :user_id "
+            + "AND (task.sprint_ID = :sprint_id or task.recurring or "
+            + "task.id in (select task_id from schedule_task where sprint_id = sprint_id))"
+        ),
         {"sprint_id": sprint_id, "user_id": current_user.id},
-    ).fetchall()
+    )
+    tasks = tasks_q.scalars()
     unplanned_tasks = (
-        Task.query.filter(Task.user_id == current_user.id)
-        .filter(or_(Task.sprint_id is None, Task.sprint_id != sprint_id))
-        .all()
-    )
+        await app_db.execute(
+            select(Task)
+            .where(Task.user_id == current_user.id)
+            .where(or_(Task.sprint_id is None, Task.sprint_id != sprint_id))
+        )
+    ).scalars()
     sprint_days = (
-        Sprint.query.filter(Sprint.id == sprint_id)
-        .filter(Sprint.user_id == current_user.id)
-        .first()
+        await app_db.execute(
+            select(Sprint).where(Sprint.id == sprint_id).where(Sprint.user_id == current_user.id)
+        )
+    ).scalar_one()
+    schedule_records_std = await app_db.execute(
+        select(ScheduleTask)
+        .where(ScheduleTask.sprint_id == sprint_id)
+        .where(ScheduleTask.user_id == current_user.id)
     )
-    schedule_records_std = ScheduleTask.query.filter(
-        ScheduleTask.sprint_id == sprint_id
-    ).filter(ScheduleTask.user_id == current_user.id)
-    schedule_records_recurring = (
-        ScheduleTask.query.join(Task)
-        .filter(Task.recurring)
-        .filter(ScheduleTask.user_id == current_user.id)
+    schedule_records_recurring = await app_db.execute(
+        select(ScheduleTask)
+        .join(Task)
+        .where(Task.recurring)
+        .where(ScheduleTask.user_id == current_user.id)
     )
     schedule_records_dict = {
         f"{x.sprint_day}T{x.sprint_hour}:00": x for x in schedule_records_recurring
@@ -356,24 +466,30 @@ templates = Jinja2Templates(directory="templates")
 
 
 def abort(response_code: int, message: str):
-    return JSONResponse(
-        status_code=response_code, content={"Error": {"message": message}}
-    )
+    return JSONResponse(status_code=response_code, content={"Error": {"message": message}})
 
 
-def get_sprint_board(sprint_id, sprint, is_static=False):
+# Frontend function for sprint board
+async def get_sprint_board(
+    request: Request, sprint_id: int, sprint: Sprint, current_user: User, app_db: AsyncSession, is_static=False
+):
     """
     Gather Sprint Board records for a specific
     @param sprint_id Sprint which the board is
     @param sprint record of board (only dates)
     @param is_static (optional) is unchanging?
     """
-    stories, epics, tasks, schedule_list, schedule_records, unplanned_tasks = get_sprint_details(
-        sprint_id
-    )
-    tasks = {x["id"]: dict(x) for x in tasks}
-    stories = {x["id"]: dict(x) for x in stories}
-    epics = {x["id"]: dict(x) for x in epics}
+    (
+        stories,
+        epics,
+        tasks,
+        schedule_list,
+        schedule_records,
+        unplanned_tasks,
+    ) = await get_sprint_details(sprint_id, current_user, app_db)
+    tasks = {x.id: dict(x) for x in tasks}
+    stories = {x.id: dict(x) for x in stories}
+    epics = {x.id: dict(x) for x in epics}
     # Get Estimate Totals by story/epic at each status level
     totals = {}
     # sum up totals btw I don't like how this is implemented
@@ -396,6 +512,7 @@ def get_sprint_board(sprint_id, sprint, is_static=False):
     return templates.TemplateResponse(
         "sprint/board.html",
         {
+            "request": request,
             "sprint": sprint,
             "sprint_id": sprint_id,
             "stories": stories,
@@ -412,14 +529,19 @@ def get_sprint_board(sprint_id, sprint, is_static=False):
 
 
 @router.post("/schedule/{sprint_id}")
-def api_create_schedule(sprint_id: int, schedule: ScheduleTask):
+async def api_create_schedule(
+    sprint_id: int,
+    schedule: ScheduleTask,
+    current_user: User = Depends(current_user),
+    app_db=Depends(get_db),
+):
     """
     Get or set scheduling information for a given sprint.
     """
-    sprint = get_sprint(sprint_id)
+    sprint = await get_sprint(sprint_id, current_user, app_db)
     recurring = schedule.recurring
     error = None
-    task = get_task(schedule.task_id)
+    task = await get_task(schedule.task_id, current_user, app_db)
     if recurring:
         if not task.recurring:
             error = "Task not set as recurring, cannot schedule as recurring"
@@ -432,82 +554,97 @@ def api_create_schedule(sprint_id: int, schedule: ScheduleTask):
     elif int(schedule.sprint_hour) > 24:
         error = "Sprint Hour is > 24"
     if error is None:
-        old_record = get_schedule_by_time(
+        old_record = await get_schedule_by_time(
             schedule.sprint_id,
             schedule.sprint_day,
             schedule.sprint_hour,
+            current_user,
+            app_db,
             schedule_id=schedule.id,
         )
         if old_record is not None:
             if old_record.id == schedule.id:
                 raise Exception("Old schedule flagged as duplicate")
-            delete_schedule(old_record.id)
+            await delete_schedule(old_record.id, current_user, app_db)
             schedule.id = None
         if schedule.id is None:
-            schedule_task = create_schedule(
+            schedule_task = await create_schedule(
                 schedule.sprint_id,
                 schedule.task_id,
                 schedule.sprint_day,
                 schedule.sprint_hour,
                 schedule.note,
+                current_user,
+                app_db,
             )
         else:
-            schedule_task = update_schedule(
+            schedule_task = await update_schedule(
                 schedule.id,
                 schedule.task_id,
                 schedule.sprint_day,
                 schedule.sprint_hour,
                 schedule.note,
+                current_user,
+                app_db,
             )
 
-            return JSONResponse(
-                {"Success": True, "schedule_task": schedule_task.to_dict()}
-            )
+            return JSONResponse({"Success": True, "schedule_task": schedule_task.to_dict()})
     return abort(500, error)
 
 
 @router.delete("/schedule/")
-def api_delete_schedule(schedule_id: int):
-    deleted_schedule = jsonable_encoder(get_schedule(schedule_id))
+async def api_delete_schedule(
+    schedule_id: int, current_user: User = Depends(current_user), app_db=Depends(get_db)
+):
+    deleted_schedule = await jsonable_encoder(get_schedule(schedule_id, current_user, app_db))
     if deleted_schedule is None:
         return abort(404, f"Cannot find schedule with ID {schedule_id}")
     output = {"Success": True, "schedule": deleted_schedule}
-    delete_schedule(schedule_id)
+    await delete_schedule(schedule_id, current_user, app_db)
     return JSONResponse(output)
 
 
-@router.get("/schedule/{sprint_id}")
-def list_schedules(sprint_id: int, task_id: int, sprint_day: date, sprint_hour: int):
-    schedule_tasks = get_schedule_tasks_filtered(
-        sprint_id, task_id, sprint_day, sprint_hour
+@router.get("/frontend/schedule/{sprint_id}", tags=["frontend"], response_class=HTMLResponse)
+async def fe_list_schedules(
+    sprint_id: int,
+    task_id: int,
+    sprint_day: date,
+    sprint_hour: int,
+    current_user: User = Depends(current_user),
+    app_db=Depends(get_db),
+):
+    schedule_tasks = await get_schedule_tasks_filtered(
+        sprint_id, task_id, sprint_day, sprint_hour, current_user, app_db
     )
-    if len(schedule_tasks) == 0:
+    if len(list(schedule_tasks)) == 0:
         return abort(404, "No Schedules Found")
     schedule_tasks_out = jsonable_encoder(schedule_tasks)
     return json.dumps({"Success": True, "schedule_tasks": schedule_tasks_out})
 
 
 @router.post("/create/next")
-def create_next():
+async def create_next(current_user: User = Depends(current_user), app_db=Depends(get_db)):
     """
     Create the next sprint assuming seven days
     """
     error = None
-    last_sprint = get_last_sprint()
+    last_sprint = await get_last_sprint(current_user, app_db)
     if last_sprint is None:
-        error = "No sprint found for user. Next sprint can only be created after initial sprint"
+        return abort(
+            500, "No sprint found for user. Next sprint can only be created after initial sprint"
+        )
     if error is None:
-        start_date, = last_sprint.end_date + timedelta(1)
+        start_date = last_sprint.end_date + timedelta(1)
         end_date = last_sprint.end_date + timedelta(8)
-        sprint = jsonable_encoder(create_sprint(start_date, end_date))
+        sprint = jsonable_encoder(create_sprint(start_date, end_date, current_user, app_db))
         return JSONResponse({"Success": True, "sprint": sprint})
     return abort(500, error)
 
 
-@router.get("/create/next", response_class=HTMLResponse)
-def get_next_html():
+@router.get("/frontend/create/next", tags=["frontend"], response_class=HTMLResponse)
+async def fe_get_next_html(current_user: User = Depends(current_user), app_db=Depends(get_db)):
     _ = create_next()
-    final_sprint = get_last_sprint()
+    final_sprint = await get_last_sprint(current_user, app_db)
     start_date = date.today() if final_sprint is None else final_sprint.end_date
     end_date = start_date + timedelta(7)
     return templates.TemplateResponse(
@@ -516,69 +653,99 @@ def get_next_html():
 
 
 @router.post("/create")
-def create(sprint: Sprint, force_create: bool = False):
+async def sprint_create(
+    sprint: Sprint,
+    force_create: bool = False,
+    current_user: User = Depends(current_user),
+    app_db=Depends(get_db),
+):
     """
     Create a New Sprint defaulting last week's
     sprint, but it will accept input if needed
     """
     error = None
-    start_sprint = get_sprint_by_date(start_date=sprint.start_date)
-    end_sprint = get_sprint_by_date(end_date=sprint.end_date)
+    start_sprint = await get_sprint_by_date(current_user, app_db, start_date=sprint.start_date)
+    end_sprint = await get_sprint_by_date(current_user, app_db, end_date=sprint.end_date)
     if end_sprint is not None:
         error = f"Sprint Ends same day as Existing Sprint {end_sprint.id}"
     elif start_sprint is not None:
         error = f"Sprint Starts same day as Existing Sprint {start_sprint.id}"
     elif force_create is False and (
-        get_sprint_by_date(middle_date=sprint.start_date) is not None
-        or get_sprint_by_date(middle_date=sprint.end_date) is not None
+        get_sprint_by_date(current_user, app_db, middle_date=sprint.start_date) is not None
+        or get_sprint_by_date(current_user, app_db, middle_date=sprint.end_date) is not None
     ):
         error = "Sprint overlaps existing Sprint"
 
     if error is None:
-        sprint = jsonable_encoder(create_sprint(sprint.start_date, sprint.end_date))
+        sprint = jsonable_encoder(
+            create_sprint(sprint.start_date, sprint.end_date, current_user, app_db)
+        )
         return JSONResponse({"Success": True, "sprint": sprint})
     return abort(500, error)
 
 
-@router.get("/create", response_class=HTMLResponse)
-def get_creation_form():
-    final_sprint = get_last_sprint()
+@router.get("/frontend/create", tags=["frontend"], response_class=HTMLResponse)
+async def fe_sprint_creation_template(
+    request: Request, current_user: User = Depends(current_user), app_db=Depends(get_db)
+):
+    final_sprint = await get_last_sprint(current_user, app_db)
     start_date = date.today() if final_sprint is None else final_sprint.end_date
     end_date = start_date + timedelta(6)
     return templates.TemplateResponse(
-        "sprint/create.html", {"start_date": start_date, "end_date": end_date}
+        "sprint/create.html",
+        {
+            "request": request,
+            "start_date": start_date,
+            "end_date": end_date,
+            "current_user": current_user,
+        },
     )
 
 
-@router.get("/")
-async def list_all(is_json: bool = False):
+@router.get("/frontend/", tags=["frontend"], response_class=HTMLResponse)
+async def fe_sprint_list_all(current_user: User = Depends(current_user), app_db=Depends(get_db)):
     """
     List all of the Sprints for a current user
     """
-    sprints = get_sprints()
-    current_sprint = get_current_sprint()
+    sprints = await get_sprints(current_user, app_db)
+    # current_sprint = await get_current_sprint(current_user, app_db)
     if not sprints:
         return RedirectResponse(router.url_path_for("create"))
-    sprint_numbers = {s.id: get_sprint_number_for_user(s.id) for s in sprints}
-    if is_json:
-        return JSONResponse(
-            {
-                "Success": True,
-                "sprints": [dict(x) for x in sprints],
-                "has_current_sprint": current_sprint is not None,
-            }
-        )
+    sprint_numbers = {s.id: get_sprint_number_for_user(s.id, current_user, app_db) for s in sprints}
     return templates.TemplateResponse(
         "sprint/list.html", {"sprints": sprints, "sprint_numbers": sprint_numbers}
     )
 
 
+@router.get("/")
+async def list_all_backend(current_user: User = Depends(current_user), app_db=Depends(get_db)):
+    """
+    List all of the Sprints for a current user
+    """
+    sprints = await get_sprints(current_user, app_db)
+    current_sprint = await get_current_sprint(current_user, app_db)
+    if not sprints:
+        return RedirectResponse(router.url_path_for("create"))
+    return JSONResponse(
+        {
+            "Success": True,
+            "sprints": [dict(x) for x in sprints],
+            "has_current_sprint": current_sprint is not None,
+        }
+    )
+
+
 @router.post("/{sprint_id}")
-async def update(sprint_id: int, sprint: Sprint):
+async def update(
+    sprint_id: int,
+    sprint: Sprint,
+    current_user: User = Depends(current_user),
+    app_db=Depends(get_db),
+):
     error = None
-    old_sprint = get_sprint(sprint_id)
-    start_sprint = get_sprint_by_date(start_date=sprint.start_date)
-    end_sprint = get_sprint_by_date(end_date=sprint.end_date)
+    old_sprint = await get_sprint(sprint_id, current_user, app_db)
+    start_sprint = await get_sprint_by_date(current_user, app_db, start_date=sprint.start_date)
+    end_sprint = await get_sprint_by_date(current_user, app_db, end_date=sprint.end_date)
     if old_sprint is None:
         return abort(404, f"Sprint with ID {sprint_id} not found")
     elif start_sprint is not None:
@@ -586,49 +753,74 @@ async def update(sprint_id: int, sprint: Sprint):
     elif end_sprint is not None:
         error = f"New end date is shared by sprint {end_sprint.id}"
     if error is None:
-        sprint = update_sprint(id, sprint.start_date, sprint.end_date)
+        sprint_nullable = await update_sprint(
+            id, sprint.start_date, sprint.end_date, current_user, app_db
+        )
+        if sprint_nullable is None:
+            return abort(500, "Could not get updated Sprint")
+        sprint = sprint_nullable
         return json.dumps({"Success": True, "sprint_id": sprint_id})
     return abort(500, error)
 
 
-@router.get("/{sprint_id}")
-def show(sprint_id: int, is_json: bool = False):
+@router.get("/frontend/show/{sprint_id}", tags=["frontend"], response_class=HTMLResponse)
+async def fe_show(request: Request, sprint_id: int, current_user: User = Depends(current_user), app_db=Depends(get_db)):
     """
     Show Board for Sprint with sprint identity
     @param sprint_id identity for sprint board
     """
-    sprint = get_sprint(sprint_id)
+    sprint = await get_sprint(sprint_id, current_user, app_db)
     if not sprint:
         return abort(404, f"Sprint with ID {sprint_id} was not found.")
-    if is_json:
-        return json.dumps(
-            {"Success": True, "sprint_id": sprint_id, "sprint": dict(sprint)}
-        )
-    return get_sprint_board(sprint_id, sprint, is_static=True)
+    return get_sprint_board(request, sprint_id, sprint, current_user, app_db, is_static=True)
 
 
-@router.get("/active")
-def active(is_json: bool = False):
+@router.get("/frontend/active", tags=["frontend"], response_class=HTMLResponse)
+async def fe_sprint_active(
+    request: Request, current_user: User = Depends(current_user), app_db=Depends(get_db)
+):
     """
     Returns sprint board for the active sprint
     If two sprints overlap in date pick latter
     """
-    current_sprint = get_current_sprint()
+    current_sprint = await get_current_sprint(current_user, app_db)
     if not current_sprint:
-        has_sprints = get_sprints()
-        if len(has_sprints) == 0:
+        has_sprints = await get_sprints(current_user, app_db)
+        if len(list(has_sprints)) == 0:
+            return abort(401, "Please create your first sprint.")
+        else:
+            return RedirectResponse(router.url_path_for("fe_sprint_creation_template"))
+    sprint_id = current_sprint.id
+    if not sprint_id:
+        return abort(404, "Sprint has no ID")
+    sprint_board = await get_sprint_board(request,
+        sprint_id, current_sprint, current_user, app_db, is_static=False
+    )
+    return sprint_board
+
+
+@router.get("/active", tags=["frontend"], response_class=HTMLResponse)
+async def sprint_active(
+    current_user: User = Depends(current_user), app_db=Depends(get_db)
+):
+    """
+    Returns sprint board for the active sprint
+    If two sprints overlap in date pick latter
+    """
+    current_sprint = await get_current_sprint(current_user, app_db)
+    if not current_sprint:
+        has_sprints = await get_sprints(current_user, app_db)
+        if len(list(has_sprints)) == 0:
             return abort(401, "Please create your first sprint.")
             # flash('Please create your first sprint.')
         else:
             return RedirectResponse(router.url_path_for("sprint.create"))
             # flash('No currently active sprint. Create new sprint')
     sprint_id = current_sprint.id
-    if is_json:
-        return JSONResponse(
-            {
-                "Success": True,
-                "sprint_id": sprint_id,
-                "sprint": jsonable_encoder(current_sprint),
-            }
-        )
-    return get_sprint_board(sprint_id, current_sprint, is_static=False)
+    return JSONResponse(
+        {
+            "Success": True,
+            "sprint_id": sprint_id,
+            "sprint": jsonable_encoder(current_sprint),
+        }
+    )

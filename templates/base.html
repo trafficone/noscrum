@@ -2,15 +2,16 @@
 <title>{% block title %}{% endblock %} - NoScrum</title>
 <link rel="stylesheet" href="{{ url_for('static', path='/style.css') }}"> 
 <link rel="stylesheet" href="{{ url_for('static', path='/css/foundation-float.css') }}"> 
-<!--link rel="stylesheet" href="{{ url_for('static', path='css/jquery-ui.min.css') }}"-->
-<link rel="stylesheet" href="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/themes/smoothness/jquery-ui.css">
+<link href="https://mincss.com/entireframework.min.css" rel="stylesheet" type="text/css">
+<!--link rel="stylesheet" href="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/themes/smoothness/jquery-ui.css"-->
+<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 <div class="top-bar">
     <div class="top-bar-left"><h1><a href="{{ url_for('index') }}">NoScrum</a></h1></div>
     <div class="top-bar-right">
     <ul class="menu">
-        {% if current_user.is_authenticated %}
-        <li><a href="{{ url_for('task.list_all') }}">Task Board</a>
-        <li><a href="{{ url_for('sprint.active') }}">Sprint</a>
+        {% if current_user %}
+        <li><a href="{{ url_for('fe_task_list_all') }}">Task Board</a>
+        <li><a href="{{ url_for('fe_sprint_active') }}">Sprint</a>
         {% else %}
         <li><a href="{{ url_for('register') }}">Register for Free</a></li> 
         {% endif %}
@@ -18,8 +19,8 @@
         <li><button type="button" class="button">Search</button></li>
         </ul>
         <div class="float-right">
-            {% if current_user.is_authenticated %}
-                <a href="{{ url_for('user.profile') }}">{{ current_user.first_name or current_user.username or current_user.email }}</a>
+            {% if current_user %}
+                <a href="{{ url_for('fe_user_profile') }}">{{ current_user.first_name or current_user.username or current_user.email }}</a>
                 &nbsp; | &nbsp;
                 <a href="{{ url_for('logout') }}">Sign out</a>
             {% else %}
@@ -41,54 +42,51 @@
         </div>
     {% endfor %}
     {% block content %}{% endblock %}
-    {% if request.app.state.DEBUG  %}
+    {% if request.app.debug  %}
 <div>
     <h1>DEBUG SITEMAP</h1>
     <h3>Epic</h3>
     <ul>
-        <li><a href="{{ url_for('epic.create') }}">Epic Create</a></li>
-        <li><a href="{{ url_for('epic.list_all') }}">Epic List</a></li>
+        <li><a href="{{ url_for('fe_epic_creation_template') }}">Epic Create</a></li>
+        <li><a href="{{ url_for('fe_epic_list_all_frontend') }}">Epic List</a></li>
         <li>Epic Show requires Epic ID, see Epic List</li>
     </ul>
     <h3>Story</h3>
     <ul>
         <li>Story Create requires Epic ID See Epic List</li>
-        <li><a href="{{ url_for('story.list_all') }}">Story List</a></li>
+        <li><a href="{{ url_for('fe_story_list_all') }}">Story List</a></li>
         <li>Story Show requires Story ID See Story List</li>
         <li>Tag Story requires Story ID, See Story List</li>
     </ul>
     <h3>Task</h3>
     <ul>
         <li>Task Create Requires Story ID, See Story List</li>
-        <li><a href="{{ url_for('task.list_all')}}">Task List</a></li>
+        <li><a href="{{ url_for('fe_task_list_all')}}">Task List</a></li>
         <li>Task Show Requires Task ID, See Task List</li>
     </ul>
     <h3>Sprint</h3>
     <ul>
-        <li><a href="{{ url_for('sprint.create') }}">Sprint Create</a></li>
-        <li><a href="{{ url_for('sprint.list_all') }}">Sprint List</a></li>
+        <li><a href="{{ url_for('fe_sprint_creation_template') }}">Sprint Create</a></li>
+        <li><a href="{{ url_for('fe_sprint_list_all') }}">Sprint List</a></li>
         <li>Sprint Show requires Sprint ID, See Sprint List</li>
-        <li><a href="{{ url_for('sprint.active') }}">Active Sprint</a></li>
+        <li><a href="{{ url_for('fe_sprint_active') }}">Active Sprint</a></li>
     </ul>
     <h3>Tag</h3>
     <ul>
-        <li><a href="{{ url_for('tag.create') }}">Tag Create</a></li>
-        <li><a href="{{ url_for('tag.list_all') }}">Tag List</a></li>
+        <li><a href="{{ url_for('fe_tag_creation_template') }}">Tag Create</a></li>
+        <li><a href="{{ url_for('fe_tag_list_all') }}">Tag List</a></li>
         <li>Tag Show requires Tag ID, See Tag List</li>
     </ul>
 </div>
 {% endif %}
 </section>
-<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
-<!--script src="{{ url_for('static', path='js/vendor/jquery.js') }}"></script-->
+<script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
 <script src="{{ url_for('static', path='/js/vendor/what-input.js') }}"></script>
 <script src="{{ url_for('static', path='/js/vendor/foundation.js') }}"></script>
-<!--script src="{{ url_for('static', path='js/foundation.core.js') }}"></script-->
-<script src="{{ url_for('static', path='/js/app.js') }}"></script>
-<!--script src="{{ url_for('static', path='js/foundation.abide.js') }}"></script-->
-<!--script src="{{ url_for('static', path='js/jquery-ui.js') }}"></script-->
-<script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>
+<script defer src="{{ url_for('static', path='/js/app.js') }}" type="module"></script>
 <script>
+    //{% block vanillajs %}
+    //{% endblock %}
     $(document).ready(function(){
         console.log("JQuery Running");
         $(document).foundation();

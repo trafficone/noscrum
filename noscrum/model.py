@@ -2,44 +2,68 @@
 """
 Database Models and Controller (not much to do, thanks SQLAlchemy!)
 """
-import uuid
+
+# pylint: disable=too-few-public-methods
+from collections.abc import Hashable, Iterable
 from datetime import date
 
-from fastapi_users.db import SQLAlchemyBaseUserTableUUID, SQLAlchemyUserDatabase
+from sqlalchemy.orm import DeclarativeBase
 from sqlmodel import Field, Relationship, SQLModel
 
-# from flask_login import UserMixin
 
-class UserRoles(SQLModel, table=True):
-    """
-    UserRoles model which joins User to Role.
-    """
-
-    __tablename__ = "user_roles"
-    id: int | None = Field(default=None, primary_key=True)
-    user_id: int = Field(default=None, foreign_key="user.id", primary_key=True)
-    role_id: int = Field(default=None, foreign_key="role.id", primary_key=True)
+class Base(DeclarativeBase):
+    pass
 
 
-# Define the UserRoles association table
+class DictableModel(DeclarativeBase):
+    """Interface class - any DB Model which can be converted to a dict by implementing to_dict()"""
+
+    def to_dict(self):
+        """
+        Default transformation of table to dict object
+        """
+        ret = {}
+        for column in self.__table__.columns:  # pylint: disable=no-member
+            key = column.name
+            value = getattr(self, column.name)
+            if isinstance(value, Hashable):
+                pass
+            elif isinstance(value, Iterable):
+                value = [x.to_dict() for x in value]
+            elif isinstance(value, date):
+                value = str(value)
+            elif hasattr(value, "to_dict"):
+                value = value.to_dict()
+            ret[key] = value
+        return ret
+
+    @classmethod
+    def from_dict(cls, input_dict):
+        """
+        Coerce dict object into table.
+        """
+        if set(input_dict.keys()) != {c.name for c in cls.__table__.columns}:
+            raise ValueError(f'Input dictionary not compatible with class "{cls.__name__}"')
+        return cls(**input_dict)
+
+
 class User(SQLModel, table=True):
     """
     User model. Contains all properties for a user.
     """
-    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
-    #arbitrary_types_allowed=True
-    email: str = Field(primary_key=True, index=True)
-    hashed_password: str
-    is_active: bool = True
-    is_superuser: bool = False
-    is_verified: bool = False
-    username: str = Field(primary_key=True)
-    email_opt_in: bool = False
+
+    # The following are created by SQLAlchemyBaseUserTableUUID
+    id: int | None = Field(default=None, primary_key=True)
+    email: str = Field(unique=True, index=True, nullable=False)
+    hashed_password: str = Field(nullable=False)
+    is_active: bool = Field(default=True, nullable=False)
+    is_superuser: bool = Field(default=False, nullable=False)
+    is_verified: bool = Field(default=False, nullable=False)
+    username: str = Field(unique=True, index=True, nullable=False)
+    email_opt_in: bool = Field(default=False)
     # User personal information
     first_name: str = Field(default="")
     last_name: str = Field(default="")
-    # Define the relationship to Role via UserRoles
-    roles: list["Role"] = Relationship(back_populates="users", link_model=UserRoles)
 
     def __str__(self):
         """
@@ -48,17 +72,14 @@ class User(SQLModel, table=True):
         """
         return f"User(id={self.id})"
 
-
-# Define the Role data-model
-class Role(SQLModel, table=True):
+class UserSettings(SQLModel, table=True):
     """
-    Role Model for App roles.
-    Currently unused.
+    User settings model.
     """
-
+    # Settings
     id: int | None = Field(default=None, primary_key=True)
-    name: str = Field(primary_key=True)
-    users: list["User"] = Relationship(back_populates="roles", link_model=UserRoles)
+    user_id: int = Field(foreign_key="user.id")
+
 
 
 class TagStory(SQLModel, table=True):
@@ -66,12 +87,9 @@ class TagStory(SQLModel, table=True):
     TagStory model which joins Story to Tag.
     """
 
-    __tablename__ = "tag_story"
     id: int | None = Field(default=None, primary_key=True)
-    tag_id: int | None = Field(default=None, foreign_key="tag.id", primary_key=True)
-    story_id: int | None = Field(
-        default=None, foreign_key="story.id", primary_key=True
-    )
+    tag_id: int = Field(foreign_key="tag.id", default=None)
+    story_id: int = Field(foreign_key="story.id", default=None)
 
 
 class Story(SQLModel, table=True):
@@ -80,15 +98,15 @@ class Story(SQLModel, table=True):
     """
 
     id: int | None = Field(default=None, primary_key=True)
-    story: str = Field(primary_key=True)
+    story: str = Field(nullable=False)
     epic_id: int = Field(foreign_key="epic.id")
     epic: "Epic" = Relationship(back_populates="stories")
     prioritization: int = Field(default=1)
-    deadline: date | None
+    deadline: date | None = Field(default=None)
     user_id: int = Field(foreign_key="user.id")
     tasks: list["Task"] = Relationship(back_populates="story")
     tags: list["Tag"] = Relationship(back_populates="stories", link_model=TagStory)
-    #sprints: list["Sprint"] = Relationship(back_populates="stories", link_model="Task")
+    # sprints: list["Sprint"] = Relationship(back_populates="stories", link_model="Task")
 
 
 class Tag(SQLModel, table=True):
@@ -97,11 +115,11 @@ class Tag(SQLModel, table=True):
     Just an additional string to group stories differently from Epic.
     """
 
-    #__tablename__ = "tag"
+    # __tablename__ = "tag"
     id: int | None = Field(default=None, primary_key=True)
     tag: str
     user_id: int = Field(foreign_key="user.id")
-    stories: list[Story] = Relationship(back_populates="tags",link_model=TagStory)
+    stories: list[Story] = Relationship(back_populates="tags", link_model=TagStory)
 
 
 class Task(SQLModel, table=True):
@@ -111,7 +129,7 @@ class Task(SQLModel, table=True):
     such as status, sprint, deadline, etc.
     """
 
-    #__tablename__ = "task"
+    # __tablename__ = "task"
     id: int | None = Field(default=None, primary_key=True)
     task: str
     story_id: int = Field(default=None, foreign_key="story.id")
@@ -137,12 +155,12 @@ class Work(SQLModel, table=True):
     # __tablename__ = "work"
     id: int | None = Field(default=None, primary_key=True)
     work_date: date
-    hours_worked: int
+    hours_worked: float
     task_id: int = Field(default=None, foreign_key="task.id")
     task: Task = Relationship(back_populates="work_items")
     status: str = Field(default="To-Do", nullable=True)
     user_id: int = Field(default=None, foreign_key="user.id")
-    #story: list["Story"] = Relationship(link_model=Task)
+    story: list["Story"] = Relationship(link_model=Task)
 
 
 class Epic(SQLModel, table=True):
@@ -150,10 +168,10 @@ class Epic(SQLModel, table=True):
     Epic model which defines the top level of project planning.
     """
 
-    #__tablename__ = "epic"
+    # __tablename__ = "epic"
     id: int | None = Field(default=None, primary_key=True)
     epic: str
-    color: str | None
+    color: str = Field(default="green")
     deadline: date | None
     user_id: int = Field(foreign_key="user.id")
     stories: list["Story"] = Relationship(back_populates="epic")
@@ -170,13 +188,13 @@ class Sprint(SQLModel, table=True):
     is populated with tasks via Task.sprint_id
     """
 
-    #__tablename__ = "sprint"
+    # __tablename__ = "sprint"
     id: int | None = Field(default=None, primary_key=True)
     start_date: date
     end_date: date
     user_id: int = Field(foreign_key="user.id")
     tasks: list[Task] = Relationship(back_populates="sprint")
-    #stories: list[Story] = Relationship(link_model=Task)
+    # stories: list[Story] = Relationship(link_model=Task)
     # epics = relationship('epic',secondary='story',tertiary='task')
     schedule: list["ScheduleTask"] = Relationship(back_populates="schedulesprint")
 
@@ -189,7 +207,8 @@ class ScheduleTask(SQLModel, table=True):
     associated with it.
     """
 
-    __tablename__ = "schedule_task"
+    # __tablename__ = "schedule_task"
+    __name__ = "schedule_task"
     id: int | None = Field(default=None, primary_key=True)
     task_id: int = Field(foreign_key="task.id")
     scheduletask: Task = Relationship(back_populates="schedules")
@@ -199,6 +218,7 @@ class ScheduleTask(SQLModel, table=True):
     sprint_day: date
     sprint_hour: int
     note: str | None
+    recurring: bool
 
     def to_dict(self):
         """
