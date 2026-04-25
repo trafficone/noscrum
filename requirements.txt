@@ -17,7 +17,7 @@ Flask-SQLAlchemy==2.5.1
 Flask-User==1.0.2.2
 Flask-Testing
 Flask-WTF==1.0.0
-idna==3.3
+idna==3.7
 itsdangerous==1.1.0
 Jinja2==2.11.3
 MarkupSafe==1.1.1
