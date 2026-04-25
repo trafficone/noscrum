@@ -4,7 +4,7 @@ blinker==1.4
 bs4
 cffi==1.15.0
 click==7.1.2
-cryptography==46.0.6
+cryptography==46.0.7
 dnspython==2.6.1
 email-validator==1.1.3
 Flask==1.1.2
@@ -17,7 +17,7 @@ Flask-SQLAlchemy==2.5.1
 Flask-User==1.0.2.2
 Flask-Testing
 Flask-WTF==1.0.0
-idna==3.3
+idna==3.7
 itsdangerous==1.1.0
 Jinja2==2.11.3
 MarkupSafe==1.1.1
